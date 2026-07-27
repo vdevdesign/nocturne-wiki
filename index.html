@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nocturne — Campaign Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0d16; --bg-alt: #14121f; --surface: #1b1829; --surface-2: #221e33;
+    --line: #33304a; --text: #e9e4f2; --text-dim: #a79fc0; --text-faint: #746c8f;
+    --gold: #c9a24b; --gold-dim: #8a713a; --purple: #8a68d6; --purple-dim: #5b4590;
+    --rose: #b1526b; --rose-dim: #6e3548;
+    --font-title: 'Cormorant Garamond', serif; --font-body: 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: radial-gradient(ellipse 900px 500px at 15% -10%, rgba(138,104,214,0.10), transparent 60%), radial-gradient(ellipse 700px 500px at 100% 10%, rgba(201,162,75,0.06), transparent 55%), var(--bg); color: var(--text); font-family: var(--font-body); display: flex; min-height: 100vh; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; } }
+
+  /* Auth */
+  #authScreen { position: fixed; inset: 0; background: radial-gradient(ellipse 900px 600px at 50% 0%, rgba(138,104,214,0.14), transparent 60%), var(--bg); display: flex; align-items: center; justify-content: center; z-index: 200; }
+  #authScreen.hidden { display: none; }
+  .auth-box { background: var(--surface); border: 1px solid var(--purple-dim); border-radius: 14px; padding: 40px 44px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 0 60px rgba(138,104,214,0.12); }
+  .auth-box h1 { font-family: var(--font-title); font-size: 32px; margin: 10px 0 4px 0; }
+  .auth-box p.tagline { color: var(--text-faint); font-style: italic; font-family: var(--font-title); font-size: 15px; margin: 0 0 20px 0; }
+  .auth-tabs { display:flex; gap:6px; margin-bottom:18px; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:3px; }
+  .auth-tabs button { flex:1; padding:7px 0; background:none; border:none; color:var(--text-faint); font-family:var(--font-body); font-size:13px; cursor:pointer; border-radius:6px; }
+  .auth-tabs button.active { background: var(--purple-dim); color: #fff; }
+  .auth-box label { display:block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); margin-bottom: 6px; text-align: left; }
+  .auth-box input { width: 100%; padding: 11px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 7px; color: var(--text); font-family: var(--font-body); font-size: 14.5px; margin-bottom: 16px; outline: none; }
+  .auth-box input:focus { border-color: var(--purple); }
+  .auth-box button[type="submit"] { width: 100%; }
+  .auth-error { color: var(--rose); font-size: 12.5px; margin-top: 10px; min-height: 14px; }
+  .auth-note { color: var(--text-faint); font-size: 11.5px; margin-top: 14px; line-height:1.5; }
+
+  nav.sidebar { width: 260px; flex-shrink: 0; background: var(--bg-alt); border-right: 1px solid var(--line); padding: 28px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+  .brand { padding: 0 24px 22px 24px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+  .brand h1 { font-family: var(--font-title); font-weight: 600; font-size: 26px; letter-spacing: 0.5px; margin: 0; color: var(--text); }
+  .brand p { margin: 4px 0 0 0; font-size: 12px; color: var(--text-faint); letter-spacing: 0.6px; text-transform: uppercase; }
+  .role-pill { display:inline-block; margin-top:8px; font-size:10.5px; letter-spacing:0.5px; text-transform:uppercase; padding:2px 8px; border-radius:10px; border:1px solid var(--gold-dim); color:var(--gold); }
+  .role-pill.dm { border-color: var(--rose); color: #f182a0; }
+  .navlist { list-style: none; margin: 0; padding: 0 12px; flex-grow: 1; }
+  .navlist li { margin-bottom: 2px; }
+  .navlist button { width: 100%; text-align: left; background: none; border: none; color: var(--text-dim); font-family: var(--font-body); font-size: 14.5px; padding: 10px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s, color 0.15s; }
+  .navlist button:hover { background: var(--surface); color: var(--text); }
+  .navlist button.active { background: var(--surface-2); color: var(--gold); box-shadow: inset 2px 0 0 var(--gold-dim); }
+  .navlist .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--purple-dim); flex-shrink: 0; }
+  .navlist button.active .dot { background: var(--gold); }
+  .navlist .dm-nav-btn { color: var(--rose); border: 1px dashed rgba(177, 82, 107, 0.4); margin-top: 10px; }
+  .navlist .dm-nav-btn:hover { background: rgba(177, 82, 107, 0.1); color: #f182a0; }
+  .navlist .dm-nav-btn.active { background: rgba(177, 82, 107, 0.2); color: #f182a0; box-shadow: inset 2px 0 0 var(--rose); }
+  .logout-btn { margin: 12px; padding: 8px 12px; font-size: 12px; color: var(--text-faint); background: none; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  .logout-btn:hover { color: var(--text); border-color: var(--purple-dim); }
+
+  main { flex: 1; padding: 56px 64px; max-width: 900px; }
+  section { display: none; animation: fade-in 0.25s ease; }
+  section.active { display: block; }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .eyebrow { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--purple); margin-bottom: 8px; font-weight: 500; }
+  h2.title { font-family: var(--font-title); font-weight: 600; font-size: 38px; margin: 0 0 6px 0; color: var(--text); }
+  .subtitle { color: var(--text-faint); font-style: italic; font-size: 15px; margin: 0 0 34px 0; font-family: var(--font-title); }
+  h3 { font-family: var(--font-title); font-size: 23px; font-weight: 600; color: var(--gold); margin: 34px 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  h3:first-of-type { margin-top: 0; }
+  p { line-height: 1.7; color: var(--text-dim); font-size: 15px; margin: 0 0 14px 0; }
+  strong { color: var(--text); font-weight: 600; }
+  ul { padding-left: 20px; margin: 0 0 14px 0; }
+  li { line-height: 1.7; color: var(--text-dim); font-size: 15px; margin-bottom: 6px; }
+  .mystery-list li::marker { color: var(--rose); }
+  code { font-family: var(--font-mono); color: var(--gold); font-size: 13px; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; margin-bottom: 16px; position: relative; }
+  .card h4 { font-family: var(--font-title); font-size: 20px; color: var(--text); margin: 0 0 4px 0; font-weight: 600; }
+  .card .tag { font-size: 11.5px; color: var(--text-faint); letter-spacing: 0.3px; margin-bottom: 10px; display: block; }
+
+  .secret-box { margin-top: 14px; padding: 12px 14px; background: rgba(177,82,107,0.08); border-left: 3px solid var(--rose); border-radius: 4px; font-size: 14px; color: var(--text-dim); }
+  .secret-box::before { content: "DM SECRET"; display: block; font-size: 10.5px; letter-spacing: 1px; color: var(--rose); margin-bottom: 6px; font-weight: 600; }
+
+  .milestones { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 13px; }
+  .milestones .m-label { font-size: 10.5px; letter-spacing: 1px; color: var(--purple); text-transform: uppercase; margin-bottom: 6px; display:block; }
+  .milestones div.mrow { margin-bottom: 5px; color: var(--text-dim); }
+  .milestones div.mrow.reached { color: var(--text); }
+  .milestones strong { color: var(--gold); }
+  .milestones .reached-by { color: var(--gold); font-size:11.5px; margin-left:4px; }
+
+  .friendship-counter-inline { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); flex-wrap: wrap; }
+  .counter-badge { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); padding: 4px 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--gold); }
+  .party-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim); margin-bottom:6px; }
+  .party-row .pname { min-width:150px; color:var(--text); }
+
+  .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg); border: 1px solid var(--line); transition: .3s; border-radius: 22px; }
+  .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: var(--text-faint); transition: .3s; border-radius: 50%; }
+  input:checked + .slider { background-color: var(--purple-dim); border-color: var(--purple); }
+  input:checked + .slider:before { transform: translateX(22px); background-color: var(--gold); }
+
+  .statblock { background: var(--surface); border: 1px solid var(--purple-dim); border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; font-family: var(--font-mono); font-size: 13px; color: var(--text-dim); line-height: 1.65; }
+  .statblock h4 { font-family: var(--font-title); color: var(--gold); font-size: 20px; margin: 0 0 3px 0; }
+  .statblock .meta { color: var(--text-faint); font-style: italic; margin-bottom: 10px; font-family: var(--font-body); font-size: 12.5px; }
+  .statblock .stats { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0; }
+  .statblock .stats div { min-width: 44px; text-align: center; }
+  .statblock .stats span { display: block; font-size: 10.5px; color: var(--text-faint); }
+
+  .hp-tracker { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); vertical-align: middle; }
+  .hp-tracker strong { color: var(--gold); font-size: 12px; }
+  .hp-btn { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 14px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+  .hp-btn:hover { background: var(--purple-dim); border-color: var(--purple); }
+  .hp-input { width: 52px; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; color: #5aa876; font-family: var(--font-mono); font-size: 13px; text-align: center; padding: 2px 4px; outline: none; }
+  .hp-input.bloodied { color: var(--gold); border-color: var(--gold-dim); }
+  .hp-input.zero-hp { color: var(--rose); border-color: var(--rose-dim); }
+  .hp-formula { color: var(--text-faint); font-size: 11.5px; }
+
+  .character-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.1rem; margin-bottom: 2rem; }
+  .char-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.25rem; cursor: pointer; transition: all 0.2s ease; }
+  .char-card:hover, .char-card.selected { border-color: var(--purple); background: var(--surface-2); }
+  .char-card h4 { font-family: var(--font-title); color: var(--gold); font-size: 1.2rem; margin: 0 0 0.25rem 0; }
+  .pill-tag { display: inline-block; font-size: 0.72rem; background: var(--bg); border: 1px solid var(--line); color: var(--gold); padding: 2px 6px; border-radius: 4px; margin: 2px 4px 2px 0; font-family: var(--font-mono); }
+
+  .editor-container { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.75rem; margin-top: 1.5rem; }
+  .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--line); padding-bottom: 1rem; flex-wrap: wrap; gap: 10px; }
+  .editor-header h3 { border-bottom: none; margin: 0; }
+  .editor-textarea { width: 100%; min-height: 200px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); padding: 1rem; font-family: var(--font-body); line-height: 1.6; resize: vertical; outline: none; }
+  .editor-textarea:focus { border-color: var(--purple); }
+
+  .input-group { margin-bottom: 1rem; text-align: left; }
+  .input-group label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); margin-bottom: 0.35rem; }
+  .input-control { width: 100%; padding: 0.65rem 0.9rem; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: 0.9rem; outline: none; }
+  .input-control:focus { border-color: var(--purple); }
+  .checkbox-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-faint); margin-bottom:14px; }
+  .block-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+  .block-card.editing { border-color: var(--purple); }
+  .block-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 8px; }
+  .block-header h4 { margin:0; }
+  .block-actions { display:flex; gap:6px; flex-shrink:0; }
+  .add-block-btn { margin: 4px 0 28px 0; }
+
+  .btn { background: var(--purple-dim); color: var(--text); border: 1px solid var(--purple); border-radius: 6px; padding: 0.6rem 1.25rem; font-family: var(--font-body); font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; }
+  .btn:hover { background: var(--purple); color: #fff; }
+  .btn-secondary { background: var(--surface-2); border-color: var(--line); color: var(--text-dim); }
+  .btn-secondary:hover { background: var(--surface); color: var(--text); }
+  .btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
+  .btn-spoiler { background: var(--rose-dim); border-color: var(--rose); }
+  .btn-spoiler:hover { background: var(--rose); }
+  #spoilerToggleBtn, .btn-spoiler {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+  .status-badge { font-size: 0.75rem; color: var(--gold); background: rgba(201,162,75,0.1); padding: 0.25rem 0.6rem; border-radius: 12px; border: 1px solid var(--gold-dim); }
+  .error-msg { color: var(--rose); font-size: 0.85rem; margin-top: 0.5rem; }
+  .empty-note { color: var(--text-faint); font-style: italic; }
+
+  .section-toolbar { display:flex; justify-content:flex-end; margin-bottom: -18px; position:relative; z-index:2; }
+
+  /* Spoiler blackout */
+  body.spoilers-off .spoiler { filter: blur(7px); user-select: none; pointer-events: none; position: relative; }
+  body.spoilers-off .spoiler::after {
+    content: "spoilers hidden"; position: absolute; inset: 0; display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; color: var(--text-faint); pointer-events: none;
+  }
+
+  ::-webkit-scrollbar { width: 9px; }
+  ::-webkit-scrollbar-track { background: var(--bg-alt); }
+  ::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 5px; }
+
+  /* Nav Chat Button & LIVE Badge */
+  .nav-chat-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    background: var(--surface);
+    border: 1px solid var(--gold-dim, #c5a059);
+    color: var(--gold, #f3d17c);
+    border-radius: 6px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .nav-chat-btn:hover {
+    background: rgba(197, 160, 89, 0.15);
+    border-color: var(--gold, #f3d17c);
+  }
+  .nav-live-badge {
+    background: var(--gold);
+    color: var(--bg);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    animation: live-pulse 1.8s infinite ease-in-out;
+  }
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(201,162,75,0.8); }
+    50% { opacity: 0.6; box-shadow: 0 0 1px rgba(201,162,75,0.2); }
+  }
+
+  /* Chat Modal Container */
+  .chat-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+  .chat-modal-overlay.open { display: flex; }
+
+  .chat-modal {
+    width: 90%;
+    max-width: 750px;
+    height: 80vh;
+    background: var(--bg-card, #1e1e24);
+    border: 1px solid var(--line, #333);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Modal Header & Hamburger Sidebar */
+  .chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .chat-menu-drawer {
+    position: absolute;
+    top: 55px;
+    left: -260px;
+    width: 250px;
+    height: calc(100% - 55px);
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    transition: left 0.25s ease;
+    z-index: 10;
+    padding: 12px;
+    overflow-y: auto;
+  }
+  .chat-menu-drawer.open { left: 0; }
+
+  .chat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    font-size: 13px;
+  }
+  .chat-item:hover, .chat-item.active { background: rgba(255,255,255,0.08); }
+
+  /* Message styling with delete controls */
+  .chat-msg-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13.5px;
+  }
+  .chat-msg-del-btn {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 12px;
+    opacity: 0.6;
+    transition: opacity 0.2s, color 0.2s;
+  }
+  .chat-msg-del-btn:hover {
+    opacity: 1;
+    color: var(--rose);
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH SCREEN ================= -->
+<div id="authScreen">
+  <div class="auth-box">
+    <svg width="52" height="52" viewBox="0 0 40 40" fill="none" style="margin:0 auto 4px auto; display:block;">
+      <circle cx="20" cy="20" r="17" stroke="var(--gold-dim)" stroke-width="1.2"/>
+      <circle cx="20" cy="20" r="12" stroke="var(--gold)" stroke-width="0.8" stroke-dasharray="2 3"/>
+      <path d="M20 6 L20 12 M20 28 L20 34 M6 20 L12 20 M28 20 L34 20" stroke="var(--gold-dim)" stroke-width="1"/>
+      <path d="M14 9 L24 31" stroke="var(--rose)" stroke-width="0.8" opacity="0.6"/>
+      <circle cx="20" cy="20" r="2.2" fill="var(--gold)"/>
+    </svg>
+    <h1>Nocturne</h1>
+    <p class="tagline">Sign in to reach the campaign hub.</p>
+    <div class="auth-tabs">
+      <button type="button" id="tabSignIn" class="active" onclick="setAuthMode('signin')">Sign In</button>
+      <button type="button" id="tabSignUp" onclick="setAuthMode('signup')">Sign Up</button>
+    </div>
+    <form id="authForm">
+      <label for="authUsername">Username</label>
+      <input type="text" id="authUsername" placeholder="Character First Name" required>
+      <label for="authPass">Password</label>
+      <input type="password" id="authPass" autocomplete="current-password" placeholder="•••••••••">
+      <button type="submit" class="btn" id="authSubmitBtn">Sign In</button>
+      <div class="auth-error" id="authError"></div>
+    </form>
+    <p class="auth-note" id="authNote">New players: use Sign Up to create an account. Everyone starts as a player — the DM promotes accounts manually in Supabase.</p>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<nav class="sidebar" id="appSidebar" style="display:none;">
+  <div class="brand">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="17" stroke="var(--gold-dim)" stroke-width="1.2"/>
+      <circle cx="20" cy="20" r="12" stroke="var(--gold)" stroke-width="0.8" stroke-dasharray="2 3"/>
+      <path d="M20 6 L20 12 M20 28 L20 34 M6 20 L12 20 M28 20 L34 20" stroke="var(--gold-dim)" stroke-width="1"/>
+      <path d="M14 9 L24 31" stroke="var(--rose)" stroke-width="0.8" opacity="0.6"/>
+      <circle cx="20" cy="20" r="2.2" fill="var(--gold)"/>
+    </svg>
+    <h1>Nocturne</h1>
+    <p>Campaign Hub</p>
+    <span class="role-pill" id="rolePill">player</span>
+  </div>
+  <ul class="navlist" id="navlist">
+    <li style="padding: 0 4px;">
+      <button class="nav-chat-btn" onclick="openChatModal()">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Session Chats</span>
+        </div>
+        <span id="navLiveBadge" class="nav-live-badge" style="display:none;">LIVE</span>
+      </button>
+    </li>
+    <li><button data-target="home" class="active"><span class="dot"></span>Home</button></li>
+    <li><button data-target="worldbook"><span class="dot"></span>Worldbook</button></li>
+    <li><button data-target="npcs"><span class="dot"></span>NPCs &amp; Standing</button></li>
+    <li><button data-target="characters"><span class="dot"></span>Character Directory</button></li>
+    <li><button data-target="session-zero"><span class="dot"></span>Session Zero &amp; Rules</button></li>
+    <li><button data-target="summaries"><span class="dot"></span>Session Summaries</button></li>
+    <li><button data-target="loot"><span class="dot"></span>Loot &amp; Rewards</button></li>
+    <li><button data-target="primer"><span class="dot"></span>Player Primer</button></li>
+    <li><button data-target="restricted" class="dm-nav-btn" id="dmNavBtn" style="display:none;"><span class="dot" style="background:var(--rose);"></span>&#128274; Restricted Archives</button></li>
+  </ul>
+  <button class="logout-btn" id="logoutBtn">Sign out</button>
+</nav>
+
+<main id="appMain" style="display:none;">
+
+  <section id="home" class="active">
+    <div class="eyebrow">Welcome</div>
+    <h2 class="title">The World of Nocturne</h2>
+    <p class="subtitle">A homebrew D&amp;D 5e campaign, centered on Elthizar Adventurer Academy.</p>
+    <p>This hub holds tone, lore, the active character roster, and party records, all in one place.</p>
+    <div class="card">
+      <h4>Where to start</h4>
+      <p style="margin:0;">New to the table? Start with the <strong>Player Primer</strong>. Running the game? Everything DM-only lives in <strong>Restricted Archives</strong>.</p>
+    </div>
+  </section>
+
+  <section id="worldbook">
+    <div class="eyebrow">Setting</div>
+    <h2 class="title">Worldbook</h2>
+    <p class="subtitle">Dark fantasy with a cheerful surface.</p>
+    <div id="worldbook-container"><p class="empty-note">Loading…</p></div>
+  </section>
+
+  <section id="npcs">
+    <div class="eyebrow">Dramatis Personae</div>
+    <div class="section-toolbar" id="spoilerToolbar" style="display:none;">
+      <button class="btn btn-spoiler btn-sm" id="spoilerToggleBtn" onclick="toggleSpoilers()">Black Out Spoilers</button>
+    </div>
+    <h2 class="title">NPCs &amp; Standing</h2>
+    <p class="subtitle">Faculty, allies, and notable figures across the realm.</p>
+    <div id="npc-cards-container"><p class="empty-note">Loading…</p></div>
+  </section>
+
+  <section id="characters">
+    <div class="eyebrow">Roster &amp; Lore</div>
+    <h2 class="title">Character Directory</h2>
+    <p class="subtitle">Party roster and player character deep dives.</p>
+    <div class="character-grid" id="character-grid"></div>
+    <button class="btn btn-secondary btn-sm add-block-btn" id="add-char-btn" style="display:none;" onclick="addNewCharacter()">+ Add Character</button>
+    <div class="editor-container" id="editor-box">
+      <div class="editor-header">
+        <div>
+          <h3 id="active-char-name">Select a Character</h3>
+          <div id="active-char-tags" style="margin-top: 4px;"></div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <span id="save-status" class="status-badge" style="display:none;">Saved</span>
+          <button id="delete-char-btn" class="btn btn-secondary" style="display:none;" onclick="deleteCharacter()">Delete</button>
+          <button id="edit-toggle-btn" class="btn btn-secondary" onclick="toggleEditMode()">Switch to Edit Mode</button>
+        </div>
+      </div>
+      <div id="read-mode-content" style="color: var(--text); line-height: 1.7; min-height: 140px;">
+        <p style="color: var(--text-faint);">Select a hero above to view or update background details.</p>
+      </div>
+      <div id="edit-mode-content" style="display: none;">
+        <div class="input-group" id="tag-edit-group" style="display:none;">
+          <label>Tags (separate with |, e.g. "Player: Name | Lvl 1 | Race | Class")</label>
+          <input class="input-control" id="tag-textarea" placeholder="Player: ... | Lvl 1 | Race | Class">
+        </div>
+        <textarea id="bio-textarea" class="editor-textarea" placeholder="Type character lore and notes..."></textarea>
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button class="btn btn-secondary" onclick="toggleEditMode()">Cancel</button>
+          <button class="btn" onclick="saveCharacterBio()">Save Lore Updates</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="session-zero">
+    <div class="eyebrow">Table Expectations</div>
+    <h2 class="title">Session Zero &amp; House Rules</h2>
+    <h3>Tone and Content</h3>
+    <ul>
+      <li>Loss and grief as backstory</li>
+      <li>Political corruption and class injustice</li>
+      <li>Psychological horror over gore (mind control, memory loss, identity)</li>
+    </ul>
+    <p>If any of this doesn't sound fun, session zero is the time to say so.</p>
+    <h3>Safety Tools</h3>
+    <p>Our safe word is <strong>COCONUT</strong>. Say it and we pause, change, or skip whatever's happening, no explanation needed in the moment. Checking in privately (a message after session) works too.</p>
+    <h3>System &amp; Tools</h3>
+    <p>D&amp;D 5th Edition, 2024 rules. Character sheets on D&amp;D Beyond.</p>
+  </section>
+
+  <section id="summaries">
+    <div class="eyebrow">Recaps</div>
+    <h2 class="title">Session Summaries</h2>
+    <p class="subtitle">Public logs of the party's ongoing exploits.</p>
+    <div id="summaries-container"><p class="empty-note">Loading…</p></div>
+  </section>
+
+  <section id="loot">
+    <div class="eyebrow">Treasure</div>
+    <h2 class="title">Loot &amp; Rewards</h2>
+    <p class="subtitle">Pick and choose based on what fits the moment.</p>
+    <div id="loot-container"><p class="empty-note">Loading…</p></div>
+  </section>
+
+  <section id="primer">
+    <div class="eyebrow">Before You Play</div>
+    <h2 class="title">Player Primer</h2>
+    <p class="subtitle">What you need to know before making a character.</p>
+    <h3>The Basics</h3>
+    <p>D&amp;D 5th Edition, 2024 rules. Sheets on D&amp;D Beyond. Dark fantasy with a cheerful surface, mystery and magic with something a little unsettling underneath.</p>
+    <h3>The World</h3>
+    <p><strong>Elthizar Adventurer Academy</strong> — founded by Euduneus, deep roots in magic and monster fighting. Groups travel by dragon, solo/paired by pegasus. Curfew enforced, chimeras banned.</p>
+    <p>Other places: <strong>Kirael</strong> (fae kingdom), <strong>Vardok</strong> (dragonkin city), <strong>Evron</strong> (human settlement, tense with Vardok).</p>
+    <h3>Tone and Content, Honestly</h3>
+    <p>Loss and grief as backstory &middot; political corruption and class injustice &middot; psychological horror over gore. If this doesn't sound fun, session zero is the time to say so.</p>
+    <h3>Safety Tools</h3>
+    <p>Our safe word is <strong>COCONUT</strong>. Say it and we pause, change, or skip whatever's happening, no explanation needed. Messaging the DM after session works too.</p>
+    <h3>Rumours & Mysteries</h3>
+    <ul class="mystery-list">
+      <li>Something lurks in the forest near the academy.</li>
+      <li>The paintings below the Herbology classroom cry, for reasons no one's explained.</li>
+      <li>The river near the academy is making people sick.</li>
+      <li>There's a locked door in the headmaster's office, and nobody knows what opens it.</li>
+    </ul>
+    <h3>Friendship Points</h3>
+    <p>Build real relationships with major NPCs through genuine roleplay. Reaching new milestones with them unlocks a deeper scene. Happens naturally through play.</p>
+    <hr style="border:none; border-top:1px solid var(--line); margin:30px 0;">
+    <div class="eyebrow">Quick Reference</div>
+    <h2 class="title" style="font-size:30px;">How to Play D&amp;D</h2>
+    <h3>What it is</h3>
+    <p>A collaborative story. The DM describes the world and plays every character who isn't yours. You decide what your character does. Dice decide uncertain outcomes.</p>
+    <h3>The basic loop</h3>
+    <p>DM describes the scene &rarr; you say what you do &rarr; roll if uncertain &rarr; DM narrates the result.</p>
+    <h3>The dice</h3>
+    <p><code>d20 + modifier</code> vs. a DC (target number) set by the DM. Meet or beat it, you succeed.</p>
+    <h3>Character sheet, in short</h3>
+    <p>Six ability scores (Str/Dex/Con/Int/Wis/Cha) &middot; skills tied to those abilities &middot; HP (damage you can take) &middot; AC (how hard you are to hit).</p>
+    <h3>In combat</h3>
+    <p>Roll initiative &rarr; on your turn take an action and usually a move &rarr; repeat until it ends.</p>
+    <h3>Roleplay is just talking</h3>
+    <p>Speak as your character, make choices as your character would, ask questions when curious.</p>
+  </section>
+
+  <section id="restricted">
+    <div class="eyebrow">Restricted Vault</div>
+    <div class="section-toolbar">
+      <button class="btn btn-spoiler btn-sm" onclick="toggleSpoilers()">Black Out Spoilers</button>
+    </div>
+    <h2 class="title">Restricted Archives</h2>
+    <p class="subtitle">Deep lore, encounters, and secrets — DM only, enforced by the database, not just the UI.</p>
+    <div id="restricted-container"><p class="empty-note">Loading…</p></div>
+  </section>
+
+</main>
+
+<!-- ================= SESSION CHAT MODAL ================= -->
+<div id="chatModalOverlay" class="chat-modal-overlay">
+  <div class="chat-modal">
+    <!-- Header -->
+    <div class="chat-header">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button class="btn btn-sm btn-secondary" onclick="toggleChatDrawer()" title="Toggle Session List">☰</button>
+        <h4 id="modalChatTitle" style="margin:0; font-family:var(--font-title); font-size:20px; color:var(--text);">Session Chat</h4>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span id="chatStatusBadge" class="status-badge">Locked</span>
+        <button class="btn btn-sm btn-secondary" onclick="closeChatModal()">✕</button>
+      </div>
+    </div>
+
+    <!-- Slide-out Hamburger Menu for Stored Chats -->
+    <div id="chatMenuDrawer" class="chat-menu-drawer">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <strong style="font-size:12px; text-transform:uppercase; color:var(--text-faint);">Past Sessions</strong>
+        <span id="dmNewChatBtn"></span>
+      </div>
+      <div id="previousChatsList">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Chat Body -->
+    <div style="flex:1; display:flex; flex-direction:column; padding:16px; overflow:hidden;">
+      <!-- DM Controls Bar -->
+      <div id="dmChatControls" style="display:none; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center;">
+            <label class="switch">
+              <input type="checkbox" id="sessionOpenToggle" onchange="toggleSessionChat(this.checked)">
+              <span class="slider"></span>
+            </label>
+            <span style="font-size:12px; margin-left:6px; color:var(--text-dim);">Unlock Chat for Players</span>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick="clearAllSessionMessages()" style="color:var(--rose); border-color:var(--rose-dim);">Clear All Messages</button>
+        </div>
+      </div>
+
+      <!-- Messages Window -->
+      <div id="chatMessages" style="flex:1; overflow-y:auto; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:12px; display:flex; flex-direction:column; gap:8px;"></div>
+
+      <!-- Message Form -->
+      <form id="chatForm" style="display:flex; gap:8px;">
+        <input type="text" id="chatInput" class="input-control" placeholder="Session locked..." disabled style="flex:1;">
+        <button type="submit" id="chatSendBtn" class="btn" disabled>Send</button>
+      </form>
+      <p style="font-size:11px; color:var(--text-faint); margin:6px 0 0 0;">Tip: Type <code>/whisper [Name] message</code> to send a private note seen only by that player and the DM.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ===================== CONFIG ===================== */
+  const SUPABASE_URL = "https://xpsaorwxjminbnmooojc.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwc2Fvcnd4am1pbmJubW9vb2pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTgwMjQsImV4cCI6MjEwMDM5NDAyNH0.2E2cKbl9OgYQWp0pbTG1b3U5UMR3gEoIbGg533u2KpM";
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentUser = null;
+  let isDM = false;
+  let spoilersOff = false;
+  let currentSelectedCharId = null;
+  let isEditing = false;
+  let cachedCharacters = [];
+  
+  let currentSessionId = "session_1";
+  let isSessionOpen = false;
+  let chatSubscription = null;
+
+  /* ===================== AUTH ===================== */
+  let authMode = 'signin';
+  function setAuthMode(mode) {
+    authMode = mode;
+    document.getElementById('tabSignIn').classList.toggle('active', mode === 'signin');
+    document.getElementById('tabSignUp').classList.toggle('active', mode === 'signup');
+    document.getElementById('authSubmitBtn').innerText = mode === 'signin' ? 'Sign In' : 'Create Account';
+    document.getElementById('authError').textContent = '';
+  }
+
+  document.getElementById('authForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('authUsername').value.trim().toLowerCase();
+    const password = document.getElementById('authPass').value;
+    
+    const email = `${username}@campaign.local`;
+
+    let result;
+    if (authMode === 'signin') {
+      result = await sb.auth.signInWithPassword({ email, password });
+    } else {
+      result = await sb.auth.signUp({ 
+        email, 
+        password,
+        options: { data: { username: username } }
+      });
+    }
+    
+    if (result.error) {
+      document.getElementById('authError').textContent = result.error.message;
+      return;
+    }
+    await onSignedIn();
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    location.reload();
+  });
+
+  async function checkSession() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      await onSignedIn();
+    }
+  }
+
+  async function onSignedIn() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+    currentUser = user;
+    let { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    isDM = !!profile && profile.role === 'dm';
+
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('appSidebar').style.display = 'flex';
+    document.getElementById('appMain').style.display = 'block';
+    const rolePill = document.getElementById('rolePill');
+    rolePill.textContent = isDM ? 'dm' : 'player';
+    rolePill.classList.toggle('dm', isDM);
+    document.getElementById('dmNavBtn').style.display = isDM ? 'flex' : 'none';
+    document.getElementById('spoilerToolbar').style.display = isDM ? 'flex' : 'none';
+
+    loadWorldbook();
+    loadNPCs();
+    loadCharacters();
+    loadSummaries();
+    loadLoot();
+    checkLiveSessionStatus();
+    if (isDM) loadRestricted();
+  }
+
+  /* ===================== LIVE STATUS & NAVIGATION ===================== */
+  async function checkLiveSessionStatus() {
+    const { data: sessionState } = await sb.from('active_session').select('*').eq('id', 1).maybeSingle();
+    const badge = document.getElementById('navLiveBadge');
+    if (sessionState?.is_open) {
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    // Subscribe to global active_session changes to keep the LIVE badge synced in real time
+    sb.channel('global_live_status')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'active_session' }, payload => {
+        const state = payload.new;
+        if (state.is_open) {
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      })
+      .subscribe();
+  }
+
+  document.querySelectorAll('.navlist button:not(.nav-chat-btn)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-target');
+      if (!target) return;
+      document.querySelectorAll('.navlist button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('main section').forEach(s => s.classList.remove('active'));
+      document.getElementById(target).classList.add('active');
+    });
+  });
+
+  function toggleSpoilers() {
+    spoilersOff = !spoilersOff;
+    document.body.classList.toggle('spoilers-off', spoilersOff);
+    document.querySelectorAll('.btn-spoiler').forEach(b => {
+      b.textContent = spoilersOff ? 'Show Spoilers' : 'Black Out Spoilers';
+    });
+  }
+
+  /* ===================== SESSION CHAT SYSTEM ===================== */
+  function openChatModal() {
+    document.getElementById('chatModalOverlay').classList.add('open');
+    loadPreviousChatsMenu();
+    initSessionChat(currentSessionId);
+  }
+
+  function closeChatModal() {
+    document.getElementById('chatModalOverlay').classList.remove('open');
+  }
+
+  function toggleChatDrawer() {
+    document.getElementById('chatMenuDrawer').classList.toggle('open');
+  }
+
+  async function loadPreviousChatsMenu() {
+    const container = document.getElementById('previousChatsList');
+    const dmBtnContainer = document.getElementById('dmNewChatBtn');
+    
+    if (isDM) {
+      dmBtnContainer.innerHTML = `<button class="btn btn-sm" onclick="createNewSessionChat()">+ New</button>`;
+    }
+
+    const { data, error } = await sb.from('session_messages').select('session_id').order('created_at', { ascending: false });
+    
+    if (error) { container.innerHTML = `<p class="error-msg">Failed to load sessions.</p>`; return; }
+
+    const uniqueSessions = Array.from(new Set((data || []).map(m => m.session_id)));
+    if (!uniqueSessions.includes(currentSessionId)) uniqueSessions.unshift(currentSessionId);
+
+    container.innerHTML = uniqueSessions.map(sessId => `
+      <div class="chat-item ${sessId === currentSessionId ? 'active' : ''}" onclick="switchSessionChat('${sessId}')">
+        <span>${escapeHtml(sessId.replace('_', ' ').toUpperCase())}</span>
+        ${isDM ? `<button class="btn btn-sm btn-secondary" onclick="confirmDeleteChat(event, '${sessId}')" style="padding:2px 6px; font-size:10px;">🗑</button>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function switchSessionChat(sessionId) {
+    currentSessionId = sessionId;
+    document.getElementById('modalChatTitle').innerText = sessionId.replace('_', ' ').toUpperCase();
+    document.getElementById('chatMenuDrawer').classList.remove('open');
+    initSessionChat(currentSessionId);
+    loadPreviousChatsMenu();
+  }
+
+  async function confirmDeleteChat(event, sessionId) {
+    event.stopPropagation();
+    const input = prompt(`Are you sure you want to delete all logs for "${sessionId}"?\n\nType DELETE below to confirm:`);
+    
+    if (input === "DELETE") {
+      const { error } = await sb.from('session_messages').delete().eq('session_id', sessionId);
+      if (error) {
+        alert("Failed to delete chat: " + error.message);
+      } else {
+        alert(`Session "${sessionId}" deleted.`);
+        if (currentSessionId === sessionId) currentSessionId = "session_1";
+        openChatModal();
+      }
+    } else if (input !== null) {
+      alert("Deletion canceled. You must type DELETE in all caps to confirm.");
+    }
+  }
+
+  async function createNewSessionChat() {
+    const name = prompt("Enter new session name (e.g., Session 2):");
+    if (!name) return;
+    const newId = name.trim().toLowerCase().replace(/\s+/g, '_');
+    switchSessionChat(newId);
+  }
+
+  async function initSessionChat(sessionId) {
+    currentSessionId = sessionId;
+    
+    const { data: sessionState } = await sb.from('active_session').select('*').eq('id', 1).maybeSingle();
+    isSessionOpen = sessionState?.is_open && (sessionState?.active_session_id === currentSessionId);
+    updateChatUI();
+
+    loadSessionMessages();
+
+    if (chatSubscription) sb.removeChannel(chatSubscription);
+    chatSubscription = sb.channel(`chat_${currentSessionId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_messages', filter: `session_id=eq.${currentSessionId}` }, payload => {
+        appendMessageUI(payload.new);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'session_messages' }, payload => {
+        const deletedId = payload.old?.id;
+        if (deletedId) {
+          const el = document.getElementById(`msg-${deletedId}`);
+          if (el) el.remove();
+        } else {
+          loadSessionMessages();
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'active_session' }, payload => {
+        const state = payload.new;
+        isSessionOpen = state.is_open && (state.active_session_id === currentSessionId);
+        updateChatUI();
+      })
+      .subscribe();
+  }
+
+  function updateChatUI() {
+    const input = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('chatSendBtn');
+    const badge = document.getElementById('chatStatusBadge');
+    const dmControls = document.getElementById('dmChatControls');
+    const toggle = document.getElementById('sessionOpenToggle');
+
+    if (isDM) {
+      dmControls.style.display = 'block';
+      toggle.checked = isSessionOpen;
+    }
+
+    const canType = isDM || isSessionOpen;
+    input.disabled = !canType;
+    sendBtn.disabled = !canType;
+
+    if (isSessionOpen) {
+      badge.innerText = "Live Session Active";
+      badge.style.color = "var(--gold)";
+      badge.style.borderColor = "var(--gold-dim)";
+      input.placeholder = "Type a message or /whisper [Player]...";
+    } else {
+      badge.innerText = "Session Locked";
+      badge.style.color = "var(--rose)";
+      badge.style.borderColor = "var(--rose-dim)";
+      input.placeholder = isDM ? "Session locked for players (DM can still post)..." : "Session locked by DM.";
+    }
+  }
+
+  async function toggleSessionChat(isOpen) {
+    const { error } = await sb.from('active_session').upsert({
+      id: 1,
+      active_session_id: currentSessionId,
+      is_open: isOpen
+    });
+    if (error) alert("Failed to change session status: " + error.message);
+  }
+
+  document.getElementById('chatForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    const rawText = input.value.trim();
+    if (!rawText) return;
+
+    let recipientId = null;
+    let isWhisper = false;
+    let messageText = rawText;
+
+    if (rawText.startsWith('/whisper ')) {
+      const parts = rawText.split(' ');
+      const targetName = parts[1];
+      messageText = parts.slice(2).join(' ');
+
+      const { data: targetProfile } = await sb.from('profiles').select('id').ilike('email', `%${targetName}%`).maybeSingle();
+      if (targetProfile) {
+        recipientId = targetProfile.id;
+        isWhisper = true;
+      } else {
+        alert(`Could not find player "${targetName}" to whisper.`);
+        return;
+      }
+    }
+
+    const { error } = await sb.from('session_messages').insert({
+      session_id: currentSessionId,
+      sender_id: currentUser.id,
+      sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
+      recipient_id: recipientId,
+      content: messageText,
+      is_whisper: isWhisper
+    });
+
+    if (error) {
+      alert("Could not send message: " + error.message);
+    } else {
+      input.value = '';
+    }
+  });
+
+  async function loadSessionMessages() {
+    const container = document.getElementById('chatMessages');
+    const { data: msgs, error } = await sb.from('session_messages')
+      .select('*')
+      .eq('session_id', currentSessionId)
+      .order('created_at', { ascending: true });
+
+    if (error) { container.innerHTML = `<p class="error-msg">Error loading messages.</p>`; return; }
+    
+    container.innerHTML = '';
+    if (!msgs || msgs.length === 0) {
+      container.innerHTML = `<p class="empty-note">No logs recorded for this session yet.</p>`;
+      return;
+    }
+    msgs.forEach(msg => appendMessageUI(msg));
+  }
+
+  function appendMessageUI(msg) {
+    const container = document.getElementById('chatMessages');
+    const emptyNote = container.querySelector('.empty-note');
+    if (emptyNote) emptyNote.remove();
+
+    const isWhisper = msg.is_whisper;
+    const msgDiv = document.createElement('div');
+    msgDiv.id = `msg-${msg.id}`;
+    msgDiv.className = 'chat-msg-row';
+    msgDiv.style.background = isWhisper ? 'rgba(138, 104, 214, 0.15)' : 'var(--surface)';
+    msgDiv.style.borderLeft = isWhisper ? '3px solid var(--purple)' : '1px solid var(--line)';
+
+    const whisperTag = isWhisper ? `<span style="color:var(--purple); font-size:11px; font-weight:600;"> [WHISPER]</span>` : '';
+    const deleteBtn = isDM ? `<button class="chat-msg-del-btn" onclick="deleteSessionMessage('${msg.id}')" title="Delete message">🗑</button>` : '';
+
+    msgDiv.innerHTML = `
+      <div>
+        <strong style="color:${msg.sender_name === 'DM' ? 'var(--rose)' : 'var(--gold)'}">${escapeHtml(msg.sender_name)}</strong>${whisperTag}: <span>${escapeHtml(msg.content)}</span>
+      </div>
+      ${deleteBtn}
+    `;
+    
+    container.appendChild(msgDiv);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  /* ===================== DELETE CHAT MESSAGES ===================== */
+  async function deleteSessionMessage(messageId) {
+    if (!isDM) {
+      alert("Only the DM can delete chat messages.");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this message?")) return;
+
+    const { error } = await sb.from('session_messages').delete().eq('id', messageId);
+
+    if (error) {
+      console.error("Error deleting message:", error);
+      alert("Failed to delete message: " + error.message);
+    } else {
+      const msgEl = document.getElementById(`msg-${messageId}`);
+      if (msgEl) msgEl.remove();
+    }
+  }
+
+  async function clearAllSessionMessages() {
+    if (!isDM) return;
+
+    if (!confirm(`Are you sure you want to clear all chat messages in "${currentSessionId}"?`)) return;
+
+    const { error } = await sb.from('session_messages').delete().eq('session_id', currentSessionId);
+
+    if (error) {
+      console.error("Error clearing messages:", error);
+      alert("Failed to clear messages: " + error.message);
+    } else {
+      const chatBox = document.getElementById('chatMessages');
+      if (chatBox) chatBox.innerHTML = '<p class="empty-note">No logs recorded for this session yet.</p>';
+    }
+  }
+
+  /* ===================== CONTENT LOADERS & HELPERS ===================== */
+  async function loadWorldbook() { loadContentSection('worldbook', 'worldbook-container', 'Worldbook Entry'); }
+  async function loadNPCs() { loadContentSection('npcs', 'npc-cards-container', 'NPC'); }
+  async function loadSummaries() { loadContentSection('summaries', 'summaries-container', 'Session Summary'); }
+  async function loadLoot() { loadContentSection('loot', 'loot-container', 'Loot Item'); }
+  async function loadRestricted() { loadContentSection('restricted', 'restricted-container', 'Restricted Entry'); }
+
+  async function loadContentSection(section, containerId, addLabel) {
+    let query = sb.from('content_blocks').select('*').eq('section', section).order('id');
+    if (!isDM && (section === 'npcs' || section === 'loot')) {
+      query = query.eq('visible_to_players', true);
+    }
+    const { data, error } = await query;
+    const container = document.getElementById(containerId);
+    if (error) { container.innerHTML = `<p class="error-msg">Couldn't load this section.</p>`; return; }
+    let html = (data && data.length) ? data.map(row => renderContentBlock(row, section)).join('') : `<p class="empty-note">Nothing here yet.</p>`;
+    if (isDM) html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addContentBlock('${section}')">+ Add ${addLabel}</button>`;
+    container.innerHTML = html;
+  }
+
+  function renderContentBlock(row, section) {
+    let dmControls = '';
+    if (isDM && (section === 'npcs' || section === 'loot')) {
+      const isVisible = row.visible_to_players ?? true;
+      dmControls = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
+            <label class="switch">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${row.id}', '${section}', this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>`;
+    }
+
+    return `<div class="block-card">
+      <div class="block-header">
+        <h4>${escapeHtml(row.title)}</h4>
+        ${isDM ? `<div class="block-actions">
+          <button class="btn btn-sm btn-secondary" onclick="deleteContentBlock('${row.id}','${section}')">Delete</button>
+        </div>` : ''}
+      </div>
+      <div>${row.body || ''}</div>
+      ${dmControls}
+    </div>`;
+  }
+
+  async function toggleBlockVisibility(id, section, visible) {
+    const { error } = await sb.from('content_blocks').update({ visible_to_players: visible }).eq('id', id);
+    if (error) alert('Failed to update visibility: ' + error.message);
+    else loadContentSection(section, section + '-container', section);
+  }
+
+  async function addContentBlock(section) {
+    const title = prompt("Enter title:");
+    if (!title) return;
+    const body = prompt("Enter description/body:");
+    await sb.from('content_blocks').insert({ section, title, body, visible_to_players: true });
+    loadContentSection(section, section + '-container', section);
+  }
+
+  async function deleteContentBlock(id, section) {
+    if (!confirm("Delete this block?")) return;
+    await sb.from('content_blocks').delete().eq('id', id);
+    loadContentSection(section, section + '-container', section);
+  }
+
+  /* ===================== CHARACTER DIRECTORY ===================== */
+  async function loadCharacters() {
+    const { data, error } = await sb.from('characters').select('*').order('name');
+    if (error) return;
+    cachedCharacters = data || [];
+    const grid = document.getElementById('character-grid');
+    grid.innerHTML = cachedCharacters.map(c => `
+      <div class="char-card ${c.id === currentSelectedCharId ? 'selected' : ''}" onclick="selectCharacter('${c.id}')">
+        <h4>${escapeHtml(c.name)}</h4>
+        <div>${(c.tags || []).map(t => `<span class="pill-tag">${escapeHtml(t)}</span>`).join('')}</div>
+      </div>
+    `).join('');
+    
+    if (isDM) document.getElementById('add-char-btn').style.display = 'block';
+  }
+
+  function selectCharacter(id) {
+    currentSelectedCharId = id;
+    const char = cachedCharacters.find(c => c.id === id);
+    if (!char) return;
+    
+    document.getElementById('active-char-name').innerText = char.name;
+    document.getElementById('active-char-tags').innerHTML = (char.tags || []).map(t => `<span class="pill-tag">${escapeHtml(t)}</span>`).join('');
+    document.getElementById('read-mode-content').innerHTML = char.bio || '<p class="empty-note">No bio available.</p>';
+    document.getElementById('bio-textarea').value = char.bio || '';
+    document.getElementById('tag-textarea').value = (char.tags || []).join(' | ');
+    
+    if (isDM) {
+      document.getElementById('delete-char-btn').style.display = 'block';
+      document.getElementById('tag-edit-group').style.display = 'block';
+    }
+    loadCharacters();
+  }
+
+  function toggleEditMode() {
+    isEditing = !isEditing;
+    document.getElementById('read-mode-content').style.display = isEditing ? 'none' : 'block';
+    document.getElementById('edit-mode-content').style.display = isEditing ? 'block' : 'none';
+    document.getElementById('edit-toggle-btn').innerText = isEditing ? 'Cancel Edit' : 'Switch to Edit Mode';
+  }
+
+  async function saveCharacterBio() {
+    if (!currentSelectedCharId) return;
+    const bio = document.getElementById('bio-textarea').value;
+    const tagInput = document.getElementById('tag-textarea').value;
+    const tags = tagInput.split('|').map(t => t.trim()).filter(Boolean);
+
+    const updateData = { bio };
+    if (isDM) updateData.tags = tags;
+
+    const { error } = await sb.from('characters').update(updateData).eq('id', currentSelectedCharId);
+    if (!error) {
+      toggleEditMode();
+      loadCharacters();
+      selectCharacter(currentSelectedCharId);
+    }
+  }
+
+  async function addNewCharacter() {
+    const name = prompt("Enter character name:");
+    if (!name) return;
+    const { data, error } = await sb.from('characters').insert({ name, bio: '', tags: [] }).select().single();
+    if (!error && data) {
+      await loadCharacters();
+      selectCharacter(data.id);
+    }
+  }
+
+  async function deleteCharacter() {
+    if (!currentSelectedCharId || !confirm("Delete this character sheet?")) return;
+    await sb.from('characters').delete().eq('id', currentSelectedCharId);
+    currentSelectedCharId = null;
+    document.getElementById('active-char-name').innerText = 'Select a Character';
+    document.getElementById('read-mode-content').innerHTML = '<p style="color: var(--text-faint);">Select a hero above to view or update background details.</p>';
+    loadCharacters();
+  }
+
+  function escapeHtml(str) { return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function escapeAttr(str) { return (str || '').replace(/"/g, "&quot;"); }
+
+  checkSession();
+</script>
+
+</body>
+</html>
