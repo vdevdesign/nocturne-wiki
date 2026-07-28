@@ -498,14 +498,15 @@
   </section>
 
   <section id="restricted">
-    <div class="eyebrow">Restricted Vault</div>
-    <div class="section-toolbar">
-      <button class="btn btn-spoiler btn-sm" onclick="toggleSpoilers()">Black Out Spoilers</button>
-    </div>
-    <h2 class="title">Restricted Archives</h2>
-    <p class="subtitle">Deep lore, encounters, and secrets — DM only, enforced by the database, not just the UI.</p>
-    <div id="restricted-container"><p class="empty-note">Loading…</p></div>
-  </section>
+  <div class="eyebrow">DM Eyes Only</div>
+  <h2 class="title">Restricted Archives</h2>
+  <p class="subtitle">Confidential DM notes, campaign outlines, lore, and encounters.</p>
+  
+  <!-- Container for the Hub menu & sub-views -->
+  <div id="restricted-container">
+    <p class="empty-note">Loading Hub…</p>
+  </div>
+</section>
 
 </main>
 
@@ -972,29 +973,59 @@
     await loadTableSection('loot', 'loot-container', 'Loot Item'); 
   }
 
-  async function loadRestricted() {
-    const container = document.getElementById('restricted-container');
-    if (!container) return;
-    container.innerHTML = '';
+  /* ===================== RESTRICTED ARCHIVES HUB ===================== */
 
-    const tables = [
-      { name: 'lore', label: 'Deep Lore' },
-      { name: 'session_skeletons', label: 'Session Skeletons' },
-      { name: 'character_template_secrets', label: 'Character Secrets' }
-    ];
+// Main entry point called when clicking the Restricted tab
+async function loadRestricted() {
+  showRestrictedHub();
+}
 
-    for (const t of tables) {
-      const subHeader = document.createElement('h3');
-      subHeader.textContent = t.label;
-      container.appendChild(subHeader);
+// Renders the card selection menu
+function showRestrictedHub() {
+  const container = document.getElementById('restricted-container');
+  if (!container) return;
 
-      const subContainer = document.createElement('div');
-      subContainer.id = `restricted-${t.name}-container`;
-      container.appendChild(subContainer);
+  container.innerHTML = `
+    <div class="restricted-grid">
+      <div class="card hub-card" onclick="openRestrictedSubSection('encounters', 'Encounters', 'Monsters, NPC stat blocks, and planned combat encounters.', 'Encounter')">
+        <h4>⚔️ Encounters</h4>
+        <p class="hub-desc">Monsters, NPC stat blocks, and planned combat encounters.</p>
+      </div>
 
-      await loadTableSection(t.name, subContainer.id, t.label);
-    }
-  }
+      <div class="card hub-card" onclick="openRestrictedSubSection('lore', 'Deep Lore', 'Behind-the-scenes world history, truths, and campaign secrets.', 'Lore Entry')">
+        <h4>📜 Deep Lore</h4>
+        <p class="hub-desc">Behind-the-scenes world history, truths, and campaign secrets.</p>
+      </div>
+
+      <div class="card hub-card" onclick="openRestrictedSubSection('session_skeletons', 'Session Skeletons', 'Upcoming session outlines, beats, and contingencies.', 'Session Skeleton')">
+        <h4>💀 Session Skeletons</h4>
+        <p class="hub-desc">Upcoming session outlines, beats, and contingencies.</p>
+      </div>
+
+      <div class="card hub-card" onclick="openRestrictedSubSection('character_template_secrets', 'Template Characters', 'Pre-made character archetypes, secret stats, and templates.', 'Template Character')">
+        <h4>🎭 Template Characters</h4>
+        <p class="hub-desc">Pre-made character archetypes, secret stats, and templates.</p>
+      </div>
+    </div>
+  `;
+}
+
+// Opens a specific sub-section and displays a "Back to Hub" button
+async function openRestrictedSubSection(tableName, title, description, label) {
+  const container = document.getElementById('restricted-container');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div style="margin-bottom: 20px;">
+      <button class="btn btn-secondary btn-sm" onclick="showRestrictedHub()">← Back to Restricted Hub</button>
+    </div>
+    <h3 style="margin-top: 0;">${escapeHtml(title)}</h3>
+    <p class="subtitle" style="margin-bottom: 20px;">${escapeHtml(description)}</p>
+    <div id="sub-${tableName}-container"><p class="empty-note">Loading…</p></div>
+  `;
+
+  await loadTableSection(tableName, `sub-${tableName}-container`, label);
+}
 
   async function loadTableSection(tableName, containerId, addLabel) {
     let query = sb.from(tableName).select('*').order('order_index', { ascending: true, nullsFirst: false });
