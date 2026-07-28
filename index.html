@@ -361,68 +361,48 @@
   line-height: 1.4;
 }
 
-/* HP Counter Bar */
-.hp-tracker {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(180, 40, 40, 0.15);
-  border: 1px solid rgba(220, 60, 60, 0.4);
-  border-radius: 6px;
-  padding: 8px 14px;
-  margin: 12px 0 16px 0;
-}
-
-.hp-display {
-  font-weight: bold;
-  font-size: 1rem;
-  color: #ff6b6b;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
+/* HP Controls & Custom Input Layout */
 .hp-controls {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
-.hp-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-radius: 4px;
-  width: 28px;
-  height: 28px;
-  font-weight: bold;
-  cursor: pointer;
+.hp-custom-group {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: background 0.15s ease;
+  gap: 4px;
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.hp-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+.hp-input {
+  width: 48px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  color: #fff;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: bold;
 }
 
-.hp-btn.damage {
-  background: rgba(220, 50, 50, 0.3);
-  border-color: rgba(220, 50, 50, 0.6);
+.hp-input:focus {
+  outline: none;
+  border-color: var(--gold, #c9a050);
 }
 
-.hp-btn.damage:hover {
-  background: rgba(220, 50, 50, 0.6);
+/* Hide HTML number input spinners for a cleaner look */
+.hp-input::-webkit-inner-spin-button, 
+.hp-input::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
 }
-
-.hp-btn.heal {
-  background: rgba(40, 160, 80, 0.3);
-  border-color: rgba(40, 160, 80, 0.6);
-}
-
-.hp-btn.heal:hover {
-  background: rgba(40, 160, 80, 0.6);
+.hp-input {
+  -moz-appearance: textfield;
 }
 </style>
 </head>
@@ -1203,12 +1183,11 @@ async function openRestrictedSubSection(tableName, title, description, label) {
         </div>`;
     }
 
-    // Add HP Tracker widget for Encounters
+    // Add HP Tracker widget with Custom Input for Encounters
     let hpWidget = '';
     if (tableName === 'encounters') {
-      // Try to detect HP value from body or title (e.g. "HP 45" or "HP: 45")
       const hpMatch = (row.body || '').match(/HP:?\s*(\d+)/i) || (row.title || '').match(/HP:?\s*(\d+)/i);
-      const maxHp = hpMatch ? parseInt(hpMatch[1], 10) : 30; // Defaults to 30 if none detected
+      const maxHp = hpMatch ? parseInt(hpMatch[1], 10) : 30;
 
       hpWidget = `
         <div class="hp-tracker" id="hp-tracker-${row.id}" data-max-hp="${maxHp}" data-current-hp="${maxHp}">
@@ -1216,11 +1195,21 @@ async function openRestrictedSubSection(tableName, title, description, label) {
             ❤️ HP: <span id="hp-val-${row.id}">${maxHp}</span> / ${maxHp}
           </div>
           <div class="hp-controls">
+            <!-- Quick Modifiers -->
             <button class="hp-btn damage" title="Take 5 Damage" onclick="adjustHP('${row.id}', -5)">-5</button>
             <button class="hp-btn damage" title="Take 1 Damage" onclick="adjustHP('${row.id}', -1)">-1</button>
             <button class="hp-btn heal" title="Heal 1 HP" onclick="adjustHP('${row.id}', 1)">+1</button>
             <button class="hp-btn heal" title="Heal 5 HP" onclick="adjustHP('${row.id}', 5)">+5</button>
-            <button class="hp-btn" title="Reset HP" onclick="resetHP('${row.id}')">🔄</button>
+
+            <!-- Custom Custom Input Group -->
+            <div class="hp-custom-group">
+              <input type="number" id="hp-input-${row.id}" class="hp-input" placeholder="0" min="1" onkeydown="if(event.key==='Enter') applyCustomHP('${row.id}', -1)">
+              <button class="hp-btn damage" title="Apply Custom Damage" onclick="applyCustomHP('${row.id}', -1)">-</button>
+              <button class="hp-btn heal" title="Apply Custom Healing" onclick="applyCustomHP('${row.id}', 1)">+</button>
+            </div>
+
+            <!-- Reset Button -->
+            <button class="hp-btn" title="Reset HP" onclick="resetHP('${row.id}')" style="margin-left:4px;">🔄</button>
           </div>
         </div>
       `;
@@ -1240,7 +1229,7 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     </div>`;
   }
 
-  // Interactive HP adjustment functions
+  // Helper to adjust HP by delta (+ or -)
   function adjustHP(id, amount) {
     const tracker = document.getElementById(`hp-tracker-${id}`);
     const display = document.getElementById(`hp-val-${id}`);
@@ -1249,26 +1238,41 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     let current = parseInt(tracker.getAttribute('data-current-hp'), 10);
     const max = parseInt(tracker.getAttribute('data-max-hp'), 10);
 
-    current = Math.max(0, current + amount); // Prevent negative HP
+    current = Math.max(0, current + amount);
     tracker.setAttribute('data-current-hp', current);
-    display.textContent = current;
 
-    // Visual feedback when HP hits 0
-    display.style.color = current === 0 ? '#888' : (current <= max * 0.25 ? '#ff4444' : '#ff6b6b');
     if (current === 0) {
-      display.innerHTML = `0 💀 (Unconscious/Dead)`;
+      display.innerHTML = `0 💀 (Dead)`;
+      display.style.color = '#888';
+    } else {
+      display.textContent = current;
+      display.style.color = current <= max * 0.25 ? '#ff4444' : '#ff6b6b';
+    }
+  }
+
+  // Handler for custom number input (- or +)
+  function applyCustomHP(id, multiplier) {
+    const input = document.getElementById(`hp-input-${id}`);
+    if (!input || !input.value) return;
+
+    const amount = parseInt(input.value, 10);
+    if (!isNaN(amount) && amount > 0) {
+      adjustHP(id, amount * multiplier);
+      input.value = ''; // Clear input field after applying
     }
   }
 
   function resetHP(id) {
     const tracker = document.getElementById(`hp-tracker-${id}`);
     const display = document.getElementById(`hp-val-${id}`);
+    const input = document.getElementById(`hp-input-${id}`);
     if (!tracker || !display) return;
 
     const max = parseInt(tracker.getAttribute('data-max-hp'), 10);
     tracker.setAttribute('data-current-hp', max);
     display.textContent = max;
     display.style.color = '#ff6b6b';
+    if (input) input.value = '';
   }
   
 // Edit handler for DM content blocks
