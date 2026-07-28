@@ -1075,177 +1075,201 @@
   }
 
  /* ===================== NPCS & FRIENDSHIP POINTS ===================== */
-  async function loadNPCs() {
-    const container = document.getElementById('npc-cards-container');
-    if (!container) return;
+async function loadNPCs() {
+  const container = document.getElementById('npc-cards-container');
+  if (!container) return;
 
-    const { data, error } = await sb.from('npcs')
-      .select('*')
-      .order('name');
+  const { data, error } = await sb.from('npcs')
+    .select('*')
+    .order('name');
 
-    if (error) {
-      container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(error.message)}</p>`;
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      container.innerHTML = '<p class="empty-note">No NPCs recorded in database yet.</p>';
-      return;
-    }
-
-    container.innerHTML = data.map(npc => renderNPCCard(npc)).join('');
+  if (error) {
+    container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(error.message)}</p>`;
+    return;
   }
 
-  function renderNPCCard(npc) {
-    const isVisible = npc.visible_to_players ?? true;
+  if (!data || data.length === 0) {
+    container.innerHTML = '<p class="empty-note">No NPCs recorded in database yet.</p>';
+    return;
+  }
 
-    if (!isDM && !isVisible) return '';
+  container.innerHTML = data.map(npc => renderNPCCard(npc)).join('');
+}
 
-    const friendshipPoints = npc.friendship_points ?? 0;
+function renderNPCCard(npc) {
+  const isVisible = npc.visible_to_players ?? true;
 
-    let dmControls = '';
-    let secretSection = '';
+  if (!isDM && !isVisible) return '';
 
-    if (isDM) {
-      if (npc.secret || npc.dm_secret) {
-        const secretText = npc.secret || npc.dm_secret;
-        secretSection = `
-          <div class="spoiler-block" style="margin-top:12px; padding:10px; background:rgba(220, 50, 50, 0.1); border:1px solid rgba(220, 50, 50, 0.3); border-radius:6px;">
-            <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
-            <div style="font-size:0.9rem; margin-top:4px; color:#ffb3b3;">${escapeHtml(secretText)}</div>
-          </div>`;
-      }
+  const friendshipPoints = npc.friendship_points ?? 0;
 
-      dmControls = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
-            <label class="switch">
-              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${npc.id}', 'npcs', 'npc-cards-container', this.checked)">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Edit NPC</button>
-            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${npc.id}', 'npcs', 'npc-cards-container')">Delete</button>
-          </div>
+  let dmControls = '';
+  let secretSection = '';
+
+  if (isDM) {
+    if (npc.secret || npc.dm_secret) {
+      const secretText = npc.secret || npc.dm_secret;
+      secretSection = `
+        <div class="spoiler-block" style="margin-top:12px; padding:10px; background:rgba(220, 50, 50, 0.1); border:1px solid rgba(220, 50, 50, 0.3); border-radius:6px;">
+          <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
+          <div style="font-size:0.9rem; margin-top:4px; color:#ffb3b3;">${escapeHtml(secretText)}</div>
         </div>`;
     }
 
-    return `
-      <div class="block-card" id="npc-card-${npc.id}">
-        <!-- Display View -->
-        <div class="npc-view-mode">
-          <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-              <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
-              ${npc.hp || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${npc.hp ? `HP: ${escapeHtml(npc.hp)}` : ''} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
-            </div>
+    dmControls = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
+          <label class="switch">
+            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${npc.id}', 'npcs', 'npc-cards-container', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Edit NPC</button>
+          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${npc.id}', 'npcs', 'npc-cards-container')">Delete</button>
+        </div>
+      </div>`;
+  }
 
-            <!-- Friendship Points Counter -->
-            <div class="friendship-counter" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.25); padding:4px 10px; border-radius:12px; border:1px solid var(--line);">
-              <span style="font-size:0.85rem; color:var(--gold); font-weight:600;">❤️ ${friendshipPoints}</span>
-              ${isDM ? `
-                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints - 1})">-</button>
-                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints + 1})">+</button>
-              ` : ''}
+  return `
+    <div class="block-card" id="npc-card-${npc.id}">
+      <!-- Display View -->
+      <div class="npc-view-mode">
+        <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
+            ${npc.hp || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${npc.hp ? `HP: ${escapeHtml(npc.hp)}` : ''} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
+          </div>
+
+          <!-- Friendship Points Counter -->
+          <div class="friendship-counter" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.25); padding:4px 10px; border-radius:12px; border:1px solid var(--line);">
+            <span style="font-size:0.85rem; color:var(--gold); font-weight:600;">❤️ ${friendshipPoints}</span>
+            ${isDM ? `
+              <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints - 1})">-</button>
+              <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints + 1})">+</button>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
+        ${secretSection}
+        ${dmControls}
+      </div>
+
+      <!-- Inline Expandable Edit Form -->
+      <div class="npc-edit-mode" style="display:none; margin-top:8px;">
+        <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit NPC Details</h4>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <label style="font-size:0.8rem; color:var(--text-faint);">Name</label>
+          <input type="text" id="edit-npc-name-${npc.id}" value="${escapeHtml(npc.name || npc.title || '')}" class="input-field" />
+          
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1;">
+              <label style="font-size:0.8rem; color:var(--text-faint);">HP</label>
+              <input type="text" id="edit-npc-hp-${npc.id}" value="${escapeHtml(npc.hp || '')}" class="input-field" />
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:0.8rem; color:var(--text-faint);">Faction</label>
+              <input type="text" id="edit-npc-faction-${npc.id}" value="${escapeHtml(npc.faction || '')}" class="input-field" />
             </div>
           </div>
 
-          <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
-          ${secretSection}
-          ${dmControls}
-        </div>
+          <label style="font-size:0.8rem; color:var(--text-faint);">Friendship Points</label>
+          <input type="number" id="edit-npc-points-${npc.id}" value="${friendshipPoints}" class="input-field" style="width:100px;" />
 
-        <!-- Inline Expandable Edit Form -->
-        <div class="npc-edit-mode" style="display:none; margin-top:8px;">
-          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit NPC Details</h4>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <label style="font-size:0.8rem; color:var(--text-faint);">Name</label>
-            <input type="text" id="edit-npc-name-${npc.id}" value="${escapeHtml(npc.name || npc.title || '')}" class="input-field" />
-            
-            <div style="display:flex; gap:8px;">
-              <div style="flex:1;">
-                <label style="font-size:0.8rem; color:var(--text-faint);">HP</label>
-                <input type="text" id="edit-npc-hp-${npc.id}" value="${escapeHtml(npc.hp || '')}" class="input-field" />
-              </div>
-              <div style="flex:1;">
-                <label style="font-size:0.8rem; color:var(--text-faint);">Faction</label>
-                <input type="text" id="edit-npc-faction-${npc.id}" value="${escapeHtml(npc.faction || '')}" class="input-field" />
-              </div>
-            </div>
+          <label style="font-size:0.8rem; color:var(--text-faint);">Bio / Description</label>
+          <textarea id="edit-npc-bio-${npc.id}" rows="3" class="input-field">${escapeHtml(npc.bio || npc.body || npc.description || '')}</textarea>
 
-            <label style="font-size:0.8rem; color:var(--text-faint);">Friendship Points</label>
-            <input type="number" id="edit-npc-points-${npc.id}" value="${friendshipPoints}" class="input-field" style="width:100px;" />
+          <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Hidden from Players)</label>
+          <textarea id="edit-npc-secret-${npc.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(npc.secret || npc.dm_secret || '')}</textarea>
 
-            <label style="font-size:0.8rem; color:var(--text-faint);">Bio / Description</label>
-            <textarea id="edit-npc-bio-${npc.id}" rows="3" class="input-field">${escapeHtml(npc.bio || npc.body || npc.description || '')}</textarea>
-
-            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Hidden from Players)</label>
-            <textarea id="edit-npc-secret-${npc.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(npc.secret || npc.dm_secret || '')}</textarea>
-
-            <div style="display:flex; gap:8px; margin-top:8px;">
-              <button class="btn btn-sm" onclick="saveInlineNPCEdit('${npc.id}')">Save Changes</button>
-              <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Cancel</button>
-            </div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn btn-sm" onclick="saveInlineNPCEdit('${npc.id}')">Save Changes</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Cancel</button>
           </div>
         </div>
       </div>
-    `;
+    </div>
+  `;
+}
+
+// Toggle inline edit form open/closed
+function toggleInlineNPCEdit(npcId) {
+  const card = document.getElementById(`npc-card-${npcId}`);
+  if (!card) return;
+  const viewMode = card.querySelector('.npc-view-mode');
+  const editMode = card.querySelector('.npc-edit-mode');
+
+  const isEditing = editMode.style.display !== 'none';
+  viewMode.style.display = isEditing ? 'block' : 'none';
+  editMode.style.display = isEditing ? 'none' : 'block';
+}
+
+// Save changes directly from the expanded inline form
+async function saveInlineNPCEdit(npcId) {
+  if (!isDM) return;
+
+  const nameEl = document.getElementById(`edit-npc-name-${npcId}`);
+  const hpEl = document.getElementById(`edit-npc-hp-${npcId}`);
+  const factionEl = document.getElementById(`edit-npc-faction-${npcId}`);
+  const pointsEl = document.getElementById(`edit-npc-points-${npcId}`);
+  const bioEl = document.getElementById(`edit-npc-bio-${npcId}`);
+  const secretEl = document.getElementById(`edit-npc-secret-${npcId}`);
+
+  if (!nameEl || !hpEl || !factionEl || !pointsEl || !bioEl || !secretEl) {
+    alert("Error: Missing input fields in the DOM.");
+    return;
   }
 
-  // Save changes directly from the expanded inline form
-  async function saveInlineNPCEdit(npcId) {
-    if (!isDM) return;
+  const name = nameEl.value.trim();
+  const hp = hpEl.value.trim();
+  const faction = factionEl.value.trim();
+  const pointsVal = parseInt(pointsEl.value, 10);
+  const friendship_points = isNaN(pointsVal) ? 0 : pointsVal;
+  const bio = bioEl.value.trim();
+  const secret = secretEl.value.trim();
 
-    const name = document.getElementById(`edit-npc-name-${npcId}`).value.trim();
-    const hp = document.getElementById(`edit-npc-hp-${npcId}`).value.trim();
-    const faction = document.getElementById(`edit-npc-faction-${npcId}`).value.trim();
-    const pointsVal = parseInt(document.getElementById(`edit-npc-points-${npcId}`).value, 10);
-    const friendship_points = isNaN(pointsVal) ? 0 : pointsVal;
-    const bio = document.getElementById(`edit-npc-bio-${npcId}`).value.trim();
-    const secret = document.getElementById(`edit-npc-secret-${npcId}`).value.trim();
+  const { error } = await sb.from('npcs')
+    .update({
+      name,
+      hp,
+      faction,
+      friendship_points,
+      bio,
+      secret
+    })
+    .eq('id', npcId);
 
-    const { error } = await sb.from('npcs')
-      .update({
-        name,
-        hp,
-        faction,
-        friendship_points,
-        bio,
-        secret
-      })
-      .eq('id', npcId);
-
-    if (error) {
-      alert("Failed to save NPC updates: " + error.message);
-    } else {
-      loadNPCs();
-    }
+  if (error) {
+    alert("Failed to save NPC updates: " + error.message);
+  } else {
+    loadNPCs();
   }
+}
 
-  async function adjustFriendship(npcId, newScore) {
-    if (!isDM) return;
-    const score = Math.max(0, newScore);
+async function adjustFriendship(npcId, newScore) {
+  if (!isDM) return;
+  const score = Math.max(0, newScore);
 
-    const { error } = await sb.from('npcs')
-      .update({ friendship_points: score })
-      .eq('id', npcId);
+  const { error } = await sb.from('npcs')
+    .update({ friendship_points: score })
+    .eq('id', npcId);
 
-    if (error) {
-      alert("Failed to update friendship points: " + error.message);
-    } else {
-      loadNPCs();
-    }
+  if (error) {
+    alert("Failed to update friendship points: " + error.message);
+  } else {
+    loadNPCs();
   }
+}
 
-  async function loadSummaries() { 
-    await loadTableSection('session_summaries', 'summaries-container', 'Session Summary'); 
-  }
+async function loadSummaries() { 
+  await loadTableSection('session_summaries', 'summaries-container', 'Session Summary'); 
+}
 
-  async function loadLoot() { 
-    await loadTableSection('loot', 'loot-container', 'Loot Item'); 
-  }
+async function loadLoot() { 
+  await loadTableSection('loot', 'loot-container', 'Loot Item'); 
+}
 
   /* ===================== RESTRICTED ARCHIVES HUB ===================== */
 
