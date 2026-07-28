@@ -1239,22 +1239,6 @@
     }
   }
 
-  // Adjust Friendship Points in Supabase
-  async function adjustFriendship(npcId, newScore) {
-    if (!isDM) return;
-    const score = Math.max(0, newScore);
-
-    const { error } = await sb.from('npcs')
-      .update({ friendship_points: score })
-      .eq('id', npcId);
-
-    if (error) {
-      alert("Failed to update friendship points: " + error.message);
-    } else {
-      loadNPCs();
-    }
-  }
-
   async function loadSummaries() { 
     await loadTableSection('session_summaries', 'summaries-container', 'Session Summary'); 
   }
