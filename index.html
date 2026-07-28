@@ -1112,6 +1112,7 @@ async function openRestrictedSubSection(tableName, title, description, label) {
       ${dmControls}
     </div>`;
   }
+  
 // Edit handler for DM content blocks
   async function editTableBlock(id, tableName, containerId) {
     // Fetch current entry
@@ -1134,17 +1135,6 @@ async function openRestrictedSubSection(tableName, title, description, label) {
       loadTableSection(tableName, containerId, tableName);
     }
   }
-
-    return `<div class="block-card">
-      <div class="block-header">
-        <h4>${escapeHtml(row.title)}</h4>
-        ${isDM ? `<div class="block-actions">
-          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${row.id}', '${tableName}', '${containerId}')">Delete</button>
-        </div>` : ''}
-      </div>
-      <div>${row.body || ''}</div>
-      ${dmControls}
-    </div>`;
 
   async function toggleBlockVisibility(id, tableName, containerId, visible) {
     const { error } = await sb.from(tableName).update({ visible_to_players: visible }).eq('id', id);
