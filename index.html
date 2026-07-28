@@ -1100,13 +1100,24 @@
   function renderNPCCard(npc) {
     const isVisible = npc.visible_to_players ?? true;
 
-    // Non-DMs cannot view hidden NPCs
+    // Non-DMs cannot view hidden NPCs at all
     if (!isDM && !isVisible) return '';
 
     const friendshipPoints = npc.friendship_points ?? 0;
 
     let dmControls = '';
+    let secretSection = '';
+
+    // DM Secrets are strictly conditionally rendered ONLY for the DM
     if (isDM) {
+      if (npc.secret || npc.dm_secret) {
+        secretSection = `
+          <div style="margin-top:12px; padding:10px; background:rgba(220, 50, 50, 0.1); border:1px solid rgba(220, 50, 50, 0.3); border-radius:6px;">
+            <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
+            <div style="font-size:0.9rem; margin-top:4px; color:#ffb3b3;">${escapeHtml(npc.secret || npc.dm_secret)}</div>
+          </div>`;
+      }
+
       dmControls = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
           <div style="display:flex; align-items:center; gap:10px;">
@@ -1117,7 +1128,7 @@
             </label>
           </div>
           <div style="display:flex; gap:6px;">
-            <button class="btn btn-sm btn-secondary" onclick="editNPCEntry('${npc.id}')">Edit</button>
+            <button class="btn btn-sm btn-secondary" onclick="editNPCEntry('${npc.id}')">Edit NPC</button>
             <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${npc.id}', 'npcs', 'npc-cards-container')">Delete</button>
           </div>
         </div>`;
@@ -1142,15 +1153,51 @@
         </div>
 
         <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
+        
+        ${secretSection}
         ${dmControls}
       </div>
     `;
   }
 
+  // Comprehensive DM Edit for all fields (Name, Role, Faction, Bio, Secret, Friendship Points)
+  async function editNPCEntry(id) {
+    if (!isDM) return;
+
+    const { data, error } = await sb.from('npcs').select('*').eq('id', id).single();
+    if (error || !data) return alert("Error fetching NPC data.");
+
+    const name = prompt("NPC Name:", data.name || data.title || '') ?? data.name;
+    const role = prompt("NPC Role/Title (e.g., Headmaster, Merchant):", data.role || '') ?? data.role;
+    const faction = prompt("NPC Faction/Affiliation:", data.faction || '') ?? data.faction;
+    const bio = prompt("NPC Bio / Public Details (HTML allowed):", data.bio || data.body || data.description || '') ?? data.bio;
+    const secret = prompt("🔒 DM Secret (ALWAYS HIDDEN FROM PLAYERS):", data.secret || data.dm_secret || '') ?? data.secret;
+    const pointsInput = prompt("Friendship Points:", data.friendship_points ?? 0);
+
+    const friendship_points = pointsInput !== null ? parseInt(pointsInput, 10) || 0 : data.friendship_points;
+
+    const { error: updateError } = await sb.from('npcs')
+      .update({
+        name,
+        role,
+        faction,
+        bio,
+        secret,
+        friendship_points
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      alert("Failed to save NPC updates: " + updateError.message);
+    } else {
+      loadNPCs();
+    }
+  }
+
   // Adjust Friendship Points in Supabase
   async function adjustFriendship(npcId, newScore) {
     if (!isDM) return;
-    const score = Math.max(0, newScore); // Prevent negative points if desired
+    const score = Math.max(0, newScore);
 
     const { error } = await sb.from('npcs')
       .update({ friendship_points: score })
@@ -1158,28 +1205,6 @@
 
     if (error) {
       alert("Failed to update friendship points: " + error.message);
-    } else {
-      loadNPCs();
-    }
-  }
-
-  // DM Quick Edit helper for the dedicated NPCs table
-  async function editNPCEntry(id) {
-    const { data, error } = await sb.from('npcs').select('*').eq('id', id).single();
-    if (error || !data) return alert("Error fetching NPC data.");
-
-    const newName = prompt("Edit NPC Name:", data.name || data.title);
-    if (newName === null) return;
-
-    const newBio = prompt("Edit NPC Bio/Details (HTML allowed):", data.bio || data.body || data.description || '');
-    if (newBio === null) return;
-
-    const { error: updateError } = await sb.from('npcs')
-      .update({ name: newName, bio: newBio })
-      .eq('id', id);
-
-    if (updateError) {
-      alert("Failed to save updates: " + updateError.message);
     } else {
       loadNPCs();
     }
