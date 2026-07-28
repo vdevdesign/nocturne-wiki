@@ -1139,7 +1139,7 @@
           <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
               <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
-              ${npc.role || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${escapeHtml(npc.role || '')} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
+              ${npc.hp || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${npc.hp ? `HP: ${escapeHtml(npc.hp)}` : ''} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
             </div>
 
             <!-- Friendship Points Counter -->
@@ -1164,6 +1164,11 @@
             <label style="font-size:0.8rem; color:var(--text-faint);">Name</label>
             <input type="text" id="edit-npc-name-${npc.id}" value="${escapeHtml(npc.name || npc.title || '')}" class="input-field" />
             
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">HP</label>
+                <input type="text" id="edit-npc-hp-${npc.id}" value="${escapeHtml(npc.hp || '')}" class="input-field" />
+              </div>
               <div style="flex:1;">
                 <label style="font-size:0.8rem; color:var(--text-faint);">Faction</label>
                 <input type="text" id="edit-npc-faction-${npc.id}" value="${escapeHtml(npc.faction || '')}" class="input-field" />
@@ -1189,24 +1194,12 @@
     `;
   }
 
-  // Toggle between card view and expandable edit mode
-  function toggleInlineNPCEdit(npcId) {
-    const card = document.getElementById(`npc-card-${npcId}`);
-    if (!card) return;
-    const viewMode = card.querySelector('.npc-view-mode');
-    const editMode = card.querySelector('.npc-edit-mode');
-
-    const isEditing = editMode.style.display !== 'none';
-    viewMode.style.display = isEditing ? 'block' : 'none';
-    editMode.style.display = isEditing ? 'none' : 'block';
-  }
-
   // Save changes directly from the expanded inline form
   async function saveInlineNPCEdit(npcId) {
     if (!isDM) return;
 
     const name = document.getElementById(`edit-npc-name-${npcId}`).value.trim();
-    const role = document.getElementById(`edit-npc-role-${npcId}`).value.trim();
+    const hp = document.getElementById(`edit-npc-hp-${npcId}`).value.trim();
     const faction = document.getElementById(`edit-npc-faction-${npcId}`).value.trim();
     const pointsVal = parseInt(document.getElementById(`edit-npc-points-${npcId}`).value, 10);
     const friendship_points = isNaN(pointsVal) ? 0 : pointsVal;
@@ -1216,7 +1209,7 @@
     const { error } = await sb.from('npcs')
       .update({
         name,
-        role,
+        hp,
         faction,
         friendship_points,
         bio,
