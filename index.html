@@ -496,14 +496,15 @@
   </section>
 
   <section id="npcs">
-    <div class="eyebrow">Dramatis Personae</div>
-    <div class="section-toolbar" id="spoilerToolbar" style="display:none;">
-      <button class="btn btn-spoiler btn-sm" id="spoilerToggleBtn" onclick="toggleSpoilers()">Black Out Spoilers</button>
-    </div>
-    <h2 class="title">NPCs &amp; Standing</h2>
-    <p class="subtitle">Faculty, allies, and notable figures across the realm.</p>
-    <div id="npc-cards-container"><p class="empty-note">Loading…</p></div>
-  </section>
+  <div class="eyebrow">Dramatis Personae</div>
+  <br>
+  <div class="section-toolbar" id="spoilerToolbar" style="display:none;">
+    <button class="btn btn-spoiler btn-sm" id="spoilerToggleBtn" onclick="toggleSpoilers()">Black Out Spoilers</button>
+  </div>
+  <h2 class="title">NPCs &amp; Friendship Points</h2>
+  <p class="subtitle">Faculty, allies, and notable figures across the realm.</p>
+  <div id="npc-cards-container"><p class="empty-note">Loading…</p></div>
+</section>
 
   <section id="characters">
     <div class="eyebrow">Roster &amp; Lore</div>
@@ -1073,8 +1074,115 @@
     await loadTableSection('worldbook', 'worldbook-container', 'Worldbook Entry'); 
   }
 
-  async function loadNPCs() { 
-    await loadTableSection('encounters', 'npc-cards-container', 'Encounter / NPC'); 
+  /* ===================== NPCS & FRIENDSHIP POINTS ===================== */
+  async function loadNPCs() {
+    const container = document.getElementById('npc-cards-container');
+    if (!container) return;
+
+    // Query dedicated 'npcs' table in Supabase
+    const { data, error } = await sb.from('npcs')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(error.message)}</p>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p class="empty-note">No NPCs recorded in database yet.</p>';
+      return;
+    }
+
+    container.innerHTML = data.map(npc => renderNPCCard(npc)).join('');
+  }
+
+  function renderNPCCard(npc) {
+    const isVisible = npc.visible_to_players ?? true;
+
+    // Non-DMs cannot view hidden NPCs
+    if (!isDM && !isVisible) return '';
+
+    const friendshipPoints = npc.friendship_points ?? 0;
+
+    let dmControls = '';
+    if (isDM) {
+      dmControls = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
+            <label class="switch">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${npc.id}', 'npcs', 'npc-cards-container', this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm btn-secondary" onclick="editNPCEntry('${npc.id}')">Edit</button>
+            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${npc.id}', 'npcs', 'npc-cards-container')">Delete</button>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div class="block-card">
+        <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
+            ${npc.role || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${escapeHtml(npc.role || '')} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
+          </div>
+
+          <!-- Friendship Points Counter -->
+          <div class="friendship-counter" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.25); padding:4px 10px; border-radius:12px; border:1px solid var(--line);">
+            <span style="font-size:0.85rem; color:var(--gold); font-weight:600;">❤️ ${friendshipPoints}</span>
+            ${isDM ? `
+              <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints - 1})">-</button>
+              <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints + 1})">+</button>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
+        ${dmControls}
+      </div>
+    `;
+  }
+
+  // Adjust Friendship Points in Supabase
+  async function adjustFriendship(npcId, newScore) {
+    if (!isDM) return;
+    const score = Math.max(0, newScore); // Prevent negative points if desired
+
+    const { error } = await sb.from('npcs')
+      .update({ friendship_points: score })
+      .eq('id', npcId);
+
+    if (error) {
+      alert("Failed to update friendship points: " + error.message);
+    } else {
+      loadNPCs();
+    }
+  }
+
+  // DM Quick Edit helper for the dedicated NPCs table
+  async function editNPCEntry(id) {
+    const { data, error } = await sb.from('npcs').select('*').eq('id', id).single();
+    if (error || !data) return alert("Error fetching NPC data.");
+
+    const newName = prompt("Edit NPC Name:", data.name || data.title);
+    if (newName === null) return;
+
+    const newBio = prompt("Edit NPC Bio/Details (HTML allowed):", data.bio || data.body || data.description || '');
+    if (newBio === null) return;
+
+    const { error: updateError } = await sb.from('npcs')
+      .update({ name: newName, bio: newBio })
+      .eq('id', id);
+
+    if (updateError) {
+      alert("Failed to save updates: " + updateError.message);
+    } else {
+      loadNPCs();
+    }
   }
 
   async function loadSummaries() { 
