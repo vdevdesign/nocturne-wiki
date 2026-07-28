@@ -1955,176 +1955,185 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     }
   }
 
- /* ===================== CHARACTER DIRECTORY ===================== */
-  async function loadCharacters() {
-    const { data, error } = await sb.from('characters').select('*').order('name');
-    if (error) return;
-    cachedCharacters = data || [];
-    const grid = document.getElementById('character-grid');
-    grid.innerHTML = cachedCharacters.map(c => `
-      <div class="char-card ${c.id === currentSelectedCharId ? 'selected' : ''}" onclick="selectCharacter('${c.id}')">
-        <h4>${escapeHtml(c.name)}</h4>
-        <div>${(c.tags || []).map(t => `<span class="pill-tag">${escapeHtml(t)}</span>`).join('')}</div>
-      </div>
-    `).join('');
-    
-    if (isDM) document.getElementById('add-char-btn').style.display = 'block';
+ /* ===================== CHARACTER DIRECTORY (FIXED & STREAMLINED) ===================== */
+
+// Extracts "Player: Name" from role string, tag string, or tags array
+function parsePlayerName(char) {
+  if (!char) return '';
+  if (char.player_name) return char.player_name.trim();
+
+  // Standardize tags/role into a single searchable string
+  let searchStr = char.role || '';
+  if (Array.isArray(char.tags)) {
+    searchStr += ' ' + char.tags.join(' ');
+  } else if (char.tags) {
+    searchStr += ' ' + char.tags;
   }
 
-  // Helper to extract player name from role string OR tags array
-  function parsePlayerName(char) {
-    if (!char) return '';
-
-    // 1. Check role string (e.g. "Player: EB_Pixelstechlab | Lvl 1 | Dragonborn | Sorcerer")
-    if (char.role) {
-      const match = char.role.match(/Player:\s*([^\n<|]+)/i);
-      if (match) return match[1].trim();
-    }
-
-    // 2. Fallback: Check tags array (e.g. ["Player: EB_Pixelstechlab", "Sorcerer"])
-    if (char.tags && Array.isArray(char.tags)) {
-      for (const tag of char.tags) {
-        const match = tag.match(/Player:\s*(.+)/i);
-        if (match) return match[1].trim();
-      }
-    }
-  }
-
-  // Helper to check if current user can edit the selected character
-  function canEditCharacter(char) {
-    if (isDM) return true;
-    if (typeof currentUser === 'undefined' || !currentUser) return false;
-    
-    const assignedPlayer = parsePlayerName(char);
-    return assignedPlayer.toLowerCase() === currentUser.toLowerCase();
-  }
-
-  function selectCharacter(id) {
-    currentSelectedCharId = id;
-    const char = cachedCharacters.find(c => c.id === id);
-    if (!char) return;
-    
-    document.getElementById('active-char-name').innerText = char.name;
-    document.getElementById('active-char-tags').innerHTML = (char.tags || []).map(t => `<span class="pill-tag">${escapeHtml(t)}</span>`).join('');
-    document.getElementById('read-mode-content').innerHTML = char.bio || '<p class="empty-note">No bio available.</p>';
-    document.getElementById('bio-textarea').value = char.bio || '';
-    document.getElementById('tag-textarea').value = (char.tags || []).join(' | ');
-    
-    // Check permission to show/hide edit controls
-    const userCanEdit = canEditCharacter(char);
-    
-    const editToggleBtn = document.getElementById('edit-toggle-btn');
-    if (editToggleBtn) {
-      editToggleBtn.style.display = userCanEdit ? 'inline-block' : 'none';
-    }
-
-    // Reset to read mode when switching characters
-    if (isEditing) {
-      toggleEditMode();
-    }
-
-    if (isDM) {
-      document.getElementById('delete-char-btn').style.display = 'block';
-      document.getElementById('tag-edit-group').style.display = 'block';
-    } else {
-      if (document.getElementById('delete-char-btn')) document.getElementById('delete-char-btn').style.display = 'none';
-      if (document.getElementById('tag-edit-group')) document.getElementById('tag-edit-group').style.display = 'none';
-    }
-    
-    // Refresh card selection borders
-    const cards = document.querySelectorAll('.char-card');
-    cards.forEach(card => card.classList.remove('selected'));
-    const selectedCard = Array.from(cards).find(card => card.getAttribute('onclick')?.includes(id));
-    if (selectedCard) selectedCard.classList.add('selected');
-  }
-
-  function toggleEditMode() {
-    isEditing = !isEditing;
-    document.getElementById('read-mode-content').style.display = isEditing ? 'none' : 'block';
-    document.getElementById('edit-mode-content').style.display = isEditing ? 'block' : 'none';
-    
-    const editBtn = document.getElementById('edit-toggle-btn');
-    if (editBtn) editBtn.innerText = isEditing ? 'Cancel Edit' : 'Switch to Edit Mode';
-  }
-
-  async function saveCharacterBio() {
-    if (!currentSelectedCharId) return;
-    
-    const char = cachedCharacters.find(c => c.id === currentSelectedCharId);
-    if (!char || !canEditCharacter(char)) {
-      alert("You don't have permission to edit this character.");
-      return;
-    }
-
-    const bio = document.getElementById('bio-textarea').value;
-    const tagInput = document.getElementById('tag-textarea').value;
-    const tags = tagInput.split('|').map(t => t.trim()).filter(Boolean);
-
-    const updateData = { bio };
-    if (isDM) updateData.tags = tags;
-
-    const { error } = await sb.from('characters').update(updateData).eq('id', currentSelectedCharId);
-    if (!error) {
-      toggleEditMode();
-      await loadCharacters();
-      selectCharacter(currentSelectedCharId);
-    } else {
-      alert("Error saving character: " + error.message);
-    }
-  }
-
-  async function addNewCharacter() {
-    if (!isDM) return;
-    const name = prompt("Enter character name:");
-    if (!name) return;
-    const { data, error } = await sb.from('characters').insert({ name, bio: '', tags: [] }).select().single();
-    if (!error && data) {
-      await loadCharacters();
-      selectCharacter(data.id);
-    }
-  }
-
-  async function deleteCharacter() {
-    if (!isDM || !currentSelectedCharId || !confirm("Delete this character sheet?")) return;
-    await sb.from('characters').delete().eq('id', currentSelectedCharId);
-    currentSelectedCharId = null;
-    document.getElementById('active-char-name').innerText = 'Select a Character';
-    document.getElementById('read-mode-content').innerHTML = '<p style="color: var(--text-faint);">Select a hero above to view or update background details.</p>';
-    if (document.getElementById('edit-toggle-btn')) document.getElementById('edit-toggle-btn').style.display = 'none';
-    loadCharacters();
-  }
-
-  function escapeHtml(str) { 
-    return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); 
-  }
-
-  function escapeAttr(str) { 
-    return (str || '').replace(/"/g, "&quot;"); 
-  }
-
-  // Execute session check when script loads
-  checkSession();
-
-  /* ===================== CHARACTER PERMISSIONS ===================== */
-
-// Extracts "Player: Name" from a role string or metadata tag (e.g., "Wizard | Player: Alex")
-function parsePlayerFromRole(roleStr) {
-  if (!roleStr) return '';
-  const match = roleStr.match(/Player:\s*([^\n<|]+)/i);
+  const match = searchStr.match(/Player:\s*([^\n<|]+)/i);
   return match ? match[1].trim() : '';
 }
 
-// Checks if the active user can edit a given character
-function canEditCharacter(character) {
-  // DM can edit anyone!
-  if (isDM) return true;
-
-  // Global currentUser variable (e.g., logged-in player name)
+// Checks if current user can edit this character
+function canEditCharacter(char) {
+  if (typeof isDM !== 'undefined' && isDM) return true;
   if (typeof currentUser === 'undefined' || !currentUser) return false;
 
-  const assignedPlayer = character.player_name || parsePlayerFromRole(character.role || character.tags || '');
-  
-  return assignedPlayer.toLowerCase() === currentUser.toLowerCase();
+  const assignedPlayer = parsePlayerName(char);
+  return Boolean(assignedPlayer && assignedPlayer.toLowerCase() === currentUser.toLowerCase());
+}
+
+async function loadCharacters() {
+  const container = document.getElementById('character-cards-container') || document.getElementById('character-grid');
+  if (!container) return;
+
+  const { data, error } = await sb.from('characters')
+    .select('*')
+    .order('name');
+
+  if (error) {
+    container.innerHTML = `<p class="error-msg">Failed to load characters: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = '<p class="empty-note">No characters recorded yet.</p>';
+    return;
+  }
+
+  container.innerHTML = data.map(char => renderCharacterCard(char)).join('');
+}
+
+function renderCharacterCard(char) {
+  const isVisible = char.visible_to_players ?? true;
+  if (!isDM && !isVisible) return '';
+
+  const canEdit = canEditCharacter(char);
+
+  // Formatting tags / roles
+  let tagDisplay = '';
+  if (Array.isArray(char.tags)) {
+    tagDisplay = char.tags.join(' | ');
+  } else {
+    tagDisplay = char.role_tag || char.tags || char.role || '';
+  }
+
+  let dmControls = '';
+  let secretSection = '';
+
+  // DM Secrets
+  if (isDM && (char.secret || char.dm_secret)) {
+    const secretText = char.secret || char.dm_secret;
+    secretSection = `
+      <div style="margin-top:12px;">
+        <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
+        <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
+          ${escapeHtml(secretText)}
+        </div>
+      </div>`;
+  }
+
+  // Footer controls (visibility toggle for DM, edit for DM or Player)
+  if (canEdit || isDM) {
+    const visibilityToggle = isDM ? `
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
+        <label class="switch">
+          <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${char.id}', 'characters', 'character-cards-container', this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>` : '<div></div>';
+
+    dmControls = `
+      <div class="card-footer-controls">
+        ${visibilityToggle}
+        <div style="display:flex; gap:6px;">
+          ${canEdit ? `<button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Edit</button>` : ''}
+          ${isDM ? `<button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${char.id}', 'characters', 'character-cards-container')">Delete</button>` : ''}
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="block-card" id="character-card-${char.id}">
+      <!-- View Mode -->
+      <div class="character-view-mode">
+        <div class="card-title-group">
+          <div>
+            <h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>
+            ${tagDisplay ? `<p class="card-subtitle">${escapeHtml(tagDisplay)}</p>` : ''}
+          </div>
+        </div>
+
+        <div class="block-body" style="margin-top:10px;">${char.bio || char.description || '<p class="empty-note">No bio available.</p>'}</div>
+        ${secretSection}
+        ${dmControls}
+      </div>
+
+      <!-- Edit Mode -->
+      <div class="character-edit-mode" style="display:none;">
+        <div class="card-edit-form">
+          <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character</h4>
+
+          <div class="form-group">
+            <label>Character Name</label>
+            <input type="text" id="edit-char-name-${char.id}" value="${escapeHtml(char.name || '')}" class="input-field" />
+          </div>
+
+          <div class="form-group">
+            <label>Tags (e.g. "Player: ${escapeHtml(currentUser || 'Name')} | Lvl 1 | Elf | Wizard")</label>
+            <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
+          </div>
+
+          <div class="form-group">
+            <label>Bio / Backstory</label>
+            <textarea id="edit-char-bio-${char.id}" rows="4" class="input-field">${escapeHtml(char.bio || char.description || '')}</textarea>
+          </div>
+
+          ${isDM ? `
+          <div class="form-group">
+            <label class="secret-label">🔒 DM Secret</label>
+            <textarea id="edit-char-secret-${char.id}" rows="2" class="input-field input-field-secret">${escapeHtml(char.secret || char.dm_secret || '')}</textarea>
+          </div>` : ''}
+
+          <div style="display:flex; gap:8px; margin-top:4px;">
+            <button class="btn btn-sm" onclick="saveInlineCharacterEdit('${char.id}')">Save Changes</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function saveInlineCharacterEdit(charId) {
+  const nameEl = document.getElementById(`edit-char-name-${charId}`);
+  const tagsEl = document.getElementById(`edit-char-tags-${charId}`);
+  const bioEl = document.getElementById(`edit-char-bio-${charId}`);
+  const secretEl = document.getElementById(`edit-char-secret-${charId}`);
+
+  if (!nameEl || !tagsEl || !bioEl) return;
+
+  const name = nameEl.value.trim();
+  const rawTags = tagsEl.value.trim();
+  const tags = rawTags.split('|').map(t => t.trim()).filter(Boolean);
+  const bio = bioEl.value.trim();
+
+  const updateData = { name, tags, bio };
+
+  if (isDM && secretEl) {
+    updateData.secret = secretEl.value.trim();
+  }
+
+  const { error } = await sb.from('characters')
+    .update(updateData)
+    .eq('id', charId);
+
+  if (error) {
+    alert("Failed to save character: " + error.message);
+  } else {
+    loadCharacters();
+  }
 }
 
 // Global toggle for blackout spoilers across any page
