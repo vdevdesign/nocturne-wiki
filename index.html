@@ -424,6 +424,136 @@
 .hp-input {
   -moz-appearance: textfield;
 }
+
+/* Card & Base Formatting */
+.block-card {
+  background: rgba(20, 20, 25, 0.6);
+  border: 1px solid var(--line, #333);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.block-card:hover {
+  border-color: rgba(201, 160, 80, 0.4);
+}
+
+.card-title-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.card-title {
+  margin: 0;
+  color: var(--gold, #c9a050);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--text-faint, #a0a0a0);
+}
+
+/* Counter & Badges */
+.badge-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--line, #333);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gold, #c9a050);
+}
+
+/* DM Controls Footer */
+.card-footer-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line, #333);
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.status-badge.public { color: var(--gold, #c9a050); }
+.status-badge.hidden { color: var(--text-faint, #777); }
+
+/* Form Styles */
+.card-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line, #333);
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.form-group label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-faint, #888);
+}
+
+.form-group label.secret-label {
+  color: var(--rose, #ff6b6b);
+}
+
+.input-field-secret {
+  border-color: rgba(220, 50, 50, 0.35) !important;
+}
+
+.input-field-secret:focus {
+  border-color: var(--rose, #ff6b6b) !important;
+}
+
+/* Blackout Spoiler Mask */
+.spoiler-mask {
+  background-color: var(--text-main, #111);
+  color: transparent !important;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.spoiler-mask:hover,
+.spoiler-mask.revealed {
+  background-color: rgba(220, 50, 50, 0.12);
+  color: var(--rose, #ffb3b3) !important;
+  border-color: rgba(220, 50, 50, 0.3);
+}
 </style>
 </head>
 <body>
@@ -1283,12 +1413,292 @@ async function adjustFriendship(npcId, newScore) {
   }
 }
 
-async function loadSummaries() { 
-  await loadTableSection('session_summaries', 'summaries-container', 'Session Summary'); 
+/* ===================== SESSION SUMMARIES (INLINE EDITING) ===================== */
+async function loadSummaries() {
+  const container = document.getElementById('summaries-container');
+  if (!container) return;
+
+  const { data, error } = await sb.from('session_summaries')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    container.innerHTML = `<p class="error-msg">Failed to load summaries: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = '<p class="empty-note">No session summaries recorded yet.</p>';
+    return;
+  }
+
+  container.innerHTML = data.map(summary => renderSummaryCard(summary)).join('');
 }
 
-async function loadLoot() { 
-  await loadTableSection('loot', 'loot-container', 'Loot Item'); 
+function renderSummaryCard(summary) {
+  const isVisible = summary.visible_to_players ?? true;
+
+  if (!isDM && !isVisible) return '';
+
+  let dmControls = '';
+  let secretSection = '';
+
+  if (isDM) {
+    if (summary.secret || summary.dm_secret) {
+      const secretText = summary.secret || summary.dm_secret;
+      secretSection = `
+        <div style="margin-top:12px;">
+          <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
+          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
+            ${escapeHtml(secretText)}
+          </div>
+        </div>`;
+    }
+
+    dmControls = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
+          <label class="switch">
+            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_summaries', 'summaries-container', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Edit Summary</button>
+          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${summary.id}', 'session_summaries', 'summaries-container')">Delete</button>
+        </div>
+      </div>`;
+  }
+
+  const sessionNum = summary.session_number ? `Session ${escapeHtml(summary.session_number)}: ` : '';
+  const dateStr = summary.session_date ? escapeHtml(summary.session_date) : '';
+
+  return `
+    <div class="block-card" id="summary-card-${summary.id}">
+      <!-- Display View Mode -->
+      <div class="summary-view-mode">
+        <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h3 style="margin:0; color:var(--gold,#c9a050);">${sessionNum}${escapeHtml(summary.title || 'Untitled Session')}</h3>
+            ${dateStr ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${dateStr}</p>` : ''}
+          </div>
+        </div>
+
+        <div class="block-body" style="margin-top:10px;">${summary.body || summary.content || summary.description || '<p class="empty-note">No summary text.</p>'}</div>
+        ${secretSection}
+        ${dmControls}
+      </div>
+
+      <!-- Inline Edit View Mode -->
+      <div class="summary-edit-mode" style="display:none; margin-top:8px;">
+        <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit Session Summary</h4>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1;">
+              <label style="font-size:0.8rem; color:var(--text-faint);">Session #</label>
+              <input type="text" id="edit-summary-num-${summary.id}" value="${escapeHtml(summary.session_number || '')}" class="input-field" placeholder="e.g. 12" />
+            </div>
+            <div style="flex:2;">
+              <label style="font-size:0.8rem; color:var(--text-faint);">Session Title</label>
+              <input type="text" id="edit-summary-title-${summary.id}" value="${escapeHtml(summary.title || '')}" class="input-field" placeholder="Title" />
+            </div>
+          </div>
+
+          <label style="font-size:0.8rem; color:var(--text-faint);">Date Played</label>
+          <input type="text" id="edit-summary-date-${summary.id}" value="${escapeHtml(summary.session_date || '')}" class="input-field" placeholder="e.g. Oct 12, 2024" />
+
+          <label style="font-size:0.8rem; color:var(--text-faint);">Public Summary / Notes</label>
+          <textarea id="edit-summary-body-${summary.id}" rows="5" class="input-field">${escapeHtml(summary.body || summary.content || summary.description || '')}</textarea>
+
+          <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Blacked out for players)</label>
+          <textarea id="edit-summary-secret-${summary.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(summary.secret || summary.dm_secret || '')}</textarea>
+
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn btn-sm" onclick="saveInlineSummaryEdit('${summary.id}')">Save Changes</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Toggle between view and edit state
+function toggleInlineSummaryEdit(summaryId) {
+  const card = document.getElementById(`summary-card-${summaryId}`);
+  if (!card) return;
+  const viewMode = card.querySelector('.summary-view-mode');
+  const editMode = card.querySelector('.summary-edit-mode');
+
+  const isEditing = editMode.style.display !== 'none';
+  viewMode.style.display = isEditing ? 'block' : 'none';
+  editMode.style.display = isEditing ? 'none' : 'block';
+}
+
+// Save inline edits to Supabase
+async function saveInlineSummaryEdit(summaryId) {
+  if (!isDM) return;
+
+  const numEl = document.getElementById(`edit-summary-num-${summaryId}`);
+  const titleEl = document.getElementById(`edit-summary-title-${summaryId}`);
+  const dateEl = document.getElementById(`edit-summary-date-${summaryId}`);
+  const bodyEl = document.getElementById(`edit-summary-body-${summaryId}`);
+  const secretEl = document.getElementById(`edit-summary-secret-${summaryId}`);
+
+  if (!numEl || !titleEl || !dateEl || !bodyEl || !secretEl) {
+    alert("Error: Unable to find form inputs in DOM.");
+    return;
+  }
+
+  const session_number = numEl.value.trim();
+  const title = titleEl.value.trim();
+  const session_date = dateEl.value.trim();
+  const body = bodyEl.value.trim();
+  const secret = secretEl.value.trim();
+
+  const { error } = await sb.from('session_summaries')
+    .update({
+      session_number,
+      title,
+      session_date,
+      body,
+      secret
+    })
+    .eq('id', summaryId);
+
+  if (error) {
+    alert("Failed to save summary updates: " + error.message);
+  } else {
+    loadSummaries();
+  }
+}
+
+/* ===================== 3. LOOT & REWARDS ===================== */
+
+async function loadLoot() {
+  const container = document.getElementById('loot-container');
+  if (!container) return;
+
+  const { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
+
+  if (error) {
+    container.innerHTML = `<p class="error-msg">Failed to load loot: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+  if (!data || data.length === 0) {
+    container.innerHTML = '<p class="empty-note">No loot recorded yet.</p>';
+    return;
+  }
+
+  container.innerHTML = data.map(item => renderLootCard(item)).join('');
+}
+
+function renderLootCard(item) {
+  const isVisible = item.visible_to_players ?? true;
+  if (!isDM && !isVisible) return '';
+
+  let dmControls = '';
+  let secretSection = '';
+
+  if (isDM) {
+    if (item.secret || item.dm_secret) {
+      secretSection = `
+        <div style="margin-top:12px;">
+          <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
+          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
+            ${escapeHtml(item.secret || item.dm_secret)}
+          </div>
+        </div>`;
+    }
+
+    dmControls = `
+      <div class="card-footer-controls">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
+          <label class="switch">
+            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${item.id}', 'loot', 'loot-container', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Edit</button>
+          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${item.id}', 'loot', 'loot-container')">Delete</button>
+        </div>
+      </div>`;
+  }
+
+  const valueDisplay = item.value ? `Value: ${escapeHtml(item.value)}` : '';
+  const qtyDisplay = item.quantity ? `Qty: ${escapeHtml(String(item.quantity))}` : '';
+  const metaText = [qtyDisplay, valueDisplay].filter(Boolean).join(' | ');
+
+  return `
+    <div class="block-card" id="loot-card-${item.id}">
+      <!-- View Mode -->
+      <div class="loot-view-mode">
+        <div class="card-title-group">
+          <div>
+            <h3 class="card-title">${escapeHtml(item.name || 'Unnamed Item')}</h3>
+            ${metaText ? `<p class="card-subtitle">${metaText}</p>` : ''}
+          </div>
+        </div>
+        <div class="block-body" style="margin-top:10px;">${item.description || item.body || '<p class="empty-note">No description provided.</p>'}</div>
+        ${secretSection}
+        ${dmControls}
+      </div>
+
+      <!-- Edit Mode -->
+      <div class="loot-edit-mode" style="display:none;">
+        <div class="card-edit-form">
+          <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Item</h4>
+          
+          <div class="form-group">
+            <label>Item Name</label>
+            <input type="text" id="edit-loot-name-${item.id}" value="${escapeHtml(item.name || '')}" class="input-field" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label>Quantity</label>
+              <input type="number" id="edit-loot-qty-${item.id}" value="${item.quantity ?? 1}" class="input-field" min="1" />
+            </div>
+            <div class="form-group" style="flex:2;">
+              <label>Value</label>
+              <input type="text" id="edit-loot-value-${item.id}" value="${escapeHtml(item.value || '')}" class="input-field" placeholder="500 gp" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="edit-loot-desc-${item.id}" rows="3" class="input-field">${escapeHtml(item.description || item.body || '')}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="secret-label">🔒 DM Secret (Curse, True Value)</label>
+            <textarea id="edit-loot-secret-${item.id}" rows="2" class="input-field input-field-secret">${escapeHtml(item.secret || item.dm_secret || '')}</textarea>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:4px;">
+            <button class="btn btn-sm" onclick="saveInlineLootEdit('${item.id}')">Save Changes</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function saveInlineLootEdit(itemId) {
+  if (!isDM) return;
+  const name = document.getElementById(`edit-loot-name-${itemId}`)?.value.trim();
+  const quantity = parseInt(document.getElementById(`edit-loot-qty-${itemId}`)?.value, 10) || 1;
+  const value = document.getElementById(`edit-loot-value-${itemId}`)?.value.trim();
+  const description = document.getElementById(`edit-loot-desc-${itemId}`)?.value.trim();
+  const secret = document.getElementById(`edit-loot-secret-${itemId}`)?.value.trim();
+
+  const { error } = await sb.from('loot').update({ name, quantity, value, description, secret }).eq('id', itemId);
+  if (error) alert("Failed to save: " + error.message);
+  else loadLoot();
 }
 
   /* ===================== RESTRICTED ARCHIVES HUB ===================== */
