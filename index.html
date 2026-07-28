@@ -1145,7 +1145,6 @@ async function openRestrictedSubSection(tableName, title, description, label) {
       <div>${row.body || ''}</div>
       ${dmControls}
     </div>`;
-  }
 
   async function toggleBlockVisibility(id, tableName, containerId, visible) {
     const { error } = await sb.from(tableName).update({ visible_to_players: visible }).eq('id', id);
