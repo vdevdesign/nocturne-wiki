@@ -956,35 +956,84 @@
   }
 
   /* ===================== CONTENT LOADERS & HELPERS ===================== */
-  async function loadWorldbook() { loadContentSection('worldbook', 'worldbook-container', 'Worldbook Entry'); }
-  async function loadNPCs() { loadContentSection('npcs', 'npc-cards-container', 'NPC'); }
-  async function loadSummaries() { loadContentSection('summaries', 'summaries-container', 'Session Summary'); }
-  async function loadLoot() { loadContentSection('loot', 'loot-container', 'Loot Item'); }
-  async function loadRestricted() { loadContentSection('restricted', 'restricted-container', 'Restricted Entry'); }
+  async function loadWorldbook() { 
+    await loadTableSection('worldbook', 'worldbook-container', 'Worldbook Entry'); 
+  }
 
-  async function loadContentSection(section, containerId, addLabel) {
-    let query = sb.from('content_blocks').select('*').eq('section', section).order('id');
-    if (!isDM && (section === 'npcs' || section === 'loot')) {
+  async function loadNPCs() { 
+    await loadTableSection('encounters', 'npc-cards-container', 'Encounter / NPC'); 
+  }
+
+  async function loadSummaries() { 
+    await loadTableSection('session_summaries', 'summaries-container', 'Session Summary'); 
+  }
+
+  async function loadLoot() { 
+    await loadTableSection('loot', 'loot-container', 'Loot Item'); 
+  }
+
+  async function loadRestricted() {
+    const container = document.getElementById('restricted-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const tables = [
+      { name: 'lore', label: 'Deep Lore' },
+      { name: 'session_skeletons', label: 'Session Skeletons' },
+      { name: 'character_template_secrets', label: 'Character Secrets' }
+    ];
+
+    for (const t of tables) {
+      const subHeader = document.createElement('h3');
+      subHeader.textContent = t.label;
+      container.appendChild(subHeader);
+
+      const subContainer = document.createElement('div');
+      subContainer.id = `restricted-${t.name}-container`;
+      container.appendChild(subContainer);
+
+      await loadTableSection(t.name, subContainer.id, t.label);
+    }
+  }
+
+  async function loadTableSection(tableName, containerId, addLabel) {
+    let query = sb.from(tableName).select('*').order('order_index', { ascending: true, nullsFirst: false });
+    
+    // Non-DMs only see publicly visible entries
+    if (!isDM) {
       query = query.eq('visible_to_players', true);
     }
+
     const { data, error } = await query;
     const container = document.getElementById(containerId);
-    if (error) { container.innerHTML = `<p class="error-msg">Couldn't load this section.</p>`; return; }
-    let html = (data && data.length) ? data.map(row => renderContentBlock(row, section)).join('') : `<p class="empty-note">Nothing here yet.</p>`;
-    if (isDM) html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addContentBlock('${section}')">+ Add ${addLabel}</button>`;
+    if (!container) return;
+
+    if (error) { 
+      container.innerHTML = `<p class="error-msg">Couldn't load table "${tableName}": ${escapeHtml(error.message)}</p>`; 
+      return; 
+    }
+
+    let html = (data && data.length) 
+      ? data.map(row => renderContentBlock(row, tableName, containerId)).join('') 
+      : `<p class="empty-note">Nothing here yet.</p>`;
+
+    if (isDM) {
+      html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addTableBlock('${tableName}', '${containerId}', '${addLabel}')">+ Add ${addLabel}</button>`;
+    }
+
     container.innerHTML = html;
   }
 
-  function renderContentBlock(row, section) {
+  function renderContentBlock(row, tableName, containerId) {
     let dmControls = '';
-    if (isDM && (section === 'npcs' || section === 'loot')) {
+    if (isDM) {
       const isVisible = row.visible_to_players ?? true;
       dmControls = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
           <div style="display:flex; align-items:center; gap:10px;">
             <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
             <label class="switch">
-              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${row.id}', '${section}', this.checked)">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${row.id}', '${tableName}', '${containerId}', this.checked)">
               <span class="slider"></span>
             </label>
           </div>
@@ -995,7 +1044,7 @@
       <div class="block-header">
         <h4>${escapeHtml(row.title)}</h4>
         ${isDM ? `<div class="block-actions">
-          <button class="btn btn-sm btn-secondary" onclick="deleteContentBlock('${row.id}','${section}')">Delete</button>
+          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${row.id}', '${tableName}', '${containerId}')">Delete</button>
         </div>` : ''}
       </div>
       <div>${row.body || ''}</div>
@@ -1003,24 +1052,45 @@
     </div>`;
   }
 
-  async function toggleBlockVisibility(id, section, visible) {
-    const { error } = await sb.from('content_blocks').update({ visible_to_players: visible }).eq('id', id);
-    if (error) alert('Failed to update visibility: ' + error.message);
-    else loadContentSection(section, section + '-container', section);
+  async function toggleBlockVisibility(id, tableName, containerId, visible) {
+    const { error } = await sb.from(tableName).update({ visible_to_players: visible }).eq('id', id);
+    if (error) {
+      alert('Failed to update visibility: ' + error.message);
+    } else {
+      loadTableSection(tableName, containerId, tableName);
+    }
   }
 
-  async function addContentBlock(section) {
-    const title = prompt("Enter title:");
+  async function addTableBlock(tableName, containerId, addLabel) {
+    const title = prompt(`Enter ${addLabel} title:`);
     if (!title) return;
-    const body = prompt("Enter description/body:");
-    await sb.from('content_blocks').insert({ section, title, body, visible_to_players: true });
-    loadContentSection(section, section + '-container', section);
+    const body = prompt("Enter description/body (HTML supported):");
+    
+    const id = tableName + '_' + Date.now();
+    
+    const { error } = await sb.from(tableName).insert({ 
+      id, 
+      title, 
+      body, 
+      visible_to_players: true,
+      order_index: 99
+    });
+
+    if (error) {
+      alert("Error adding entry: " + error.message);
+    } else {
+      loadTableSection(tableName, containerId, addLabel);
+    }
   }
 
-  async function deleteContentBlock(id, section) {
-    if (!confirm("Delete this block?")) return;
-    await sb.from('content_blocks').delete().eq('id', id);
-    loadContentSection(section, section + '-container', section);
+  async function deleteTableBlock(id, tableName, containerId) {
+    if (!confirm("Delete this entry?")) return;
+    const { error } = await sb.from(tableName).delete().eq('id', id);
+    if (error) {
+      alert("Error deleting entry: " + error.message);
+    } else {
+      loadTableSection(tableName, containerId, tableName);
+    }
   }
 
   /* ===================== CHARACTER DIRECTORY ===================== */
