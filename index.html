@@ -1084,7 +1084,7 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     container.innerHTML = html;
   }
 
-  function renderContentBlock(row, tableName, containerId) {
+ function renderContentBlock(row, tableName, containerId) {
     let dmControls = '';
     if (isDM) {
       const isVisible = row.visible_to_players ?? true;
@@ -1099,6 +1099,41 @@ async function openRestrictedSubSection(tableName, title, description, label) {
           </div>
         </div>`;
     }
+
+    return `<div class="block-card">
+      <div class="block-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <h4>${escapeHtml(row.title)}</h4>
+        ${isDM ? `<div class="block-actions" style="display:flex; gap:6px;">
+          <button class="btn btn-sm btn-secondary" onclick="editTableBlock('${row.id}', '${tableName}', '${containerId}')">Edit</button>
+          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${row.id}', '${tableName}', '${containerId}')">Delete</button>
+        </div>` : ''}
+      </div>
+      <div class="block-body" id="body-${row.id}">${row.body || ''}</div>
+      ${dmControls}
+    </div>`;
+  }
+// Edit handler for DM content blocks
+  async function editTableBlock(id, tableName, containerId) {
+    // Fetch current entry
+    const { data, error } = await sb.from(tableName).select('*').eq('id', id).single();
+    if (error || !data) return alert("Failed to fetch entry for editing: " + (error?.message || 'Not found'));
+
+    const newTitle = prompt("Edit Title:", data.title);
+    if (newTitle === null) return; // Cancelled
+    
+    const newBody = prompt("Edit Description/Body (HTML supported):", data.body || '');
+    if (newBody === null) return; // Cancelled
+
+    const { error: updateError } = await sb.from(tableName)
+      .update({ title: newTitle, body: newBody })
+      .eq('id', id);
+
+    if (updateError) {
+      alert("Error updating entry: " + updateError.message);
+    } else {
+      loadTableSection(tableName, containerId, tableName);
+    }
+  }
 
     return `<div class="block-card">
       <div class="block-header">
@@ -1153,7 +1188,7 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     }
   }
 
-  /* ===================== CHARACTER DIRECTORY ===================== */
+ /* ===================== CHARACTER DIRECTORY ===================== */
   async function loadCharacters() {
     const { data, error } = await sb.from('characters').select('*').order('name');
     if (error) return;
@@ -1169,6 +1204,36 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     if (isDM) document.getElementById('add-char-btn').style.display = 'block';
   }
 
+  // Helper to extract player name from role string OR tags array
+  function parsePlayerName(char) {
+    if (!char) return '';
+
+    // 1. Check role string (e.g. "Player: EB_Pixelstechlab | Lvl 1 | Dragonborn | Sorcerer")
+    if (char.role) {
+      const match = char.role.match(/Player:\s*([^\n<|]+)/i);
+      if (match) return match[1].trim();
+    }
+
+    // 2. Fallback: Check tags array (e.g. ["Player: EB_Pixelstechlab", "Sorcerer"])
+    if (char.tags && Array.isArray(char.tags)) {
+      for (const tag of char.tags) {
+        const match = tag.match(/Player:\s*(.+)/i);
+        if (match) return match[1].trim();
+      }
+    }
+
+    return '';
+  }
+
+  // Helper to check if current user can edit the selected character
+  function canEditCharacter(char) {
+    if (isDM) return true;
+    if (typeof currentUser === 'undefined' || !currentUser) return false;
+    
+    const assignedPlayer = parsePlayerName(char);
+    return assignedPlayer.toLowerCase() === currentUser.toLowerCase();
+  }
+
   function selectCharacter(id) {
     currentSelectedCharId = id;
     const char = cachedCharacters.find(c => c.id === id);
@@ -1180,22 +1245,52 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     document.getElementById('bio-textarea').value = char.bio || '';
     document.getElementById('tag-textarea').value = (char.tags || []).join(' | ');
     
+    // Check permission to show/hide edit controls
+    const userCanEdit = canEditCharacter(char);
+    
+    const editToggleBtn = document.getElementById('edit-toggle-btn');
+    if (editToggleBtn) {
+      editToggleBtn.style.display = userCanEdit ? 'inline-block' : 'none';
+    }
+
+    // Reset to read mode when switching characters
+    if (isEditing) {
+      toggleEditMode();
+    }
+
     if (isDM) {
       document.getElementById('delete-char-btn').style.display = 'block';
       document.getElementById('tag-edit-group').style.display = 'block';
+    } else {
+      if (document.getElementById('delete-char-btn')) document.getElementById('delete-char-btn').style.display = 'none';
+      if (document.getElementById('tag-edit-group')) document.getElementById('tag-edit-group').style.display = 'none';
     }
-    loadCharacters();
+    
+    // Refresh card selection borders
+    const cards = document.querySelectorAll('.char-card');
+    cards.forEach(card => card.classList.remove('selected'));
+    const selectedCard = Array.from(cards).find(card => card.getAttribute('onclick')?.includes(id));
+    if (selectedCard) selectedCard.classList.add('selected');
   }
 
   function toggleEditMode() {
     isEditing = !isEditing;
     document.getElementById('read-mode-content').style.display = isEditing ? 'none' : 'block';
     document.getElementById('edit-mode-content').style.display = isEditing ? 'block' : 'none';
-    document.getElementById('edit-toggle-btn').innerText = isEditing ? 'Cancel Edit' : 'Switch to Edit Mode';
+    
+    const editBtn = document.getElementById('edit-toggle-btn');
+    if (editBtn) editBtn.innerText = isEditing ? 'Cancel Edit' : 'Switch to Edit Mode';
   }
 
   async function saveCharacterBio() {
     if (!currentSelectedCharId) return;
+    
+    const char = cachedCharacters.find(c => c.id === currentSelectedCharId);
+    if (!char || !canEditCharacter(char)) {
+      alert("You don't have permission to edit this character.");
+      return;
+    }
+
     const bio = document.getElementById('bio-textarea').value;
     const tagInput = document.getElementById('tag-textarea').value;
     const tags = tagInput.split('|').map(t => t.trim()).filter(Boolean);
@@ -1206,12 +1301,15 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     const { error } = await sb.from('characters').update(updateData).eq('id', currentSelectedCharId);
     if (!error) {
       toggleEditMode();
-      loadCharacters();
+      await loadCharacters();
       selectCharacter(currentSelectedCharId);
+    } else {
+      alert("Error saving character: " + error.message);
     }
   }
 
   async function addNewCharacter() {
+    if (!isDM) return;
     const name = prompt("Enter character name:");
     if (!name) return;
     const { data, error } = await sb.from('characters').insert({ name, bio: '', tags: [] }).select().single();
@@ -1222,11 +1320,12 @@ async function openRestrictedSubSection(tableName, title, description, label) {
   }
 
   async function deleteCharacter() {
-    if (!currentSelectedCharId || !confirm("Delete this character sheet?")) return;
+    if (!isDM || !currentSelectedCharId || !confirm("Delete this character sheet?")) return;
     await sb.from('characters').delete().eq('id', currentSelectedCharId);
     currentSelectedCharId = null;
     document.getElementById('active-char-name').innerText = 'Select a Character';
     document.getElementById('read-mode-content').innerHTML = '<p style="color: var(--text-faint);">Select a hero above to view or update background details.</p>';
+    if (document.getElementById('edit-toggle-btn')) document.getElementById('edit-toggle-btn').style.display = 'none';
     loadCharacters();
   }
 
@@ -1234,6 +1333,28 @@ async function openRestrictedSubSection(tableName, title, description, label) {
   function escapeAttr(str) { return (str || '').replace(/"/g, "&quot;"); }
 
   checkSession();
+
+  /* ===================== CHARACTER PERMISSIONS ===================== */
+
+// Extracts "Player: Name" from a role string or metadata tag (e.g., "Wizard | Player: Alex")
+function parsePlayerFromRole(roleStr) {
+  if (!roleStr) return '';
+  const match = roleStr.match(/Player:\s*([^\n<|]+)/i);
+  return match ? match[1].trim() : '';
+}
+
+// Checks if the active user can edit a given character
+function canEditCharacter(character) {
+  // DM can edit anyone
+  if (isDM) return true;
+
+  // Global currentUser variable (e.g., logged-in player name)
+  if (typeof currentUser === 'undefined' || !currentUser) return false;
+
+  const assignedPlayer = character.player_name || parsePlayerFromRole(character.role || character.tags || '');
+  
+  return assignedPlayer.toLowerCase() === currentUser.toLowerCase();
+}
 </script>
 
 </body>
