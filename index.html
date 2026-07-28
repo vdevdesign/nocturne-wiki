@@ -1329,9 +1329,15 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     loadCharacters();
   }
 
-  function escapeHtml(str) { return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-  function escapeAttr(str) { return (str || '').replace(/"/g, "&quot;"); }
+  function escapeHtml(str) { 
+    return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); 
+  }
 
+  function escapeAttr(str) { 
+    return (str || '').replace(/"/g, "&quot;"); 
+  }
+
+  // Execute session check when script loads
   checkSession();
 
   /* ===================== CHARACTER PERMISSIONS ===================== */
