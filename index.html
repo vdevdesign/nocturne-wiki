@@ -1980,7 +1980,7 @@ function parsePlayerName(char) {
   if (Array.isArray(char.tags)) {
     searchPool = searchPool.concat(char.tags);
   } else if (typeof char.tags === 'string') {
-    searchPool.push(char.tags);
+    searchPool.push(char.role);
   }
 
   if (typeof char.role === 'string') searchPool.push(char.role);
