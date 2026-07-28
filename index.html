@@ -1074,12 +1074,11 @@
     await loadTableSection('worldbook', 'worldbook-container', 'Worldbook Entry'); 
   }
 
-  /* ===================== NPCS & FRIENDSHIP POINTS ===================== */
+ /* ===================== NPCS & FRIENDSHIP POINTS ===================== */
   async function loadNPCs() {
     const container = document.getElementById('npc-cards-container');
     if (!container) return;
 
-    // Query dedicated 'npcs' table in Supabase
     const { data, error } = await sb.from('npcs')
       .select('*')
       .order('name');
@@ -1100,7 +1099,6 @@
   function renderNPCCard(npc) {
     const isVisible = npc.visible_to_players ?? true;
 
-    // Non-DMs cannot view hidden NPCs at all
     if (!isDM && !isVisible) return '';
 
     const friendshipPoints = npc.friendship_points ?? 0;
@@ -1108,13 +1106,13 @@
     let dmControls = '';
     let secretSection = '';
 
-    // DM Secrets are strictly conditionally rendered ONLY for the DM
     if (isDM) {
       if (npc.secret || npc.dm_secret) {
+        const secretText = npc.secret || npc.dm_secret;
         secretSection = `
-          <div style="margin-top:12px; padding:10px; background:rgba(220, 50, 50, 0.1); border:1px solid rgba(220, 50, 50, 0.3); border-radius:6px;">
+          <div class="spoiler-block" style="margin-top:12px; padding:10px; background:rgba(220, 50, 50, 0.1); border:1px solid rgba(220, 50, 50, 0.3); border-radius:6px;">
             <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
-            <div style="font-size:0.9rem; margin-top:4px; color:#ffb3b3;">${escapeHtml(npc.secret || npc.dm_secret)}</div>
+            <div style="font-size:0.9rem; margin-top:4px; color:#ffb3b3;">${escapeHtml(secretText)}</div>
           </div>`;
       }
 
@@ -1128,67 +1126,126 @@
             </label>
           </div>
           <div style="display:flex; gap:6px;">
-            <button class="btn btn-sm btn-secondary" onclick="editNPCEntry('${npc.id}')">Edit NPC</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Edit NPC</button>
             <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${npc.id}', 'npcs', 'npc-cards-container')">Delete</button>
           </div>
         </div>`;
     }
 
     return `
-      <div class="block-card">
-        <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-            <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
-            ${npc.role || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${escapeHtml(npc.role || '')} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
+      <div class="block-card" id="npc-card-${npc.id}">
+        <!-- Display View -->
+        <div class="npc-view-mode">
+          <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
+              ${npc.role || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${escapeHtml(npc.role || '')} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
+            </div>
+
+            <!-- Friendship Points Counter -->
+            <div class="friendship-counter" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.25); padding:4px 10px; border-radius:12px; border:1px solid var(--line);">
+              <span style="font-size:0.85rem; color:var(--gold); font-weight:600;">❤️ ${friendshipPoints}</span>
+              ${isDM ? `
+                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints - 1})">-</button>
+                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints + 1})">+</button>
+              ` : ''}
+            </div>
           </div>
 
-          <!-- Friendship Points Counter -->
-          <div class="friendship-counter" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.25); padding:4px 10px; border-radius:12px; border:1px solid var(--line);">
-            <span style="font-size:0.85rem; color:var(--gold); font-weight:600;">❤️ ${friendshipPoints}</span>
-            ${isDM ? `
-              <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints - 1})">-</button>
-              <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints + 1})">+</button>
-            ` : ''}
-          </div>
+          <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
+          ${secretSection}
+          ${dmControls}
         </div>
 
-        <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
-        
-        ${secretSection}
-        ${dmControls}
+        <!-- Inline Expandable Edit Form -->
+        <div class="npc-edit-mode" style="display:none; margin-top:8px;">
+          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit NPC Details</h4>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <label style="font-size:0.8rem; color:var(--text-faint);">Name</label>
+            <input type="text" id="edit-npc-name-${npc.id}" value="${escapeHtml(npc.name || npc.title || '')}" class="input-field" />
+            
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">Role / Title</label>
+                <input type="text" id="edit-npc-role-${npc.id}" value="${escapeHtml(npc.role || '')}" class="input-field" />
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">Faction</label>
+                <input type="text" id="edit-npc-faction-${npc.id}" value="${escapeHtml(npc.faction || '')}" class="input-field" />
+              </div>
+            </div>
+
+            <label style="font-size:0.8rem; color:var(--text-faint);">Friendship Points</label>
+            <input type="number" id="edit-npc-points-${npc.id}" value="${friendshipPoints}" class="input-field" style="width:100px;" />
+
+            <label style="font-size:0.8rem; color:var(--text-faint);">Bio / Description</label>
+            <textarea id="edit-npc-bio-${npc.id}" rows="3" class="input-field">${escapeHtml(npc.bio || npc.body || npc.description || '')}</textarea>
+
+            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Hidden from Players)</label>
+            <textarea id="edit-npc-secret-${npc.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(npc.secret || npc.dm_secret || '')}</textarea>
+
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn btn-sm" onclick="saveInlineNPCEdit('${npc.id}')">Save Changes</button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Cancel</button>
+            </div>
+          </div>
+        </div>
       </div>
     `;
   }
 
-  // Comprehensive DM Edit for all fields (Name, Role, Faction, Bio, Secret, Friendship Points)
-  async function editNPCEntry(id) {
+  // Toggle between card view and expandable edit mode
+  function toggleInlineNPCEdit(npcId) {
+    const card = document.getElementById(`npc-card-${npcId}`);
+    if (!card) return;
+    const viewMode = card.querySelector('.npc-view-mode');
+    const editMode = card.querySelector('.npc-edit-mode');
+
+    const isEditing = editMode.style.display !== 'none';
+    viewMode.style.display = isEditing ? 'block' : 'none';
+    editMode.style.display = isEditing ? 'none' : 'block';
+  }
+
+  // Save changes directly from the expanded inline form
+  async function saveInlineNPCEdit(npcId) {
     if (!isDM) return;
 
-    const { data, error } = await sb.from('npcs').select('*').eq('id', id).single();
-    if (error || !data) return alert("Error fetching NPC data.");
+    const name = document.getElementById(`edit-npc-name-${npcId}`).value.trim();
+    const role = document.getElementById(`edit-npc-role-${npcId}`).value.trim();
+    const faction = document.getElementById(`edit-npc-faction-${npcId}`).value.trim();
+    const pointsVal = parseInt(document.getElementById(`edit-npc-points-${npcId}`).value, 10);
+    const friendship_points = isNaN(pointsVal) ? 0 : pointsVal;
+    const bio = document.getElementById(`edit-npc-bio-${npcId}`).value.trim();
+    const secret = document.getElementById(`edit-npc-secret-${npcId}`).value.trim();
 
-    const name = prompt("NPC Name:", data.name || data.title || '') ?? data.name;
-    const role = prompt("NPC Role/Title (e.g., Headmaster, Merchant):", data.role || '') ?? data.role;
-    const faction = prompt("NPC Faction/Affiliation:", data.faction || '') ?? data.faction;
-    const bio = prompt("NPC Bio / Public Details (HTML allowed):", data.bio || data.body || data.description || '') ?? data.bio;
-    const secret = prompt("🔒 DM Secret (ALWAYS HIDDEN FROM PLAYERS):", data.secret || data.dm_secret || '') ?? data.secret;
-    const pointsInput = prompt("Friendship Points:", data.friendship_points ?? 0);
-
-    const friendship_points = pointsInput !== null ? parseInt(pointsInput, 10) || 0 : data.friendship_points;
-
-    const { error: updateError } = await sb.from('npcs')
+    const { error } = await sb.from('npcs')
       .update({
         name,
         role,
         faction,
+        friendship_points,
         bio,
-        secret,
-        friendship_points
+        secret
       })
-      .eq('id', id);
+      .eq('id', npcId);
 
-    if (updateError) {
-      alert("Failed to save NPC updates: " + updateError.message);
+    if (error) {
+      alert("Failed to save NPC updates: " + error.message);
+    } else {
+      loadNPCs();
+    }
+  }
+
+  async function adjustFriendship(npcId, newScore) {
+    if (!isDM) return;
+    const score = Math.max(0, newScore);
+
+    const { error } = await sb.from('npcs')
+      .update({ friendship_points: score })
+      .eq('id', npcId);
+
+    if (error) {
+      alert("Failed to update friendship points: " + error.message);
     } else {
       loadNPCs();
     }
@@ -1257,20 +1314,20 @@ function showRestrictedHub() {
 
 // Opens a specific sub-section and displays a "Back to Hub" button
 async function openRestrictedSubSection(tableName, title, description, label) {
-  const container = document.getElementById('restricted-container');
-  if (!container) return;
+    const container = document.getElementById('restricted-container');
+    if (!container) return;
 
-  container.innerHTML = `
-    <div style="margin-bottom: 20px;">
-      <button class="btn btn-secondary btn-sm" onclick="showRestrictedHub()">← Back to Restricted Hub</button>
-    </div>
-    <h3 style="margin-top: 0;">${escapeHtml(title)}</h3>
-    <p class="subtitle" style="margin-bottom: 20px;">${escapeHtml(description)}</p>
-    <div id="sub-${tableName}-container"><p class="empty-note">Loading…</p></div>
-  `;
+    container.innerHTML = `
+      <div style="margin-bottom: 20px;">
+        <button class="btn btn-secondary btn-sm" onclick="showRestrictedHub()">← Back to Restricted Hub</button>
+      </div>
+      <h3 style="margin-top: 0;">${escapeHtml(title)}</h3>
+      <p class="subtitle" style="margin-bottom: 20px;">${escapeHtml(description)}</p>
+      <div id="sub-${tableName}-container" class="spoiler-block"><p class="empty-note">Loading…</p></div>
+    `;
 
-  await loadTableSection(tableName, `sub-${tableName}-container`, label);
-}
+    await loadTableSection(tableName, `sub-${tableName}-container`, label);
+  }
 
   async function loadTableSection(tableName, containerId, addLabel) {
     let query = sb.from(tableName).select('*').order('order_index', { ascending: true, nullsFirst: false });
