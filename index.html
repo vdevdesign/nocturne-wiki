@@ -322,6 +322,26 @@
   line-height: 1.3;
 }
 
+/* General Blackout Spoiler Styling */
+.spoiler-mask {
+  background-color: var(--text-main, #1a1a1a);
+  color: transparent !important;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  display: inline-block;
+}
+
+/* Hover or revealed state reveals the hidden text */
+.spoiler-mask:hover,
+.spoiler-mask.revealed {
+  background-color: rgba(220, 50, 50, 0.15);
+  color: var(--rose, #ffb3b3) !important;
+  border: 1px solid rgba(220, 50, 50, 0.3);
+}
+
 /* ===================== RESTRICTED HUB & STAT BLOCK STYLES ===================== */
 .restricted-grid {
   display: grid;
@@ -1074,7 +1094,7 @@
     await loadTableSection('worldbook', 'worldbook-container', 'Worldbook Entry'); 
   }
 
- /* ===================== NPCS & FRIENDSHIP POINTS ===================== */
+/* ===================== NPCS & FRIENDSHIP POINTS ===================== */
 async function loadNPCs() {
   const container = document.getElementById('npc-cards-container');
   if (!container) return;
@@ -1110,9 +1130,11 @@ function renderNPCCard(npc) {
     if (npc.secret || npc.dm_secret) {
       const secretText = npc.secret || npc.dm_secret;
       secretSection = `
-        <div class="spoiler-block" style="margin-top:12px; padding:10px; background:rgba(220, 50, 50, 0.1); border:1px solid rgba(220, 50, 50, 0.3); border-radius:6px;">
+        <div style="margin-top:12px;">
           <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
-          <div style="font-size:0.9rem; margin-top:4px; color:#ffb3b3;">${escapeHtml(secretText)}</div>
+          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
+            ${escapeHtml(secretText)}
+          </div>
         </div>`;
     }
 
@@ -1194,7 +1216,6 @@ function renderNPCCard(npc) {
   `;
 }
 
-// Toggle inline edit form open/closed
 function toggleInlineNPCEdit(npcId) {
   const card = document.getElementById(`npc-card-${npcId}`);
   if (!card) return;
@@ -1206,7 +1227,6 @@ function toggleInlineNPCEdit(npcId) {
   editMode.style.display = isEditing ? 'none' : 'block';
 }
 
-// Save changes directly from the expanded inline form
 async function saveInlineNPCEdit(npcId) {
   if (!isDM) return;
 
@@ -1695,6 +1715,11 @@ function canEditCharacter(character) {
   const assignedPlayer = character.player_name || parsePlayerFromRole(character.role || character.tags || '');
   
   return assignedPlayer.toLowerCase() === currentUser.toLowerCase();
+}
+
+// Global toggle for blackout spoilers across any page
+function toggleSpoiler(element) {
+  element.classList.toggle('revealed');
 }
 </script>
 
