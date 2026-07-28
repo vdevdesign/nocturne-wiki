@@ -1957,32 +1957,68 @@ async function openRestrictedSubSection(tableName, title, description, label) {
 
  /* ===================== CHARACTER DIRECTORY (FIXED & STREAMLINED) ===================== */
 
-// Extracts "Player: Name" from role string, tag string, or tags array
+// Helper to sanitize player names for comparison
+function cleanPlayerName(str) {
+  if (!str) return '';
+  return str
+    .replace(/^["'\s]+|["'\s]+$/g, '') // Remove surrounding quotes/spaces
+    .replace(/[|].*$/, '')              // Drop anything after a pipe if present
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Parses out the player's name from tags array, role string, or tags string.
+ * Example tags: "Player: EB_Pixelstechlab | Lvl 1" or ["Player: EB_Pixelstechlab", "Wizard"]
+ */
 function parsePlayerName(char) {
   if (!char) return '';
-  if (char.player_name) return char.player_name.trim();
+  if (char.player_name) return cleanPlayerName(char.player_name);
 
-  // Standardize tags/role into a single searchable string
-  let searchStr = char.role || '';
+  // Combine all possible tag fields into a searchable string
+  let searchPool = [];
   if (Array.isArray(char.tags)) {
-    searchStr += ' ' + char.tags.join(' ');
-  } else if (char.tags) {
-    searchStr += ' ' + char.tags;
+    searchPool = searchPool.concat(char.tags);
+  } else if (typeof char.tags === 'string') {
+    searchPool.push(char.tags);
   }
 
-  const match = searchStr.match(/Player:\s*([^\n<|]+)/i);
-  return match ? match[1].trim() : '';
+  if (typeof char.role === 'string') searchPool.push(char.role);
+  if (typeof char.role_tag === 'string') searchPool.push(char.role_tag);
+
+  const fullText = searchPool.join(' | ');
+
+  // Match "Player: <Name>" up to the next pipe, comma, newline, or end-of-string
+  const match = fullText.match(/Player:\s*([^|\n,]+)/i);
+  return match ? cleanPlayerName(match[1]) : '';
 }
 
-// Checks if current user can edit this character
+/**
+ * Checks if current user can edit this character.
+ */
 function canEditCharacter(char) {
-  if (typeof isDM !== 'undefined' && isDM) return true;
-  if (typeof currentUser === 'undefined' || !currentUser) return false;
+  // 1. DMs can always edit
+  if (typeof isDM !== 'undefined' && isDM === true) {
+    return true;
+  }
 
+  // 2. STOPS UNLOGGED USERS: If no user is logged in, block edit access immediately!
+  const activeUser = typeof currentUser !== 'undefined' && currentUser ? cleanPlayerName(currentUser) : '';
+  if (!activeUser) {
+    console.warn(`[Perm Check] Blocked edit on "${char.name}": No active currentUser found.`);
+    return false;
+  }
+
+  // 3. Extract assigned player name
   const assignedPlayer = parsePlayerName(char);
-  return Boolean(assignedPlayer && assignedPlayer.toLowerCase() === currentUser.toLowerCase());
-}
 
+  const matched = Boolean(assignedPlayer && assignedPlayer === activeUser);
+
+  // Debug log (Check F12 console to inspect matches)
+  console.log(`[Perm Check] Char: "${char.name}" | Tag Player: "${assignedPlayer}" | Active User: "${activeUser}" | Can Edit: ${matched}`);
+
+  return matched;
+}
 async function loadCharacters() {
   const container = document.getElementById('character-cards-container') || document.getElementById('character-grid');
   if (!container) return;
