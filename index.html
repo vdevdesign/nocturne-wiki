@@ -534,26 +534,6 @@
 .input-field-secret:focus {
   border-color: var(--rose, #ff6b6b) !important;
 }
-
-/* Blackout Spoiler Mask */
-.spoiler-mask {
-  background-color: var(--text-main, #111);
-  color: transparent !important;
-  border-radius: 4px;
-  padding: 2px 8px;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.2s ease;
-  display: inline-block;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.spoiler-mask:hover,
-.spoiler-mask.revealed {
-  background-color: rgba(220, 50, 50, 0.12);
-  color: var(--rose, #ffb3b3) !important;
-  border-color: rgba(220, 50, 50, 0.3);
-}
 </style>
 </head>
 <body>
@@ -844,6 +824,17 @@
   let currentSessionId = "session_1";
   let isSessionOpen = false;
   let chatSubscription = null;
+
+  /* ===================== HELPER FUNCTIONS ===================== */
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   /* ===================== AUTH ===================== */
   let authMode = 'signin';
@@ -1224,522 +1215,339 @@
     await loadTableSection('worldbook', 'worldbook-container', 'Worldbook Entry'); 
   }
 
-/* ===================== NPCS & FRIENDSHIP POINTS ===================== */
-async function loadNPCs() {
-  const container = document.getElementById('npc-cards-container');
-  if (!container) return;
+  /* ===================== SESSION SUMMARIES (INLINE EDITING) ===================== */
+  async function loadSummaries() {
+    const container = document.getElementById('summaries-container');
+    if (!container) return;
 
-  const { data, error } = await sb.from('npcs')
-    .select('*')
-    .order('name');
+    const { data, error } = await sb.from('session_summaries')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  if (error) {
-    container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(error.message)}</p>`;
-    return;
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Failed to load summaries: ${escapeHtml(error.message)}</p>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p class="empty-note">No session summaries recorded yet.</p>';
+      return;
+    }
+
+    container.innerHTML = data.map(summary => renderSummaryCard(summary)).join('');
   }
 
-  if (!data || data.length === 0) {
-    container.innerHTML = '<p class="empty-note">No NPCs recorded in database yet.</p>';
-    return;
-  }
+  function renderSummaryCard(summary) {
+    const isVisible = summary.visible_to_players ?? true;
 
-  container.innerHTML = data.map(npc => renderNPCCard(npc)).join('');
-}
+    if (!isDM && !isVisible) return '';
 
-function renderNPCCard(npc) {
-  const isVisible = npc.visible_to_players ?? true;
+    let dmControls = '';
+    let secretSection = '';
 
-  if (!isDM && !isVisible) return '';
+    if (isDM) {
+      if (summary.secret || summary.dm_secret) {
+        const secretText = summary.secret || summary.dm_secret;
+        secretSection = `
+          <div style="margin-top:12px;">
+            <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
+            <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
+              ${escapeHtml(secretText)}
+            </div>
+          </div>`;
+      }
 
-  const friendshipPoints = npc.friendship_points ?? 0;
-
-  let dmControls = '';
-  let secretSection = '';
-
-  if (isDM) {
-    if (npc.secret || npc.dm_secret) {
-      const secretText = npc.secret || npc.dm_secret;
-      secretSection = `
-        <div style="margin-top:12px;">
-          <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
-          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
-            ${escapeHtml(secretText)}
+      dmControls = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
+            <label class="switch">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_summaries', 'summaries-container', this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Edit Summary</button>
+            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${summary.id}', 'session_summaries', 'summaries-container')">Delete</button>
           </div>
         </div>`;
     }
 
-    dmControls = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
-          <label class="switch">
-            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${npc.id}', 'npcs', 'npc-cards-container', this.checked)">
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Edit NPC</button>
-          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${npc.id}', 'npcs', 'npc-cards-container')">Delete</button>
-        </div>
-      </div>`;
-  }
+    const sessionNum = summary.session_number ? `Session ${escapeHtml(summary.session_number)}: ` : '';
+    const dateStr = summary.session_date ? escapeHtml(summary.session_date) : '';
 
-  return `
-    <div class="block-card" id="npc-card-${npc.id}">
-      <!-- Display View -->
-      <div class="npc-view-mode">
-        <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-            <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
-            ${npc.hp || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${npc.hp ? `HP: ${escapeHtml(npc.hp)}` : ''} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
-          </div>
-
-          <!-- Friendship Points Counter -->
-          <div class="friendship-counter" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.25); padding:4px 10px; border-radius:12px; border:1px solid var(--line);">
-            <span style="font-size:0.85rem; color:var(--gold); font-weight:600;">❤️ ${friendshipPoints}</span>
-            ${isDM ? `
-              <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints - 1})">-</button>
-              <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints + 1})">+</button>
-            ` : ''}
-          </div>
-        </div>
-
-        <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
-        ${secretSection}
-        ${dmControls}
-      </div>
-
-      <!-- Inline Expandable Edit Form -->
-      <div class="npc-edit-mode" style="display:none; margin-top:8px;">
-        <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit NPC Details</h4>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <label style="font-size:0.8rem; color:var(--text-faint);">Name</label>
-          <input type="text" id="edit-npc-name-${npc.id}" value="${escapeHtml(npc.name || npc.title || '')}" class="input-field" />
-          
-          <div style="display:flex; gap:8px;">
-            <div style="flex:1;">
-              <label style="font-size:0.8rem; color:var(--text-faint);">HP</label>
-              <input type="text" id="edit-npc-hp-${npc.id}" value="${escapeHtml(npc.hp || '')}" class="input-field" />
-            </div>
-            <div style="flex:1;">
-              <label style="font-size:0.8rem; color:var(--text-faint);">Faction</label>
-              <input type="text" id="edit-npc-faction-${npc.id}" value="${escapeHtml(npc.faction || '')}" class="input-field" />
+    return `
+      <div class="block-card" id="summary-card-${summary.id}">
+        <!-- Display View Mode -->
+        <div class="summary-view-mode">
+          <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <h3 style="margin:0; color:var(--gold,#c9a050);">${sessionNum}${escapeHtml(summary.title || 'Untitled Session')}</h3>
+              ${dateStr ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${dateStr}</p>` : ''}
             </div>
           </div>
 
-          <label style="font-size:0.8rem; color:var(--text-faint);">Friendship Points</label>
-          <input type="number" id="edit-npc-points-${npc.id}" value="${friendshipPoints}" class="input-field" style="width:100px;" />
+          <div class="block-body" style="margin-top:10px;">${summary.body || summary.content || summary.description || '<p class="empty-note">No summary text.</p>'}</div>
+          ${secretSection}
+          ${dmControls}
+        </div>
 
-          <label style="font-size:0.8rem; color:var(--text-faint);">Bio / Description</label>
-          <textarea id="edit-npc-bio-${npc.id}" rows="3" class="input-field">${escapeHtml(npc.bio || npc.body || npc.description || '')}</textarea>
+        <!-- Inline Edit View Mode -->
+        <div class="summary-edit-mode" style="display:none; margin-top:8px;">
+          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit Session Summary</h4>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">Session #</label>
+                <input type="text" id="edit-summary-num-${summary.id}" value="${escapeHtml(summary.session_number || '')}" class="input-field" placeholder="e.g. 12" />
+              </div>
+              <div style="flex:2;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">Session Title</label>
+                <input type="text" id="edit-summary-title-${summary.id}" value="${escapeHtml(summary.title || '')}" class="input-field" placeholder="Title" />
+              </div>
+            </div>
 
-          <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Hidden from Players)</label>
-          <textarea id="edit-npc-secret-${npc.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(npc.secret || npc.dm_secret || '')}</textarea>
+            <label style="font-size:0.8rem; color:var(--text-faint);">Date Played</label>
+            <input type="text" id="edit-summary-date-${summary.id}" value="${escapeHtml(summary.session_date || '')}" class="input-field" placeholder="e.g. Oct 12, 2024" />
 
-          <div style="display:flex; gap:8px; margin-top:8px;">
-            <button class="btn btn-sm" onclick="saveInlineNPCEdit('${npc.id}')">Save Changes</button>
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Cancel</button>
+            <label style="font-size:0.8rem; color:var(--text-faint);">Public Summary / Notes</label>
+            <textarea id="edit-summary-body-${summary.id}" rows="5" class="input-field">${escapeHtml(summary.body || summary.content || summary.description || '')}</textarea>
+
+            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Blacked out for players)</label>
+            <textarea id="edit-summary-secret-${summary.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(summary.secret || summary.dm_secret || '')}</textarea>
+
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn btn-sm" onclick="saveInlineSummaryEdit('${summary.id}')">Save Changes</button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  `;
-}
-
-function toggleInlineNPCEdit(npcId) {
-  const card = document.getElementById(`npc-card-${npcId}`);
-  if (!card) return;
-  const viewMode = card.querySelector('.npc-view-mode');
-  const editMode = card.querySelector('.npc-edit-mode');
-
-  const isEditing = editMode.style.display !== 'none';
-  viewMode.style.display = isEditing ? 'block' : 'none';
-  editMode.style.display = isEditing ? 'none' : 'block';
-}
-
-async function saveInlineNPCEdit(npcId) {
-  if (!isDM) return;
-
-  const nameEl = document.getElementById(`edit-npc-name-${npcId}`);
-  const hpEl = document.getElementById(`edit-npc-hp-${npcId}`);
-  const factionEl = document.getElementById(`edit-npc-faction-${npcId}`);
-  const pointsEl = document.getElementById(`edit-npc-points-${npcId}`);
-  const bioEl = document.getElementById(`edit-npc-bio-${npcId}`);
-  const secretEl = document.getElementById(`edit-npc-secret-${npcId}`);
-
-  if (!nameEl || !hpEl || !factionEl || !pointsEl || !bioEl || !secretEl) {
-    alert("Error: Missing input fields in the DOM.");
-    return;
+    `;
   }
 
-  const name = nameEl.value.trim();
-  const hp = hpEl.value.trim();
-  const faction = factionEl.value.trim();
-  const pointsVal = parseInt(pointsEl.value, 10);
-  const friendship_points = isNaN(pointsVal) ? 0 : pointsVal;
-  const bio = bioEl.value.trim();
-  const secret = secretEl.value.trim();
+  function toggleInlineSummaryEdit(summaryId) {
+    const card = document.getElementById(`summary-card-${summaryId}`);
+    if (!card) return;
+    const viewMode = card.querySelector('.summary-view-mode');
+    const editMode = card.querySelector('.summary-edit-mode');
 
-  const { error } = await sb.from('npcs')
-    .update({
-      name,
-      hp,
-      faction,
-      friendship_points,
-      bio,
-      secret
-    })
-    .eq('id', npcId);
-
-  if (error) {
-    alert("Failed to save NPC updates: " + error.message);
-  } else {
-    loadNPCs();
-  }
-}
-
-async function adjustFriendship(npcId, newScore) {
-  if (!isDM) return;
-  const score = Math.max(0, newScore);
-
-  const { error } = await sb.from('npcs')
-    .update({ friendship_points: score })
-    .eq('id', npcId);
-
-  if (error) {
-    alert("Failed to update friendship points: " + error.message);
-  } else {
-    loadNPCs();
-  }
-}
-
-/* ===================== SESSION SUMMARIES (INLINE EDITING) ===================== */
-async function loadSummaries() {
-  const container = document.getElementById('summaries-container');
-  if (!container) return;
-
-  const { data, error } = await sb.from('session_summaries')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    container.innerHTML = `<p class="error-msg">Failed to load summaries: ${escapeHtml(error.message)}</p>`;
-    return;
+    const isEditing = editMode.style.display !== 'none';
+    viewMode.style.display = isEditing ? 'block' : 'none';
+    editMode.style.display = isEditing ? 'none' : 'block';
   }
 
-  if (!data || data.length === 0) {
-    container.innerHTML = '<p class="empty-note">No session summaries recorded yet.</p>';
-    return;
+  async function saveInlineSummaryEdit(summaryId) {
+    if (!isDM) return;
+
+    const numEl = document.getElementById(`edit-summary-num-${summaryId}`);
+    const titleEl = document.getElementById(`edit-summary-title-${summaryId}`);
+    const dateEl = document.getElementById(`edit-summary-date-${summaryId}`);
+    const bodyEl = document.getElementById(`edit-summary-body-${summaryId}`);
+    const secretEl = document.getElementById(`edit-summary-secret-${summaryId}`);
+
+    if (!numEl || !titleEl || !dateEl || !bodyEl || !secretEl) {
+      alert("Error: Unable to find form inputs in DOM.");
+      return;
+    }
+
+    const session_number = numEl.value.trim();
+    const title = titleEl.value.trim();
+    const session_date = dateEl.value.trim();
+    const body = bodyEl.value.trim();
+    const secret = secretEl.value.trim();
+
+    const { error } = await sb.from('session_summaries')
+      .update({
+        session_number,
+        title,
+        session_date,
+        body,
+        secret
+      })
+      .eq('id', summaryId);
+
+    if (error) {
+      alert("Failed to save summary updates: " + error.message);
+    } else {
+      loadSummaries();
+    }
   }
 
-  container.innerHTML = data.map(summary => renderSummaryCard(summary)).join('');
-}
+  /* ===================== LOOT & REWARDS ===================== */
 
-function renderSummaryCard(summary) {
-  const isVisible = summary.visible_to_players ?? true;
+  async function loadLoot() {
+    const container = document.getElementById('loot-container');
+    if (!container) return;
 
-  if (!isDM && !isVisible) return '';
+    const { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
 
-  let dmControls = '';
-  let secretSection = '';
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Failed to load loot: ${escapeHtml(error.message)}</p>`;
+      return;
+    }
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p class="empty-note">No loot recorded yet.</p>';
+      return;
+    }
 
-  if (isDM) {
-    if (summary.secret || summary.dm_secret) {
-      const secretText = summary.secret || summary.dm_secret;
-      secretSection = `
-        <div style="margin-top:12px;">
-          <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
-          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
-            ${escapeHtml(secretText)}
+    container.innerHTML = data.map(item => renderLootCard(item)).join('');
+  }
+
+  function renderLootCard(item) {
+    const isVisible = item.visible_to_players ?? true;
+    if (!isDM && !isVisible) return '';
+
+    let dmControls = '';
+    let secretSection = '';
+
+    if (isDM) {
+      if (item.secret || item.dm_secret) {
+        secretSection = `
+          <div style="margin-top:12px;">
+            <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
+            <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
+              ${escapeHtml(item.secret || item.dm_secret)}
+            </div>
+          </div>`;
+      }
+
+      dmControls = `
+        <div class="card-footer-controls">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
+            <label class="switch">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${item.id}', 'loot', 'loot-container', this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Edit</button>
+            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${item.id}', 'loot', 'loot-container')">Delete</button>
           </div>
         </div>`;
     }
 
-    dmControls = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
-          <label class="switch">
-            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_summaries', 'summaries-container', this.checked)">
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Edit Summary</button>
-          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${summary.id}', 'session_summaries', 'summaries-container')">Delete</button>
-        </div>
-      </div>`;
-  }
+    const valueDisplay = item.value ? `Value: ${escapeHtml(item.value)}` : '';
+    const qtyDisplay = item.quantity ? `Qty: ${escapeHtml(String(item.quantity))}` : '';
+    const metaText = [qtyDisplay, valueDisplay].filter(Boolean).join(' | ');
 
-  const sessionNum = summary.session_number ? `Session ${escapeHtml(summary.session_number)}: ` : '';
-  const dateStr = summary.session_date ? escapeHtml(summary.session_date) : '';
-
-  return `
-    <div class="block-card" id="summary-card-${summary.id}">
-      <!-- Display View Mode -->
-      <div class="summary-view-mode">
-        <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-            <h3 style="margin:0; color:var(--gold,#c9a050);">${sessionNum}${escapeHtml(summary.title || 'Untitled Session')}</h3>
-            ${dateStr ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${dateStr}</p>` : ''}
-          </div>
-        </div>
-
-        <div class="block-body" style="margin-top:10px;">${summary.body || summary.content || summary.description || '<p class="empty-note">No summary text.</p>'}</div>
-        ${secretSection}
-        ${dmControls}
-      </div>
-
-      <!-- Inline Edit View Mode -->
-      <div class="summary-edit-mode" style="display:none; margin-top:8px;">
-        <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit Session Summary</h4>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <div style="display:flex; gap:8px;">
-            <div style="flex:1;">
-              <label style="font-size:0.8rem; color:var(--text-faint);">Session #</label>
-              <input type="text" id="edit-summary-num-${summary.id}" value="${escapeHtml(summary.session_number || '')}" class="input-field" placeholder="e.g. 12" />
-            </div>
-            <div style="flex:2;">
-              <label style="font-size:0.8rem; color:var(--text-faint);">Session Title</label>
-              <input type="text" id="edit-summary-title-${summary.id}" value="${escapeHtml(summary.title || '')}" class="input-field" placeholder="Title" />
+    return `
+      <div class="block-card" id="loot-card-${item.id}">
+        <!-- View Mode -->
+        <div class="loot-view-mode">
+          <div class="card-title-group">
+            <div>
+              <h3 class="card-title">${escapeHtml(item.name || 'Unnamed Item')}</h3>
+              ${metaText ? `<p class="card-subtitle">${metaText}</p>` : ''}
             </div>
           </div>
+          <div class="block-body" style="margin-top:10px;">${item.description || item.body || '<p class="empty-note">No description provided.</p>'}</div>
+          ${secretSection}
+          ${dmControls}
+        </div>
 
-          <label style="font-size:0.8rem; color:var(--text-faint);">Date Played</label>
-          <input type="text" id="edit-summary-date-${summary.id}" value="${escapeHtml(summary.session_date || '')}" class="input-field" placeholder="e.g. Oct 12, 2024" />
+        <!-- Edit Mode -->
+        <div class="loot-edit-mode" style="display:none;">
+          <div class="card-edit-form">
+            <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Item</h4>
+            
+            <div class="form-group">
+              <label>Item Name</label>
+              <input type="text" id="edit-loot-name-${item.id}" value="${escapeHtml(item.name || '')}" class="input-field" />
+            </div>
 
-          <label style="font-size:0.8rem; color:var(--text-faint);">Public Summary / Notes</label>
-          <textarea id="edit-summary-body-${summary.id}" rows="5" class="input-field">${escapeHtml(summary.body || summary.content || summary.description || '')}</textarea>
+            <div class="form-row">
+              <div class="form-group" style="flex:1;">
+                <label>Quantity</label>
+                <input type="number" id="edit-loot-qty-${item.id}" value="${item.quantity ?? 1}" class="input-field" min="1" />
+              </div>
+              <div class="form-group" style="flex:2;">
+                <label>Value</label>
+                <input type="text" id="edit-loot-value-${item.id}" value="${escapeHtml(item.value || '')}" class="input-field" placeholder="500 gp" />
+              </div>
+            </div>
 
-          <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Blacked out for players)</label>
-          <textarea id="edit-summary-secret-${summary.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(summary.secret || summary.dm_secret || '')}</textarea>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea id="edit-loot-desc-${item.id}" rows="3" class="input-field">${escapeHtml(item.description || item.body || '')}</textarea>
+            </div>
 
-          <div style="display:flex; gap:8px; margin-top:8px;">
-            <button class="btn btn-sm" onclick="saveInlineSummaryEdit('${summary.id}')">Save Changes</button>
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Cancel</button>
+            <div class="form-group">
+              <label class="secret-label">🔒 DM Secret (Curse, True Value)</label>
+              <textarea id="edit-loot-secret-${item.id}" rows="2" class="input-field input-field-secret">${escapeHtml(item.secret || item.dm_secret || '')}</textarea>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:4px;">
+              <button class="btn btn-sm" onclick="saveInlineLootEdit('${item.id}')">Save Changes</button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  `;
-}
-
-// Toggle between view and edit state
-function toggleInlineSummaryEdit(summaryId) {
-  const card = document.getElementById(`summary-card-${summaryId}`);
-  if (!card) return;
-  const viewMode = card.querySelector('.summary-view-mode');
-  const editMode = card.querySelector('.summary-edit-mode');
-
-  const isEditing = editMode.style.display !== 'none';
-  viewMode.style.display = isEditing ? 'block' : 'none';
-  editMode.style.display = isEditing ? 'none' : 'block';
-}
-
-// Save inline edits to Supabase
-async function saveInlineSummaryEdit(summaryId) {
-  if (!isDM) return;
-
-  const numEl = document.getElementById(`edit-summary-num-${summaryId}`);
-  const titleEl = document.getElementById(`edit-summary-title-${summaryId}`);
-  const dateEl = document.getElementById(`edit-summary-date-${summaryId}`);
-  const bodyEl = document.getElementById(`edit-summary-body-${summaryId}`);
-  const secretEl = document.getElementById(`edit-summary-secret-${summaryId}`);
-
-  if (!numEl || !titleEl || !dateEl || !bodyEl || !secretEl) {
-    alert("Error: Unable to find form inputs in DOM.");
-    return;
+    `;
   }
 
-  const session_number = numEl.value.trim();
-  const title = titleEl.value.trim();
-  const session_date = dateEl.value.trim();
-  const body = bodyEl.value.trim();
-  const secret = secretEl.value.trim();
+  async function saveInlineLootEdit(itemId) {
+    if (!isDM) return;
+    const name = document.getElementById(`edit-loot-name-${itemId}`)?.value.trim();
+    const quantity = parseInt(document.getElementById(`edit-loot-qty-${itemId}`)?.value, 10) || 1;
+    const value = document.getElementById(`edit-loot-value-${itemId}`)?.value.trim();
+    const description = document.getElementById(`edit-loot-desc-${itemId}`)?.value.trim();
+    const secret = document.getElementById(`edit-loot-secret-${itemId}`)?.value.trim();
 
-  const { error } = await sb.from('session_summaries')
-    .update({
-      session_number,
-      title,
-      session_date,
-      body,
-      secret
-    })
-    .eq('id', summaryId);
-
-  if (error) {
-    alert("Failed to save summary updates: " + error.message);
-  } else {
-    loadSummaries();
-  }
-}
-
-/* ===================== 3. LOOT & REWARDS ===================== */
-
-async function loadLoot() {
-  const container = document.getElementById('loot-container');
-  if (!container) return;
-
-  const { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
-
-  if (error) {
-    container.innerHTML = `<p class="error-msg">Failed to load loot: ${escapeHtml(error.message)}</p>`;
-    return;
-  }
-  if (!data || data.length === 0) {
-    container.innerHTML = '<p class="empty-note">No loot recorded yet.</p>';
-    return;
+    const { error } = await sb.from('loot').update({ name, quantity, value, description, secret }).eq('id', itemId);
+    if (error) alert("Failed to save: " + error.message);
+    else loadLoot();
   }
 
-  container.innerHTML = data.map(item => renderLootCard(item)).join('');
-}
+  function toggleInlineEdit(type, id) {
+    const card = document.getElementById(`${type}-card-${id}`);
+    if (!card) return;
+    const viewMode = card.querySelector(`.${type}-view-mode`);
+    const editMode = card.querySelector(`.${type}-edit-mode`);
 
-function renderLootCard(item) {
-  const isVisible = item.visible_to_players ?? true;
-  if (!isDM && !isVisible) return '';
-
-  let dmControls = '';
-  let secretSection = '';
-
-  if (isDM) {
-    if (item.secret || item.dm_secret) {
-      secretSection = `
-        <div style="margin-top:12px;">
-          <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
-          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
-            ${escapeHtml(item.secret || item.dm_secret)}
-          </div>
-        </div>`;
-    }
-
-    dmControls = `
-      <div class="card-footer-controls">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
-          <label class="switch">
-            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${item.id}', 'loot', 'loot-container', this.checked)">
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Edit</button>
-          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${item.id}', 'loot', 'loot-container')">Delete</button>
-        </div>
-      </div>`;
+    const isEditing = editMode.style.display !== 'none';
+    viewMode.style.display = isEditing ? 'block' : 'none';
+    editMode.style.display = isEditing ? 'none' : 'block';
   }
-
-  const valueDisplay = item.value ? `Value: ${escapeHtml(item.value)}` : '';
-  const qtyDisplay = item.quantity ? `Qty: ${escapeHtml(String(item.quantity))}` : '';
-  const metaText = [qtyDisplay, valueDisplay].filter(Boolean).join(' | ');
-
-  return `
-    <div class="block-card" id="loot-card-${item.id}">
-      <!-- View Mode -->
-      <div class="loot-view-mode">
-        <div class="card-title-group">
-          <div>
-            <h3 class="card-title">${escapeHtml(item.name || 'Unnamed Item')}</h3>
-            ${metaText ? `<p class="card-subtitle">${metaText}</p>` : ''}
-          </div>
-        </div>
-        <div class="block-body" style="margin-top:10px;">${item.description || item.body || '<p class="empty-note">No description provided.</p>'}</div>
-        ${secretSection}
-        ${dmControls}
-      </div>
-
-      <!-- Edit Mode -->
-      <div class="loot-edit-mode" style="display:none;">
-        <div class="card-edit-form">
-          <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Item</h4>
-          
-          <div class="form-group">
-            <label>Item Name</label>
-            <input type="text" id="edit-loot-name-${item.id}" value="${escapeHtml(item.name || '')}" class="input-field" />
-          </div>
-
-          <div class="form-row">
-            <div class="form-group" style="flex:1;">
-              <label>Quantity</label>
-              <input type="number" id="edit-loot-qty-${item.id}" value="${item.quantity ?? 1}" class="input-field" min="1" />
-            </div>
-            <div class="form-group" style="flex:2;">
-              <label>Value</label>
-              <input type="text" id="edit-loot-value-${item.id}" value="${escapeHtml(item.value || '')}" class="input-field" placeholder="500 gp" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Description</label>
-            <textarea id="edit-loot-desc-${item.id}" rows="3" class="input-field">${escapeHtml(item.description || item.body || '')}</textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="secret-label">🔒 DM Secret (Curse, True Value)</label>
-            <textarea id="edit-loot-secret-${item.id}" rows="2" class="input-field input-field-secret">${escapeHtml(item.secret || item.dm_secret || '')}</textarea>
-          </div>
-
-          <div style="display:flex; gap:8px; margin-top:4px;">
-            <button class="btn btn-sm" onclick="saveInlineLootEdit('${item.id}')">Save Changes</button>
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Cancel</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-async function saveInlineLootEdit(itemId) {
-  if (!isDM) return;
-  const name = document.getElementById(`edit-loot-name-${itemId}`)?.value.trim();
-  const quantity = parseInt(document.getElementById(`edit-loot-qty-${itemId}`)?.value, 10) || 1;
-  const value = document.getElementById(`edit-loot-value-${itemId}`)?.value.trim();
-  const description = document.getElementById(`edit-loot-desc-${itemId}`)?.value.trim();
-  const secret = document.getElementById(`edit-loot-secret-${itemId}`)?.value.trim();
-
-  const { error } = await sb.from('loot').update({ name, quantity, value, description, secret }).eq('id', itemId);
-  if (error) alert("Failed to save: " + error.message);
-  else loadLoot();
-}
 
   /* ===================== RESTRICTED ARCHIVES HUB ===================== */
 
-// Main entry point called when clicking the Restricted tab
-async function loadRestricted() {
-  showRestrictedHub();
-}
+  async function loadRestricted() {
+    showRestrictedHub();
+  }
 
-// Renders the card selection menu
-function showRestrictedHub() {
-  const container = document.getElementById('restricted-container');
-  if (!container) return;
+  function showRestrictedHub() {
+    const container = document.getElementById('restricted-container');
+    if (!container) return;
 
-  container.innerHTML = `
-    <div class="restricted-grid">
-      <div class="hub-card" onclick="openRestrictedSubSection('encounters', 'Encounters & Stat Blocks', 'Monsters, NPC combat stats, and tactical notes with HP trackers.', 'Encounter')">
-        <h4>⚔️ Encounters</h4>
-        <p class="hub-desc">Monsters, NPC combat stats, and tactical notes with HP trackers.</p>
+    container.innerHTML = `
+      <div class="restricted-grid">
+        <div class="hub-card" onclick="openRestrictedSubSection('encounters', 'Encounters & Stat Blocks', 'Monsters, NPC combat stats, and tactical notes with HP trackers.', 'Encounter')">
+          <h4>⚔️ Encounters</h4>
+          <p class="hub-desc">Monsters, NPC combat stats, and tactical notes with HP trackers.</p>
+        </div>
+
+        <div class="hub-card" onclick="openRestrictedSubSection('lore', 'Deep Lore', 'Behind-the-scenes world history, truths, and campaign secrets.', 'Lore Entry')">
+          <h4>📜 Deep Lore</h4>
+          <p class="hub-desc">Behind-the-scenes world history, truths, and campaign secrets.</p>
+        </div>
+
+        <div class="hub-card" onclick="openRestrictedSubSection('session_skeletons', 'Session Skeletons', 'Upcoming session outlines, beats, and contingencies.', 'Session Skeleton')">
+          <h4>💀 Session Skeletons</h4>
+          <p class="hub-desc">Upcoming session outlines, beats, and contingencies.</p>
+        </div>
+
+        <div class="hub-card" onclick="openRestrictedSubSection('character_template_secrets', 'Template Characters', 'Pre-made character archetypes, secret stats, and player templates.', 'Template Character')">
+          <h4>🎭 Template Characters</h4>
+          <p class="hub-desc">Pre-made character archetypes, secret stats, and player templates.</p>
+        </div>
       </div>
+    `;
+  }
 
-      <div class="hub-card" onclick="openRestrictedSubSection('lore', 'Deep Lore', 'Behind-the-scenes world history, truths, and campaign secrets.', 'Lore Entry')">
-        <h4>📜 Deep Lore</h4>
-        <p class="hub-desc">Behind-the-scenes world history, truths, and campaign secrets.</p>
-      </div>
-
-      <div class="hub-card" onclick="openRestrictedSubSection('session_skeletons', 'Session Skeletons', 'Upcoming session outlines, beats, and contingencies.', 'Session Skeleton')">
-        <h4>💀 Session Skeletons</h4>
-        <p class="hub-desc">Upcoming session outlines, beats, and contingencies.</p>
-      </div>
-
-      <div class="hub-card" onclick="openRestrictedSubSection('character_template_secrets', 'Template Characters', 'Pre-made character archetypes, secret stats, and player templates.', 'Template Character')">
-        <h4>🎭 Template Characters</h4>
-        <p class="hub-desc">Pre-made character archetypes, secret stats, and player templates.</p>
-      </div>
-    </div>
-  `;
-}
-
-// Opens a specific sub-section and displays a "Back to Hub" button
-async function openRestrictedSubSection(tableName, title, description, label) {
+  async function openRestrictedSubSection(tableName, title, description, label) {
     const container = document.getElementById('restricted-container');
     if (!container) return;
 
@@ -1758,7 +1566,6 @@ async function openRestrictedSubSection(tableName, title, description, label) {
   async function loadTableSection(tableName, containerId, addLabel) {
     let query = sb.from(tableName).select('*').order('order_index', { ascending: true, nullsFirst: false });
     
-    // Non-DMs only see publicly visible entries
     if (!isDM) {
       query = query.eq('visible_to_players', true);
     }
@@ -1783,7 +1590,7 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     container.innerHTML = html;
   }
 
- function renderContentBlock(row, tableName, containerId) {
+  function renderContentBlock(row, tableName, containerId) {
     let dmControls = '';
     if (isDM) {
       const isVisible = row.visible_to_players ?? true;
@@ -1799,7 +1606,6 @@ async function openRestrictedSubSection(tableName, title, description, label) {
         </div>`;
     }
 
-    // Add HP Tracker widget with Custom Input for Encounters
     let hpWidget = '';
     if (tableName === 'encounters') {
       const hpMatch = (row.body || '').match(/HP:?\s*(\d+)/i) || (row.title || '').match(/HP:?\s*(\d+)/i);
@@ -1811,20 +1617,17 @@ async function openRestrictedSubSection(tableName, title, description, label) {
             ❤️ HP: <span id="hp-val-${row.id}">${maxHp}</span> / ${maxHp}
           </div>
           <div class="hp-controls">
-            <!-- Quick Modifiers -->
             <button class="hp-btn damage" title="Take 5 Damage" onclick="adjustHP('${row.id}', -5)">-5</button>
             <button class="hp-btn damage" title="Take 1 Damage" onclick="adjustHP('${row.id}', -1)">-1</button>
             <button class="hp-btn heal" title="Heal 1 HP" onclick="adjustHP('${row.id}', 1)">+1</button>
             <button class="hp-btn heal" title="Heal 5 HP" onclick="adjustHP('${row.id}', 5)">+5</button>
 
-            <!-- Custom Custom Input Group -->
             <div class="hp-custom-group">
               <input type="number" id="hp-input-${row.id}" class="hp-input" placeholder="0" min="1" onkeydown="if(event.key==='Enter') applyCustomHP('${row.id}', -1)">
               <button class="hp-btn damage" title="Apply Custom Damage" onclick="applyCustomHP('${row.id}', -1)">-</button>
               <button class="hp-btn heal" title="Apply Custom Healing" onclick="applyCustomHP('${row.id}', 1)">+</button>
             </div>
 
-            <!-- Reset Button -->
             <button class="hp-btn" title="Reset HP" onclick="resetHP('${row.id}')" style="margin-left:4px;">🔄</button>
           </div>
         </div>
@@ -1845,7 +1648,6 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     </div>`;
   }
 
-  // Helper to adjust HP by delta (+ or -)
   function adjustHP(id, amount) {
     const tracker = document.getElementById(`hp-tracker-${id}`);
     const display = document.getElementById(`hp-val-${id}`);
@@ -1866,7 +1668,6 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     }
   }
 
-  // Handler for custom number input (- or +)
   function applyCustomHP(id, multiplier) {
     const input = document.getElementById(`hp-input-${id}`);
     if (!input || !input.value) return;
@@ -1874,7 +1675,7 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     const amount = parseInt(input.value, 10);
     if (!isNaN(amount) && amount > 0) {
       adjustHP(id, amount * multiplier);
-      input.value = ''; // Clear input field after applying
+      input.value = '';
     }
   }
 
@@ -1890,18 +1691,16 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     display.style.color = '#ff6b6b';
     if (input) input.value = '';
   }
-  
-// Edit handler for DM content blocks
+
   async function editTableBlock(id, tableName, containerId) {
-    // Fetch current entry
     const { data, error } = await sb.from(tableName).select('*').eq('id', id).single();
     if (error || !data) return alert("Failed to fetch entry for editing: " + (error?.message || 'Not found'));
 
     const newTitle = prompt("Edit Title:", data.title);
-    if (newTitle === null) return; // Cancelled
+    if (newTitle === null) return;
     
     const newBody = prompt("Edit Description/Body (HTML supported):", data.body || '');
-    if (newBody === null) return; // Cancelled
+    if (newBody === null) return;
 
     const { error: updateError } = await sb.from(tableName)
       .update({ title: newTitle, body: newBody })
@@ -1955,227 +1754,412 @@ async function openRestrictedSubSection(tableName, title, description, label) {
     }
   }
 
- /* ===================== CHARACTER DIRECTORY (FIXED & STREAMLINED) ===================== */
+  /* ===================== CHARACTER DIRECTORY ===================== */
 
-// Helper to sanitize player names for comparison
-function cleanPlayerName(str) {
-  if (!str) return '';
-  return str
-    .replace(/^["'\s]+|["'\s]+$/g, '') // Remove surrounding quotes/spaces
-    .replace(/[|].*$/, '')              // Drop anything after a pipe if present
-    .trim()
-    .toLowerCase();
-}
-
-/**
- * Parses out the player's name from tags array, role string, or tags string.
- * Example tags: "Player: EB_Pixelstechlab | Lvl 1" or ["Player: EB_Pixelstechlab", "Wizard"]
- */
-function parsePlayerName(char) {
-  if (!char) return '';
-  if (char.player_name) return cleanPlayerName(char.player_name);
-
-  // Combine all possible tag fields into a searchable string
-  let searchPool = [];
-  if (Array.isArray(char.tags)) {
-    searchPool = searchPool.concat(char.tags);
-  } else if (typeof char.tags === 'string') {
-    searchPool.push(char.role);
+  function cleanPlayerName(str) {
+    if (!str) return '';
+    return str
+      .replace(/^["'\s]+|["'\s]+$/g, '')
+      .replace(/[|].*$/, '')
+      .trim()
+      .toLowerCase();
   }
 
-  if (typeof char.role === 'string') searchPool.push(char.role);
-  if (typeof char.role_tag === 'string') searchPool.push(char.role_tag);
+  function parsePlayerName(char) {
+    if (!char) return '';
+    if (char.player_name) return cleanPlayerName(char.player_name);
 
-  const fullText = searchPool.join(' | ');
+    let searchPool = [];
+    if (Array.isArray(char.tags)) {
+      searchPool = searchPool.concat(char.tags);
+    } else if (typeof char.tags === 'string') {
+      searchPool.push(char.role);
+    }
 
-  // Match "Player: <Name>" up to the next pipe, comma, newline, or end-of-string
-  const match = fullText.match(/Player:\s*([^|\n,]+)/i);
-  return match ? cleanPlayerName(match[1]) : '';
-}
+    if (typeof char.role === 'string') searchPool.push(char.role);
+    if (typeof char.role_tag === 'string') searchPool.push(char.role_tag);
 
-/**
- * Checks if current user can edit this character.
- */
-function canEditCharacter(char) {
-  // 1. DMs can always edit
-  if (typeof isDM !== 'undefined' && isDM === true) {
-    return true;
+    const fullText = searchPool.join(' | ');
+
+    const match = fullText.match(/Player:\s*([^|\n,]+)/i);
+    return match ? cleanPlayerName(match[1]) : '';
   }
 
-  // 2. STOPS UNLOGGED USERS: If no user is logged in, block edit access immediately!
-  const activeUser = typeof currentUser !== 'undefined' && currentUser ? cleanPlayerName(currentUser) : '';
-  if (!activeUser) {
-    console.warn(`[Perm Check] Blocked edit on "${char.name}": No active currentUser found.`);
-    return false;
+  function canEditCharacter(char) {
+    if (typeof isDM !== 'undefined' && isDM === true) {
+      return true;
+    }
+
+    const activeUser = typeof currentUser !== 'undefined' && currentUser ? cleanPlayerName(currentUser.email?.split('@')[0]) : '';
+    if (!activeUser) return false;
+
+    const assignedPlayer = parsePlayerName(char);
+    return Boolean(assignedPlayer && assignedPlayer === activeUser);
   }
 
-  // 3. Extract assigned player name
-  const assignedPlayer = parsePlayerName(char);
+  async function loadCharacters() {
+    const container = document.getElementById('character-cards-container') || document.getElementById('character-grid');
+    if (!container) return;
 
-  const matched = Boolean(assignedPlayer && assignedPlayer === activeUser);
+    const { data, error } = await sb.from('characters')
+      .select('*')
+      .order('name');
 
-  // Debug log (Check F12 console to inspect matches)
-  console.log(`[Perm Check] Char: "${char.name}" | Tag Player: "${assignedPlayer}" | Active User: "${activeUser}" | Can Edit: ${matched}`);
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Failed to load characters: ${escapeHtml(error.message)}</p>`;
+      return;
+    }
 
-  return matched;
-}
-async function loadCharacters() {
-  const container = document.getElementById('character-cards-container') || document.getElementById('character-grid');
-  if (!container) return;
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p class="empty-note">No characters recorded yet.</p>';
+      return;
+    }
 
-  const { data, error } = await sb.from('characters')
-    .select('*')
-    .order('name');
-
-  if (error) {
-    container.innerHTML = `<p class="error-msg">Failed to load characters: ${escapeHtml(error.message)}</p>`;
-    return;
+    container.innerHTML = data.map(char => renderCharacterCard(char)).join('');
   }
 
-  if (!data || data.length === 0) {
-    container.innerHTML = '<p class="empty-note">No characters recorded yet.</p>';
-    return;
-  }
+  function renderCharacterCard(char) {
+    const isVisible = char.visible_to_players ?? true;
+    if (!isDM && !isVisible) return '';
 
-  container.innerHTML = data.map(char => renderCharacterCard(char)).join('');
-}
+    const canEdit = canEditCharacter(char);
 
-function renderCharacterCard(char) {
-  const isVisible = char.visible_to_players ?? true;
-  if (!isDM && !isVisible) return '';
+    let tagDisplay = '';
+    if (Array.isArray(char.tags)) {
+      tagDisplay = char.tags.join(' | ');
+    } else {
+      tagDisplay = char.role_tag || char.tags || char.role || '';
+    }
 
-  const canEdit = canEditCharacter(char);
+    let dmControls = '';
+    let secretSection = '';
 
-  // Formatting tags / roles
-  let tagDisplay = '';
-  if (Array.isArray(char.tags)) {
-    tagDisplay = char.tags.join(' | ');
-  } else {
-    tagDisplay = char.role_tag || char.tags || char.role || '';
-  }
-
-  let dmControls = '';
-  let secretSection = '';
-
-  // DM Secrets
-  if (isDM && (char.secret || char.dm_secret)) {
-    const secretText = char.secret || char.dm_secret;
-    secretSection = `
-      <div style="margin-top:12px;">
-        <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
-        <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
-          ${escapeHtml(secretText)}
-        </div>
-      </div>`;
-  }
-
-  // Footer controls (visibility toggle for DM, edit for DM or Player)
-  if (canEdit || isDM) {
-    const visibilityToggle = isDM ? `
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
-        <label class="switch">
-          <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${char.id}', 'characters', 'character-cards-container', this.checked)">
-          <span class="slider"></span>
-        </label>
-      </div>` : '<div></div>';
-
-    dmControls = `
-      <div class="card-footer-controls">
-        ${visibilityToggle}
-        <div style="display:flex; gap:6px;">
-          ${canEdit ? `<button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Edit</button>` : ''}
-          ${isDM ? `<button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${char.id}', 'characters', 'character-cards-container')">Delete</button>` : ''}
-        </div>
-      </div>`;
-  }
-
-  return `
-    <div class="block-card" id="character-card-${char.id}">
-      <!-- View Mode -->
-      <div class="character-view-mode">
-        <div class="card-title-group">
-          <div>
-            <h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>
-            ${tagDisplay ? `<p class="card-subtitle">${escapeHtml(tagDisplay)}</p>` : ''}
+    if (isDM && (char.secret || char.dm_secret)) {
+      const secretText = char.secret || char.dm_secret;
+      secretSection = `
+        <div style="margin-top:12px;">
+          <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
+          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
+            ${escapeHtml(secretText)}
           </div>
+        </div>`;
+    }
+
+    if (canEdit || isDM) {
+      const visibilityToggle = isDM ? `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
+          <label class="switch">
+            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${char.id}', 'characters', 'character-cards-container', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>` : '<div></div>';
+
+      dmControls = `
+        <div class="card-footer-controls">
+          ${visibilityToggle}
+          <div style="display:flex; gap:6px;">
+            ${canEdit ? `<button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Edit</button>` : ''}
+            ${isDM ? `<button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${char.id}', 'characters', 'character-cards-container')">Delete</button>` : ''}
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div class="block-card" id="character-card-${char.id}">
+        <!-- View Mode -->
+        <div class="character-view-mode">
+          <div class="card-title-group">
+            <div>
+              <h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>
+              ${tagDisplay ? `<p class="card-subtitle">${escapeHtml(tagDisplay)}</p>` : ''}
+            </div>
+          </div>
+
+          <div class="block-body" style="margin-top:10px;">${char.bio || char.description || '<p class="empty-note">No bio available.</p>'}</div>
+          ${secretSection}
+          ${dmControls}
         </div>
 
-        <div class="block-body" style="margin-top:10px;">${char.bio || char.description || '<p class="empty-note">No bio available.</p>'}</div>
-        ${secretSection}
-        ${dmControls}
-      </div>
+        <!-- Edit Mode -->
+        <div class="character-edit-mode" style="display:none;">
+          <div class="card-edit-form">
+            <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character</h4>
 
-      <!-- Edit Mode -->
-      <div class="character-edit-mode" style="display:none;">
-        <div class="card-edit-form">
-          <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character</h4>
+            <div class="form-group">
+              <label>Character Name</label>
+              <input type="text" id="edit-char-name-${char.id}" value="${escapeHtml(char.name || '')}" class="input-field" />
+            </div>
 
-          <div class="form-group">
-            <label>Character Name</label>
-            <input type="text" id="edit-char-name-${char.id}" value="${escapeHtml(char.name || '')}" class="input-field" />
-          </div>
+            <div class="form-group">
+              <label>Tags (e.g. "Player: Name | Lvl 1 | Elf | Wizard")</label>
+              <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
+            </div>
 
-          <div class="form-group">
-            <label>Tags (e.g. "Player: ${escapeHtml(currentUser || 'Name')} | Lvl 1 | Elf | Wizard")</label>
-            <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
-          </div>
+            <div class="form-group">
+              <label>Bio / Backstory</label>
+              <textarea id="edit-char-bio-${char.id}" rows="4" class="input-field">${escapeHtml(char.bio || char.description || '')}</textarea>
+            </div>
 
-          <div class="form-group">
-            <label>Bio / Backstory</label>
-            <textarea id="edit-char-bio-${char.id}" rows="4" class="input-field">${escapeHtml(char.bio || char.description || '')}</textarea>
-          </div>
+            ${isDM ? `
+            <div class="form-group">
+              <label class="secret-label">🔒 DM Secret</label>
+              <textarea id="edit-char-secret-${char.id}" rows="2" class="input-field input-field-secret">${escapeHtml(char.secret || char.dm_secret || '')}</textarea>
+            </div>` : ''}
 
-          ${isDM ? `
-          <div class="form-group">
-            <label class="secret-label">🔒 DM Secret</label>
-            <textarea id="edit-char-secret-${char.id}" rows="2" class="input-field input-field-secret">${escapeHtml(char.secret || char.dm_secret || '')}</textarea>
-          </div>` : ''}
-
-          <div style="display:flex; gap:8px; margin-top:4px;">
-            <button class="btn btn-sm" onclick="saveInlineCharacterEdit('${char.id}')">Save Changes</button>
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Cancel</button>
+            <div style="display:flex; gap:8px; margin-top:4px;">
+              <button class="btn btn-sm" onclick="saveInlineCharacterEdit('${char.id}')">Save Changes</button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  `;
-}
-
-async function saveInlineCharacterEdit(charId) {
-  const nameEl = document.getElementById(`edit-char-name-${charId}`);
-  const tagsEl = document.getElementById(`edit-char-tags-${charId}`);
-  const bioEl = document.getElementById(`edit-char-bio-${charId}`);
-  const secretEl = document.getElementById(`edit-char-secret-${charId}`);
-
-  if (!nameEl || !tagsEl || !bioEl) return;
-
-  const name = nameEl.value.trim();
-  const rawTags = tagsEl.value.trim();
-  const tags = rawTags.split('|').map(t => t.trim()).filter(Boolean);
-  const bio = bioEl.value.trim();
-
-  const updateData = { name, tags, bio };
-
-  if (isDM && secretEl) {
-    updateData.secret = secretEl.value.trim();
+    `;
   }
 
-  const { error } = await sb.from('characters')
-    .update(updateData)
-    .eq('id', charId);
+  async function saveInlineCharacterEdit(charId) {
+    const nameEl = document.getElementById(`edit-char-name-${charId}`);
+    const tagsEl = document.getElementById(`edit-char-tags-${charId}`);
+    const bioEl = document.getElementById(`edit-char-bio-${charId}`);
+    const secretEl = document.getElementById(`edit-char-secret-${charId}`);
 
-  if (error) {
-    alert("Failed to save character: " + error.message);
-  } else {
-    loadCharacters();
+    if (!nameEl || !tagsEl || !bioEl) return;
+
+    const name = nameEl.value.trim();
+    const rawTags = tagsEl.value.trim();
+    const tags = rawTags.split('|').map(t => t.trim()).filter(Boolean);
+    const bio = bioEl.value.trim();
+
+    const updateData = { name, tags, bio };
+
+    if (isDM && secretEl) {
+      updateData.secret = secretEl.value.trim();
+    }
+
+    const { error } = await sb.from('characters')
+      .update(updateData)
+      .eq('id', charId);
+
+    if (error) {
+      alert("Failed to save character: " + error.message);
+    } else {
+      loadCharacters();
+    }
   }
-}
 
-// Global toggle for blackout spoilers across any page
-function toggleSpoiler(element) {
-  element.classList.toggle('revealed');
-}
+  function toggleSpoiler(element) {
+    element.classList.toggle('revealed');
+  }
+
+  /* ===================== NPCS & NPC SECRETS ===================== */
+  async function loadNPCs() {
+    const container = document.getElementById('npc-cards-container');
+    if (!container) return;
+
+    const { data: npcs, error: npcErr } = await sb.from('npcs').select('*').order('name');
+
+    if (npcErr) {
+      container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(npcErr.message)}</p>`;
+      return;
+    }
+
+    if (!npcs || npcs.length === 0) {
+      container.innerHTML = '<p class="empty-note">No NPCs recorded in database yet.</p>';
+      return;
+    }
+
+    let secretsMap = {};
+    if (isDM) {
+      const { data: secrets, error: secErr } = await sb.from('npc_secrets').select('*');
+      if (!secErr && secrets) {
+        secrets.forEach(s => {
+          secretsMap[s.npc_id] = s.secret || s.content || s.body || '';
+        });
+      }
+    }
+
+    container.innerHTML = npcs.map(npc => renderNPCCard(npc, secretsMap[npc.id])).join('');
+  }
+
+  function renderNPCCard(npc, npcSecret = '') {
+    const isVisible = npc.visible_to_players ?? true;
+    if (!isDM && !isVisible) return '';
+
+    const friendshipPoints = npc.friendship_points ?? 0;
+    const secretContent = npcSecret || npc.secret || npc.dm_secret || '';
+
+    let dmControls = '';
+    let secretSection = '';
+
+    if (isDM && secretContent) {
+      secretSection = `
+        <div style="margin-top:12px;">
+          <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
+          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
+            ${escapeHtml(secretContent)}
+          </div>
+        </div>`;
+    }
+
+    if (isDM) {
+      dmControls = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
+            <label class="switch">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${npc.id}', 'npcs', 'npc-cards-container', this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Edit NPC</button>
+            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${npc.id}', 'npcs', 'npc-cards-container')">Delete</button>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div class="block-card" id="npc-card-${npc.id}">
+        <!-- Display View -->
+        <div class="npc-view-mode">
+          <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
+              ${npc.hp || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${npc.hp ? `HP: ${escapeHtml(npc.hp)}` : ''} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
+            </div>
+
+            <!-- Friendship Points Counter -->
+            <div class="friendship-counter" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.25); padding:4px 10px; border-radius:12px; border:1px solid var(--line);">
+              <span style="font-size:0.85rem; color:var(--gold); font-weight:600;">❤️ ${friendshipPoints}</span>
+              ${isDM ? `
+                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints - 1})">-</button>
+                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints + 1})">+</button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
+          ${secretSection}
+          ${dmControls}
+        </div>
+
+        <!-- Inline Expandable Edit Form -->
+        <div class="npc-edit-mode" style="display:none; margin-top:8px;">
+          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit NPC Details</h4>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <label style="font-size:0.8rem; color:var(--text-faint);">Name</label>
+            <input type="text" id="edit-npc-name-${npc.id}" value="${escapeHtml(npc.name || npc.title || '')}" class="input-field" />
+            
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">HP</label>
+                <input type="text" id="edit-npc-hp-${npc.id}" value="${escapeHtml(npc.hp || '')}" class="input-field" />
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">Faction</label>
+                <input type="text" id="edit-npc-faction-${npc.id}" value="${escapeHtml(npc.faction || '')}" class="input-field" />
+              </div>
+            </div>
+
+            <label style="font-size:0.8rem; color:var(--text-faint);">Friendship Points</label>
+            <input type="number" id="edit-npc-points-${npc.id}" value="${friendshipPoints}" class="input-field" style="width:100px;" />
+
+            <label style="font-size:0.8rem; color:var(--text-faint);">Bio / Description</label>
+            <textarea id="edit-npc-bio-${npc.id}" rows="3" class="input-field">${escapeHtml(npc.bio || npc.body || npc.description || '')}</textarea>
+
+            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (npc_secrets Table)</label>
+            <textarea id="edit-npc-secret-${npc.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(secretContent)}</textarea>
+
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn btn-sm" onclick="saveInlineNPCEdit('${npc.id}')">Save Changes</button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function toggleInlineNPCEdit(npcId) {
+    const card = document.getElementById(`npc-card-${npcId}`);
+    if (!card) return;
+    const viewMode = card.querySelector('.npc-view-mode');
+    const editMode = card.querySelector('.npc-edit-mode');
+
+    const isEditing = editMode.style.display !== 'none';
+    viewMode.style.display = isEditing ? 'block' : 'none';
+    editMode.style.display = isEditing ? 'none' : 'block';
+  }
+
+  async function saveInlineNPCEdit(npcId) {
+    if (!isDM) return;
+
+    const nameEl = document.getElementById(`edit-npc-name-${npcId}`);
+    const hpEl = document.getElementById(`edit-npc-hp-${npcId}`);
+    const factionEl = document.getElementById(`edit-npc-faction-${npcId}`);
+    const pointsEl = document.getElementById(`edit-npc-points-${npcId}`);
+    const bioEl = document.getElementById(`edit-npc-bio-${npcId}`);
+    const secretEl = document.getElementById(`edit-npc-secret-${npcId}`);
+
+    if (!nameEl || !hpEl || !factionEl || !pointsEl || !bioEl || !secretEl) {
+      alert("Error: Missing input fields in the DOM.");
+      return;
+    }
+
+    const name = nameEl.value.trim();
+    const hp = hpEl.value.trim();
+    const faction = factionEl.value.trim();
+    const pointsVal = parseInt(pointsEl.value, 10);
+    const friendship_points = isNaN(pointsVal) ? 0 : pointsVal;
+    const bio = bioEl.value.trim();
+    const secretText = secretEl.value.trim();
+
+    const { error: npcErr } = await sb.from('npcs')
+      .update({
+        name,
+        hp,
+        faction,
+        friendship_points,
+        bio
+      })
+      .eq('id', npcId);
+
+    if (npcErr) {
+      alert("Failed to save NPC updates: " + npcErr.message);
+      return;
+    }
+
+    const { data: existingSecret } = await sb.from('npc_secrets').select('id').eq('npc_id', npcId).maybeSingle();
+
+    if (existingSecret) {
+      if (secretText) {
+        await sb.from('npc_secrets').update({ secret: secretText }).eq('npc_id', npcId);
+      } else {
+        await sb.from('npc_secrets').delete().eq('npc_id', npcId);
+      }
+    } else if (secretText) {
+      await sb.from('npc_secrets').insert({ npc_id: npcId, secret: secretText });
+    }
+
+    loadNPCs();
+  }
+
+  async function adjustFriendship(npcId, newScore) {
+    if (!isDM) return;
+    const score = Math.max(0, newScore);
+
+    const { error } = await sb.from('npcs')
+      .update({ friendship_points: score })
+      .eq('id', npcId);
+
+    if (error) {
+      alert("Failed to update friendship points: " + error.message);
+    } else {
+      loadNPCs();
+    }
+  }
+
+  checkSession();
 </script>
 
 </body>
