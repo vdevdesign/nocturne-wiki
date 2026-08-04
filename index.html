@@ -2046,10 +2046,11 @@
               <input type="text" id="edit-char-name-${char.id}" value="${escapeHtml(char.name || '')}" class="input-field" />
             </div>
 
+            ${isDM ? `
             <div class="form-group">
               <label>Tags (e.g. "Player: Name | Lvl 1 | Elf | Wizard")</label>
               <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
-            </div>
+            </div>` : ''}
 
             <div class="form-group">
               <label>Bio / Backstory</label>
@@ -2072,39 +2073,28 @@
     `;
   }
 
-  async function addNewCharacter() {
-    if (!isDM) return;
-    const name = prompt("Character Name:");
-    if (!name) return;
-    const tags = prompt("Tags (e.g., Player: Vanessa | Lvl 1 | Human | Rogue):");
-
-    const { error } = await sb.from('characters').insert({
-      name,
-      tags: tags ? tags.split('|').map(t => t.trim()) : [],
-      visible_to_players: true
-    });
-
-    if (error) alert("Failed to add character: " + error.message);
-    else loadCharacters();
-  }
-
   async function saveInlineCharacterEdit(charId) {
     const nameEl = document.getElementById(`edit-char-name-${charId}`);
-    const tagsEl = document.getElementById(`edit-char-tags-${charId}`);
     const bioEl = document.getElementById(`edit-char-bio-${charId}`);
+    const tagsEl = document.getElementById(`edit-char-tags-${charId}`);
     const secretEl = document.getElementById(`edit-char-secret-${charId}`);
 
-    if (!nameEl || !tagsEl || !bioEl) return;
+    if (!nameEl || !bioEl) return;
 
     const name = nameEl.value.trim();
-    const rawTags = tagsEl.value.trim();
-    const tags = rawTags.split('|').map(t => t.trim()).filter(Boolean);
     const bio = bioEl.value.trim();
 
-    const updateData = { name, tags, bio };
+    const updateData = { name, bio };
 
-    if (isDM && secretEl) {
-      updateData.secret = secretEl.value.trim();
+    // Only update tags and secrets if the DM is editing
+    if (isDM) {
+      if (tagsEl) {
+        const rawTags = tagsEl.value.trim();
+        updateData.tags = rawTags.split('|').map(t => t.trim()).filter(Boolean);
+      }
+      if (secretEl) {
+        updateData.secret = secretEl.value.trim();
+      }
     }
 
     const { error } = await sb.from('characters')
