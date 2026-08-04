@@ -2346,6 +2346,19 @@
   }
 
   checkSession();
+  
+  // Render function helper for inventory elements
+function renderInventoryControls(itemId) {
+  // If not the DM, do not render edit/delete controls
+  if (!isDM) return '';
+
+  return `
+    <div class="inventory-controls">
+      <button class="btn btn-sm btn-secondary" onclick="editInventoryItem('${itemId}')">Edit</button>
+      <button class="btn btn-sm btn-secondary" onclick="deleteInventoryItem('${itemId}')">Delete</button>
+    </div>
+  `;
+}
 </script>
 
 </body>
