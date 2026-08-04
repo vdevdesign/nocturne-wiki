@@ -122,11 +122,25 @@
   .section-toolbar { display:flex; justify-content:flex-end; margin-bottom: -18px; position:relative; z-index:2; }
 
   /* Spoiler blackout */
-  body.spoilers-off .spoiler { filter: blur(7px); user-select: none; pointer-events: none; position: relative; }
-  body.spoilers-off .spoiler::after {
-    content: "spoilers hidden"; position: absolute; inset: 0; display:flex; align-items:center; justify-content:center;
-    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; color: var(--text-faint); pointer-events: none;
+  .spoiler, .spoiler-mask {
+    background-color: var(--text-main, #1a1a1a);
+    color: transparent !important;
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: inline-block;
   }
+  .spoiler:hover, .spoiler.revealed,
+  .spoiler-mask:hover, .spoiler-mask.revealed {
+    background-color: rgba(220, 50, 50, 0.15);
+    color: var(--rose, #ffb3b3) !important;
+    border: 1px solid rgba(220, 50, 50, 0.3);
+  }
+
+  body.spoilers-off .spoiler,
+  body.spoilers-off .spoiler-mask { filter: blur(7px); user-select: none; pointer-events: none; position: relative; }
 
   ::-webkit-scrollbar { width: 9px; }
   ::-webkit-scrollbar-track { background: var(--bg-alt); }
@@ -254,25 +268,6 @@
     opacity: 1;
     color: var(--rose);
   }
-
-/* General Blackout Spoiler Styling */
-.spoiler-mask {
-  background-color: var(--text-main, #1a1a1a);
-  color: transparent !important;
-  border-radius: 4px;
-  padding: 2px 6px;
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  display: inline-block;
-}
-
-.spoiler-mask:hover,
-.spoiler-mask.revealed {
-  background-color: rgba(220, 50, 50, 0.15);
-  color: var(--rose, #ffb3b3) !important;
-  border: 1px solid rgba(220, 50, 50, 0.3);
-}
 
 /* RESTRICTED HUB & STAT BLOCK STYLES */
 .restricted-grid {
@@ -722,6 +717,14 @@
   let isSessionOpen = false;
   let chatSubscription = null;
 
+  /* ===================== GLOBAL SPOILER DELEGATION ===================== */
+  document.addEventListener('click', function(e) {
+    const target = e.target.closest('.spoiler, .spoiler-mask');
+    if (target) {
+      target.classList.toggle('revealed');
+    }
+  });
+
   /* ===================== HELPER FUNCTIONS ===================== */
   function escapeHtml(str) {
     if (str === null || str === undefined) return '';
@@ -876,6 +879,11 @@
     const uniqueSessions = Array.from(new Set((data || []).map(m => m.session_id)));
     if (!uniqueSessions.includes(currentSessionId)) uniqueSessions.unshift(currentSessionId);
 
+    renderPreviousChatsList(uniqueSessions);
+  }
+
+  function renderPreviousChatsList(uniqueSessions) {
+    const container = document.getElementById('previousChatsList');
     container.innerHTML = uniqueSessions.map(sessId => `
       <div class="chat-item ${sessId === currentSessionId ? 'active' : ''}" onclick="switchSessionChat('${sessId}')">
         <span>${escapeHtml(sessId.replace('_', ' ').toUpperCase())}</span>
@@ -914,7 +922,21 @@
     const name = prompt("Enter new session name (e.g., Session 2):");
     if (!name) return;
     const newId = name.trim().toLowerCase().replace(/\s+/g, '_');
+
     switchSessionChat(newId);
+
+    // Immediately create an initial entry in DB so the room is persisted & active in list
+    const { data, error } = await sb.from('session_messages').insert({
+      session_id: newId,
+      sender_id: currentUser.id,
+      sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
+      content: '--- Session Chat Created ---',
+      is_whisper: false
+    }).select();
+
+    if (!error && data && data.length > 0) {
+      appendMessageUI(data[0]);
+    }
   }
 
   async function initSessionChat(sessionId) {
@@ -1011,19 +1033,22 @@
       }
     }
 
-    const { error } = await sb.from('session_messages').insert({
+    const { data, error } = await sb.from('session_messages').insert({
       session_id: currentSessionId,
       sender_id: currentUser.id,
       sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
       recipient_id: recipientId,
       content: messageText,
       is_whisper: isWhisper
-    });
+    }).select();
 
     if (error) {
       alert("Could not send message: " + error.message);
     } else {
       input.value = '';
+      if (data && data.length > 0) {
+        appendMessageUI(data[0]);
+      }
     }
   });
 
@@ -1046,6 +1071,11 @@
 
   function appendMessageUI(msg) {
     const container = document.getElementById('chatMessages');
+    if (!container) return;
+
+    const existingMsg = document.getElementById(`msg-${msg.id}`);
+    if (existingMsg) return;
+
     const emptyNote = container.querySelector('.empty-note');
     if (emptyNote) emptyNote.remove();
 
@@ -1139,7 +1169,7 @@
         secretSection = `
           <div style="margin-top:12px;">
             <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
-            <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
+            <div class="spoiler-mask" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
               ${escapeHtml(secretText)}
             </div>
           </div>`;
@@ -1268,7 +1298,14 @@
     const container = document.getElementById('loot-container');
     if (!container) return;
 
-    const { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
+    // Fallback sorting gracefully if created_at column doesn't exist
+    let { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
+
+    if (error && error.message.includes('created_at')) {
+      const fallback = await sb.from('loot').select('*').order('id', { ascending: false });
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) {
       container.innerHTML = `<p class="error-msg">Failed to load loot: ${escapeHtml(error.message)}</p>`;
@@ -1302,7 +1339,7 @@
         secretSection = `
           <div style="margin-top:12px;">
             <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
-            <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
+            <div class="spoiler-mask" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
               ${escapeHtml(item.secret || item.dm_secret)}
             </div>
           </div>`;
@@ -1759,7 +1796,7 @@
       secretSection = `
         <div style="margin-top:12px;">
           <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
-          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
+          <div class="spoiler-mask" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
             ${escapeHtml(secretText)}
           </div>
         </div>`;
@@ -1883,10 +1920,6 @@
     }
   }
 
-  function toggleSpoiler(element) {
-    element.classList.toggle('revealed');
-  }
-
   /* ===================== NPCS & NPC SECRETS ===================== */
   async function loadNPCs() {
     const container = document.getElementById('npc-cards-container');
@@ -1938,7 +1971,7 @@
       secretSection = `
         <div style="margin-top:12px;">
           <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
-          <div class="spoiler-mask" onclick="toggleSpoiler(this)" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
+          <div class="spoiler-mask" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
             ${escapeHtml(secretContent)}
           </div>
         </div>`;
