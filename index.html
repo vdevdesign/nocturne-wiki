@@ -1892,6 +1892,12 @@
 
   /* ===================== CHARACTER DIRECTORY ===================== */
 
+  // Helper: Extract username prefix (e.g. 'test' from 'test@campaign.local')
+  function getCurrentPlayerId() {
+    if (!currentUser?.email) return '';
+    return currentUser.email.split('@')[0].toLowerCase().trim();
+  }
+
   function cleanPlayerName(str) {
     if (!str) return '';
     return str
@@ -1926,9 +1932,15 @@
       return true;
     }
 
-    const activeUser = typeof currentUser !== 'undefined' && currentUser ? cleanPlayerName(currentUser.email?.split('@')[0]) : '';
+    const activeUser = getCurrentPlayerId();
     if (!activeUser) return false;
 
+    // Check 1: Match directly on characters.id (e.g., char.id === 'test')
+    if (char?.id && char.id.toString().toLowerCase().trim() === activeUser) {
+      return true;
+    }
+
+    // Check 2: Match via tags/player_name (e.g., Player: test)
     const assignedPlayer = parsePlayerName(char);
     return Boolean(assignedPlayer && assignedPlayer === activeUser);
   }
