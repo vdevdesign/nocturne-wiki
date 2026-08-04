@@ -77,6 +77,40 @@
   .card h4 { font-family: var(--font-title); font-size: 20px; color: var(--text); margin: 0 0 4px 0; font-weight: 600; }
   .card .tag { font-size: 11.5px; color: var(--text-faint); letter-spacing: 0.3px; margin-bottom: 10px; display: block; }
 
+  .warning-banner {
+    background-color: rgba(201, 162, 75, 0.12);
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .faction-group {
+    margin-bottom: 28px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .faction-title {
+    font-family: var(--font-title);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--gold);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
   .switch input { opacity: 0; width: 0; height: 0; }
   .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg); border: 1px solid var(--line); transition: .3s; border-radius: 22px; }
@@ -563,6 +597,12 @@
     <div class="eyebrow">Roster &amp; Lore</div>
     <h2 class="title">Character Directory</h2>
     <p class="subtitle">Party roster and player character backstories.</p>
+    
+    <!-- Player Warning Banner -->
+    <div class="warning-banner">
+      ⚠️ <strong>Important Notice:</strong> Please do not edit or change <code>Player: [your name]</code> in the character directory tags. This tag connects your account to your character sheet!
+    </div>
+
     <div id="character-cards-container"><p class="empty-note">Loading…</p></div>
   </section>
 
@@ -586,13 +626,34 @@
     <div class="eyebrow">Recaps</div>
     <h2 class="title">Session Summaries</h2>
     <p class="subtitle">Public logs of the party's ongoing exploits.</p>
+    
+    <div id="summaries-toolbar" style="margin-bottom:20px;"></div>
     <div id="summaries-container"><p class="empty-note">Loading…</p></div>
   </section>
 
   <section id="loot">
     <div class="eyebrow">Treasure & Inventory</div>
     <h2 class="title">Loot &amp; Homebrew Inventory</h2>
-    <p class="subtitle">Party rewards, items, and homebrew inventory details.</p>
+    <p class="subtitle">Party rewards, items, and personal character inventories.</p>
+    
+    <!-- Personal Inventory System Container -->
+    <div class="block-card" style="border-color: var(--gold-dim); background: var(--surface-2); margin-bottom:24px;">
+      <h3 style="margin-top:0; border-bottom:1px solid var(--line); padding-bottom:8px;">🎒 Personal Private Inventory</h3>
+      <p style="font-size:0.88rem; color:var(--text-faint);">Items assigned specifically to player accounts.</p>
+
+      <div style="display:flex; gap:16px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+        <label style="font-size:0.85rem; text-transform:uppercase; color:var(--text-faint);">View Inventory For:</label>
+        <select id="playerInventorySelector" class="input-field" style="width:220px;" onchange="loadPlayerPrivateInventory()">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+
+      <div id="player-private-inventory-list">
+        <p class="empty-note">Loading private inventory...</p>
+      </div>
+    </div>
+
+    <h3>Campaign Loot Pool</h3>
     <div id="loot-container"><p class="empty-note">Loading…</p></div>
   </section>
 
@@ -925,7 +986,6 @@
 
     switchSessionChat(newId);
 
-    // Immediately create an initial entry in DB so the room is persisted & active in list
     const { data, error } = await sb.from('session_messages').insert({
       session_id: newId,
       sender_id: currentUser.id,
@@ -1133,10 +1193,17 @@
     await loadTableSection('worldbook', 'worldbook-container', 'Worldbook Entry'); 
   }
 
-  /* ===================== SESSION SUMMARIES (INLINE EDITING) ===================== */
+  /* ===================== SESSION SUMMARIES ===================== */
   async function loadSummaries() {
     const container = document.getElementById('summaries-container');
+    const toolbar = document.getElementById('summaries-toolbar');
     if (!container) return;
+
+    if (isDM) {
+      toolbar.innerHTML = `<button class="btn btn-sm" onclick="addNewSessionSummary()">+ Add Session Summary</button>`;
+    } else {
+      toolbar.innerHTML = '';
+    }
 
     const { data, error } = await sb.from('session_summaries')
       .select('*')
@@ -1153,6 +1220,28 @@
     }
 
     container.innerHTML = data.map(summary => renderSummaryCard(summary)).join('');
+  }
+
+  async function addNewSessionSummary() {
+    if (!isDM) return;
+    const session_number = prompt("Session Number (e.g. 1):");
+    if (!session_number) return;
+    const title = prompt("Session Title:");
+    const body = prompt("Summary / Notes:");
+
+    const { error } = await sb.from('session_summaries').insert({
+      session_number,
+      title: title || 'Untitled Session',
+      body: body || '',
+      session_date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      visible_to_players: true
+    });
+
+    if (error) {
+      alert("Error adding summary: " + error.message);
+    } else {
+      loadSummaries();
+    }
   }
 
   function renderSummaryCard(summary) {
@@ -1292,13 +1381,13 @@
     }
   }
 
-  /* ===================== LOOT & REWARDS (HOMEBREW INVENTORY) ===================== */
+  /* ===================== LOOT & PLAYER PRIVATE INVENTORY SYSTEM ===================== */
+  let activeLootItems = [];
 
   async function loadLoot() {
     const container = document.getElementById('loot-container');
     if (!container) return;
 
-    // Fallback sorting gracefully if created_at column doesn't exist
     let { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
 
     if (error && error.message.includes('created_at')) {
@@ -1311,6 +1400,9 @@
       container.innerHTML = `<p class="error-msg">Failed to load loot: ${escapeHtml(error.message)}</p>`;
       return;
     }
+
+    activeLootItems = data || [];
+    await populatePlayerSelector();
 
     let html = '';
     if (isDM) {
@@ -1325,6 +1417,99 @@
 
     html += data.map(item => renderLootCard(item)).join('');
     container.innerHTML = html;
+  }
+
+  async function populatePlayerSelector() {
+    const selector = document.getElementById('playerInventorySelector');
+    if (!selector) return;
+
+    const { data: profiles } = await sb.from('profiles').select('id, username, email');
+    selector.innerHTML = '';
+
+    const currentUsername = currentUser?.email ? currentUser.email.split('@')[0] : 'Your Account';
+    
+    if (profiles && profiles.length > 0) {
+      profiles.forEach(p => {
+        const name = p.username || (p.email ? p.email.split('@')[0] : 'Player');
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.id === currentUser?.id ? `${name} (You)` : name;
+        if (p.id === currentUser?.id) opt.selected = true;
+        selector.appendChild(opt);
+      });
+    } else {
+      const opt = document.createElement('option');
+      opt.value = currentUser?.id || 'me';
+      opt.textContent = `${currentUsername} (You)`;
+      selector.appendChild(opt);
+    }
+
+    loadPlayerPrivateInventory();
+  }
+
+  async function loadPlayerPrivateInventory() {
+    const selector = document.getElementById('playerInventorySelector');
+    const container = document.getElementById('player-private-inventory-list');
+    if (!selector || !container) return;
+
+    const targetUserId = selector.value;
+    const isOwner = targetUserId === currentUser?.id;
+
+    const { data, error } = await sb.from('player_inventories')
+      .select('*, loot(*)')
+      .eq('user_id', targetUserId);
+
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Error loading private inventory: ${escapeHtml(error.message)}</p>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p class="empty-note">Inventory is currently empty.</p>';
+      return;
+    }
+
+    container.innerHTML = data.map(inv => {
+      const item = inv.loot || {};
+      const canRemove = isOwner || isDM;
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
+          <div>
+            <strong style="color:var(--gold);">${escapeHtml(item.name || inv.item_name || 'Item')}</strong>
+            ${inv.quantity > 1 ? `<span style="font-size:0.8rem; color:var(--text-faint);"> (x${inv.quantity})</span>` : ''}
+            <p style="margin:2px 0 0 0; font-size:0.85rem; color:var(--text-dim);">${escapeHtml(item.description || item.body || 'No description.')}</p>
+          </div>
+          ${canRemove ? `<button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function giveItemToSelectedPlayer(lootId) {
+    const selector = document.getElementById('playerInventorySelector');
+    if (!selector) return;
+    const targetUserId = selector.value;
+
+    const { error } = await sb.from('player_inventories').insert({
+      user_id: targetUserId,
+      loot_id: lootId,
+      quantity: 1
+    });
+
+    if (error) {
+      alert("Failed to give item: " + error.message);
+    } else {
+      loadPlayerPrivateInventory();
+    }
+  }
+
+  async function removeInventoryItem(invId) {
+    const { error } = await sb.from('player_inventories').delete().eq('id', invId);
+    if (error) {
+      alert("Failed to remove item: " + error.message);
+    } else {
+      loadPlayerPrivateInventory();
+    }
   }
 
   function renderLootCard(item) {
@@ -1355,6 +1540,7 @@
             </label>
           </div>
           <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm" onclick="giveItemToSelectedPlayer('${item.id}')">🎁 Give to Player</button>
             <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Edit</button>
             <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${item.id}', 'loot', 'loot-container')">Delete</button>
           </div>
@@ -1920,7 +2106,7 @@
     }
   }
 
-  /* ===================== NPCS & NPC SECRETS ===================== */
+  /* ===================== NPCS & GROUPED FACTIONS ===================== */
   async function loadNPCs() {
     const container = document.getElementById('npc-cards-container');
     if (!container) return;
@@ -1929,17 +2115,6 @@
 
     if (npcErr) {
       container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(npcErr.message)}</p>`;
-      return;
-    }
-
-    let html = '';
-    if (isDM) {
-      html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addTableBlock('npcs', 'npc-cards-container', 'NPC')">+ Add NPC</button>`;
-    }
-
-    if (!npcs || npcs.length === 0) {
-      html += '<p class="empty-note">No NPCs recorded in database yet.</p>';
-      container.innerHTML = html;
       return;
     }
 
@@ -1953,7 +2128,40 @@
       }
     }
 
-    html += npcs.map(npc => renderNPCCard(npc, secretsMap[npc.id])).join('');
+    let topAction = '';
+    if (isDM) {
+      topAction = `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addTableBlock('npcs', 'npc-cards-container', 'NPC')">+ Add NPC</button>`;
+    }
+
+    if (!npcs || npcs.length === 0) {
+      container.innerHTML = topAction + '<p class="empty-note">No NPCs recorded in database yet.</p>';
+      return;
+    }
+
+    // Group NPCs visually by Faction
+    const grouped = npcs.reduce((acc, npc) => {
+      const factionKey = npc.faction ? npc.faction.trim() : 'Unaffiliated / Independent';
+      if (!acc[factionKey]) acc[factionKey] = [];
+      acc[factionKey].push(npc);
+      return acc;
+    }, {});
+
+    let html = topAction;
+    Object.keys(grouped).forEach(faction => {
+      const factionCardsHtml = grouped[faction].map(npc => renderNPCCard(npc, secretsMap[npc.id])).join('');
+      if (factionCardsHtml.trim()) {
+        html += `
+          <div class="faction-group">
+            <div class="faction-title">
+              <span>🏛️ ${escapeHtml(faction)}</span>
+              <span style="font-size:0.8rem; color:var(--text-faint); font-weight:normal;">(${grouped[faction].length} members)</span>
+            </div>
+            <div>${factionCardsHtml}</div>
+          </div>
+        `;
+      }
+    });
+
     container.innerHTML = html;
   }
 
@@ -2001,7 +2209,7 @@
           <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
               <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
-              ${npc.hp || npc.faction ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${npc.hp ? `HP: ${escapeHtml(npc.hp)}` : ''} ${npc.faction ? `| ${escapeHtml(npc.faction)}` : ''}</p>` : ''}
+              ${npc.hp || npc.role ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${npc.role ? escapeHtml(npc.role) : ''} ${npc.hp ? `| HP: ${escapeHtml(npc.hp)}` : ''}</p>` : ''}
             </div>
 
             <!-- Friendship Points Counter -->
