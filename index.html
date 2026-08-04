@@ -77,21 +77,6 @@
   .card h4 { font-family: var(--font-title); font-size: 20px; color: var(--text); margin: 0 0 4px 0; font-weight: 600; }
   .card .tag { font-size: 11.5px; color: var(--text-faint); letter-spacing: 0.3px; margin-bottom: 10px; display: block; }
 
-  .secret-box { margin-top: 14px; padding: 12px 14px; background: rgba(177,82,107,0.08); border-left: 3px solid var(--rose); border-radius: 4px; font-size: 14px; color: var(--text-dim); }
-  .secret-box::before { content: "DM SECRET"; display: block; font-size: 10.5px; letter-spacing: 1px; color: var(--rose); margin-bottom: 6px; font-weight: 600; }
-
-  .milestones { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 13px; }
-  .milestones .m-label { font-size: 10.5px; letter-spacing: 1px; color: var(--purple); text-transform: uppercase; margin-bottom: 6px; display:block; }
-  .milestones div.mrow { margin-bottom: 5px; color: var(--text-dim); }
-  .milestones div.mrow.reached { color: var(--text); }
-  .milestones strong { color: var(--gold); }
-  .milestones .reached-by { color: var(--gold); font-size:11.5px; margin-left:4px; }
-
-  .friendship-counter-inline { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); flex-wrap: wrap; }
-  .counter-badge { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); padding: 4px 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--gold); }
-  .party-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim); margin-bottom:6px; }
-  .party-row .pname { min-width:150px; color:var(--text); }
-
   .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
   .switch input { opacity: 0; width: 0; height: 0; }
   .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg); border: 1px solid var(--line); transition: .3s; border-radius: 22px; }
@@ -99,43 +84,20 @@
   input:checked + .slider { background-color: var(--purple-dim); border-color: var(--purple); }
   input:checked + .slider:before { transform: translateX(22px); background-color: var(--gold); }
 
-  .statblock { background: var(--surface); border: 1px solid var(--purple-dim); border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; font-family: var(--font-mono); font-size: 13px; color: var(--text-dim); line-height: 1.65; }
-  .statblock h4 { font-family: var(--font-title); color: var(--gold); font-size: 20px; margin: 0 0 3px 0; }
-  .statblock .meta { color: var(--text-faint); font-style: italic; margin-bottom: 10px; font-family: var(--font-body); font-size: 12.5px; }
-  .statblock .stats { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0; }
-  .statblock .stats div { min-width: 44px; text-align: center; }
-  .statblock .stats span { display: block; font-size: 10.5px; color: var(--text-faint); }
-
   .hp-tracker { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); vertical-align: middle; }
   .hp-tracker strong { color: var(--gold); font-size: 12px; }
   .hp-btn { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 14px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
   .hp-btn:hover { background: var(--purple-dim); border-color: var(--purple); }
   .hp-input { width: 52px; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; color: #5aa876; font-family: var(--font-mono); font-size: 13px; text-align: center; padding: 2px 4px; outline: none; }
-  .hp-input.bloodied { color: var(--gold); border-color: var(--gold-dim); }
-  .hp-input.zero-hp { color: var(--rose); border-color: var(--rose-dim); }
-  .hp-formula { color: var(--text-faint); font-size: 11.5px; }
 
   .character-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.1rem; margin-bottom: 2rem; }
-  .char-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.25rem; cursor: pointer; transition: all 0.2s ease; }
-  .char-card:hover, .char-card.selected { border-color: var(--purple); background: var(--surface-2); }
-  .char-card h4 { font-family: var(--font-title); color: var(--gold); font-size: 1.2rem; margin: 0 0 0.25rem 0; }
-  .pill-tag { display: inline-block; font-size: 0.72rem; background: var(--bg); border: 1px solid var(--line); color: var(--gold); padding: 2px 6px; border-radius: 4px; margin: 2px 4px 2px 0; font-family: var(--font-mono); }
-
-  .editor-container { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.75rem; margin-top: 1.5rem; }
-  .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--line); padding-bottom: 1rem; flex-wrap: wrap; gap: 10px; }
-  .editor-header h3 { border-bottom: none; margin: 0; }
-  .editor-textarea { width: 100%; min-height: 200px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); padding: 1rem; font-family: var(--font-body); line-height: 1.6; resize: vertical; outline: none; }
-  .editor-textarea:focus { border-color: var(--purple); }
 
   .input-group { margin-bottom: 1rem; text-align: left; }
   .input-group label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); margin-bottom: 0.35rem; }
   .input-control { width: 100%; padding: 0.65rem 0.9rem; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: 0.9rem; outline: none; }
   .input-control:focus { border-color: var(--purple); }
-  .checkbox-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-faint); margin-bottom:14px; }
   .block-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
-  .block-card.editing { border-color: var(--purple); }
   .block-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 8px; }
-  .block-header h4 { margin:0; }
   .block-actions { display:flex; gap:6px; flex-shrink:0; }
   .add-block-btn { margin: 4px 0 28px 0; }
 
@@ -293,35 +255,6 @@
     color: var(--rose);
   }
 
-  /* Restricted Hub Layout & Card Hover Effects */
-.restricted-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.hub-card {
-  cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.hub-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--gold, #c9a050);
-}
-
-.hub-card h4 {
-  margin: 0 0 6px 0;
-}
-
-.hub-desc {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--text-faint, #888);
-  line-height: 1.3;
-}
-
 /* General Blackout Spoiler Styling */
 .spoiler-mask {
   background-color: var(--text-main, #1a1a1a);
@@ -334,7 +267,6 @@
   display: inline-block;
 }
 
-/* Hover or revealed state reveals the hidden text */
 .spoiler-mask:hover,
 .spoiler-mask.revealed {
   background-color: rgba(220, 50, 50, 0.15);
@@ -342,7 +274,7 @@
   border: 1px solid rgba(220, 50, 50, 0.3);
 }
 
-/* ===================== RESTRICTED HUB & STAT BLOCK STYLES ===================== */
+/* RESTRICTED HUB & STAT BLOCK STYLES */
 .restricted-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -351,8 +283,8 @@
 }
 
 .hub-card {
-  background: var(--card-bg, #1e1e24);
-  border: 1px solid var(--line, #333);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 20px;
   cursor: pointer;
@@ -381,7 +313,6 @@
   line-height: 1.4;
 }
 
-/* HP Controls & Custom Input Layout */
 .hp-controls {
   display: flex;
   align-items: center;
@@ -415,7 +346,6 @@
   border-color: var(--gold, #c9a050);
 }
 
-/* Hide HTML number input spinners for a cleaner look */
 .hp-input::-webkit-inner-spin-button, 
 .hp-input::-webkit-outer-spin-button { 
   -webkit-appearance: none; 
@@ -425,7 +355,6 @@
   -moz-appearance: textfield;
 }
 
-/* Card & Base Formatting */
 .block-card {
   background: rgba(20, 20, 25, 0.6);
   border: 1px solid var(--line, #333);
@@ -459,21 +388,6 @@
   color: var(--text-faint, #a0a0a0);
 }
 
-/* Counter & Badges */
-.badge-counter {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.35);
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--line, #333);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--gold, #c9a050);
-}
-
-/* DM Controls Footer */
 .card-footer-controls {
   display: flex;
   justify-content: space-between;
@@ -493,7 +407,6 @@
 .status-badge.public { color: var(--gold, #c9a050); }
 .status-badge.hidden { color: var(--text-faint, #777); }
 
-/* Form Styles */
 .card-edit-form {
   display: flex;
   flex-direction: column;
@@ -502,6 +415,21 @@
   padding: 14px;
   border-radius: 8px;
   border: 1px solid var(--line, #333);
+}
+
+.input-field {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+}
+.input-field:focus {
+  border-color: var(--purple);
 }
 
 .form-row {
@@ -626,49 +554,21 @@
   </section>
 
   <section id="npcs">
-  <div class="eyebrow">Dramatis Personae</div>
-  <br>
-  <div class="section-toolbar" id="spoilerToolbar" style="display:none;">
-    <button class="btn btn-spoiler btn-sm" id="spoilerToggleBtn" onclick="toggleSpoilers()">Black Out Spoilers</button>
-  </div>
-  <h2 class="title">NPCs &amp; Friendship Points</h2>
-  <p class="subtitle">Faculty, allies, and notable figures across the realm.</p>
-  <div id="npc-cards-container"><p class="empty-note">Loading…</p></div>
-</section>
+    <div class="eyebrow">Dramatis Personae</div>
+    <br>
+    <div class="section-toolbar" id="spoilerToolbar" style="display:none;">
+      <button class="btn btn-spoiler btn-sm" id="spoilerToggleBtn" onclick="toggleSpoilers()">Black Out Spoilers</button>
+    </div>
+    <h2 class="title">NPCs &amp; Friendship Points</h2>
+    <p class="subtitle">Faculty, allies, and notable figures across the realm.</p>
+    <div id="npc-cards-container"><p class="empty-note">Loading…</p></div>
+  </section>
 
   <section id="characters">
     <div class="eyebrow">Roster &amp; Lore</div>
     <h2 class="title">Character Directory</h2>
-    <p class="subtitle">Party roster and player character deep dives.</p>
-    <div class="character-grid" id="character-grid"></div>
-    <button class="btn btn-secondary btn-sm add-block-btn" id="add-char-btn" style="display:none;" onclick="addNewCharacter()">+ Add Character</button>
-    <div class="editor-container" id="editor-box">
-      <div class="editor-header">
-        <div>
-          <h3 id="active-char-name">Select a Character</h3>
-          <div id="active-char-tags" style="margin-top: 4px;"></div>
-        </div>
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <span id="save-status" class="status-badge" style="display:none;">Saved</span>
-          <button id="delete-char-btn" class="btn btn-secondary" style="display:none;" onclick="deleteCharacter()">Delete</button>
-          <button id="edit-toggle-btn" class="btn btn-secondary" onclick="toggleEditMode()">Switch to Edit Mode</button>
-        </div>
-      </div>
-      <div id="read-mode-content" style="color: var(--text); line-height: 1.7; min-height: 140px;">
-        <p style="color: var(--text-faint);">Select a hero above to view or update background details.</p>
-      </div>
-      <div id="edit-mode-content" style="display: none;">
-        <div class="input-group" id="tag-edit-group" style="display:none;">
-          <label>Tags (separate with |, e.g. "Player: Name | Lvl 1 | Race | Class")</label>
-          <input class="input-control" id="tag-textarea" placeholder="Player: ... | Lvl 1 | Race | Class">
-        </div>
-        <textarea id="bio-textarea" class="editor-textarea" placeholder="Type character lore and notes..."></textarea>
-        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
-          <button class="btn btn-secondary" onclick="toggleEditMode()">Cancel</button>
-          <button class="btn" onclick="saveCharacterBio()">Save Lore Updates</button>
-        </div>
-      </div>
-    </div>
+    <p class="subtitle">Party roster and player character backstories.</p>
+    <div id="character-cards-container"><p class="empty-note">Loading…</p></div>
   </section>
 
   <section id="session-zero">
@@ -695,9 +595,9 @@
   </section>
 
   <section id="loot">
-    <div class="eyebrow">Treasure</div>
-    <h2 class="title">Loot &amp; Rewards</h2>
-    <p class="subtitle">Pick and choose based on what fits the moment.</p>
+    <div class="eyebrow">Treasure & Inventory</div>
+    <h2 class="title">Loot &amp; Homebrew Inventory</h2>
+    <p class="subtitle">Party rewards, items, and homebrew inventory details.</p>
     <div id="loot-container"><p class="empty-note">Loading…</p></div>
   </section>
 
@@ -741,15 +641,15 @@
   </section>
 
   <section id="restricted">
-  <div class="eyebrow">DM Eyes Only</div>
-  <h2 class="title">Restricted Archives</h2>
-  <p class="subtitle">Confidential DM notes, campaign outlines, lore, and encounters.</p>
-  
-  <!-- Container for the Hub menu & sub-views -->
-  <div id="restricted-container">
-    <p class="empty-note">Loading Hub…</p>
-  </div>
-</section>
+    <div class="eyebrow">DM Eyes Only</div>
+    <h2 class="title">Restricted Archives</h2>
+    <p class="subtitle">Confidential DM notes, campaign outlines, lore, and encounters.</p>
+    
+    <!-- Container for the Hub menu & sub-views -->
+    <div id="restricted-container">
+      <p class="empty-note">Loading Hub…</p>
+    </div>
+  </section>
 
 </main>
 
@@ -817,9 +717,6 @@
   let currentUser = null;
   let isDM = false;
   let spoilersOff = false;
-  let currentSelectedCharId = null;
-  let isEditing = false;
-  let cachedCharacters = [];
   
   let currentSessionId = "session_1";
   let isSessionOpen = false;
@@ -918,7 +815,6 @@
       badge.style.display = 'none';
     }
 
-    // Subscribe to global active_session changes to keep the LIVE badge synced in real time
     sb.channel('global_live_status')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'active_session' }, payload => {
         const state = payload.new;
@@ -1174,19 +1070,13 @@
     container.scrollTop = container.scrollHeight;
   }
 
-  /* ===================== DELETE CHAT MESSAGES ===================== */
   async function deleteSessionMessage(messageId) {
-    if (!isDM) {
-      alert("Only the DM can delete chat messages.");
-      return;
-    }
-
+    if (!isDM) return;
     if (!confirm("Are you sure you want to delete this message?")) return;
 
     const { error } = await sb.from('session_messages').delete().eq('id', messageId);
 
     if (error) {
-      console.error("Error deleting message:", error);
       alert("Failed to delete message: " + error.message);
     } else {
       const msgEl = document.getElementById(`msg-${messageId}`);
@@ -1196,13 +1086,11 @@
 
   async function clearAllSessionMessages() {
     if (!isDM) return;
-
     if (!confirm(`Are you sure you want to clear all chat messages in "${currentSessionId}"?`)) return;
 
     const { error } = await sb.from('session_messages').delete().eq('session_id', currentSessionId);
 
     if (error) {
-      console.error("Error clearing messages:", error);
       alert("Failed to clear messages: " + error.message);
     } else {
       const chatBox = document.getElementById('chatMessages');
@@ -1374,7 +1262,7 @@
     }
   }
 
-  /* ===================== LOOT & REWARDS ===================== */
+  /* ===================== LOOT & REWARDS (HOMEBREW INVENTORY) ===================== */
 
   async function loadLoot() {
     const container = document.getElementById('loot-container');
@@ -1386,12 +1274,20 @@
       container.innerHTML = `<p class="error-msg">Failed to load loot: ${escapeHtml(error.message)}</p>`;
       return;
     }
+
+    let html = '';
+    if (isDM) {
+      html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addLootItem()">+ Add Inventory Item</button>`;
+    }
+
     if (!data || data.length === 0) {
-      container.innerHTML = '<p class="empty-note">No loot recorded yet.</p>';
+      html += '<p class="empty-note">No loot recorded yet.</p>';
+      container.innerHTML = html;
       return;
     }
 
-    container.innerHTML = data.map(item => renderLootCard(item)).join('');
+    html += data.map(item => renderLootCard(item)).join('');
+    container.innerHTML = html;
   }
 
   function renderLootCard(item) {
@@ -1486,6 +1382,23 @@
         </div>
       </div>
     `;
+  }
+
+  async function addLootItem() {
+    if (!isDM) return;
+    const name = prompt("Item Name:");
+    if (!name) return;
+    const description = prompt("Item Description:");
+
+    const { error } = await sb.from('loot').insert({
+      name,
+      description,
+      quantity: 1,
+      visible_to_players: true
+    });
+
+    if (error) alert("Failed to add loot item: " + error.message);
+    else loadLoot();
   }
 
   async function saveInlineLootEdit(itemId) {
@@ -1773,7 +1686,7 @@
     if (Array.isArray(char.tags)) {
       searchPool = searchPool.concat(char.tags);
     } else if (typeof char.tags === 'string') {
-      searchPool.push(char.role);
+      searchPool.push(char.tags);
     }
 
     if (typeof char.role === 'string') searchPool.push(char.role);
@@ -1798,7 +1711,7 @@
   }
 
   async function loadCharacters() {
-    const container = document.getElementById('character-cards-container') || document.getElementById('character-grid');
+    const container = document.getElementById('character-cards-container');
     if (!container) return;
 
     const { data, error } = await sb.from('characters')
@@ -1810,12 +1723,19 @@
       return;
     }
 
+    let html = '';
+    if (isDM) {
+      html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewCharacter()">+ Add Character</button>`;
+    }
+
     if (!data || data.length === 0) {
-      container.innerHTML = '<p class="empty-note">No characters recorded yet.</p>';
+      html += '<p class="empty-note">No characters recorded yet.</p>';
+      container.innerHTML = html;
       return;
     }
 
-    container.innerHTML = data.map(char => renderCharacterCard(char)).join('');
+    html += data.map(char => renderCharacterCard(char)).join('');
+    container.innerHTML = html;
   }
 
   function renderCharacterCard(char) {
@@ -1876,7 +1796,7 @@
             </div>
           </div>
 
-          <div class="block-body" style="margin-top:10px;">${char.bio || char.description || '<p class="empty-note">No bio available.</p>'}</div>
+          <div class="block-body" style="margin-top:10px;">${char.bio || char.description || '<p class="empty-note">No backstory available.</p>'}</div>
           ${secretSection}
           ${dmControls}
         </div>
@@ -1915,6 +1835,22 @@
         </div>
       </div>
     `;
+  }
+
+  async function addNewCharacter() {
+    if (!isDM) return;
+    const name = prompt("Character Name:");
+    if (!name) return;
+    const tags = prompt("Tags (e.g., Player: Vanessa | Lvl 1 | Human | Rogue):");
+
+    const { error } = await sb.from('characters').insert({
+      name,
+      tags: tags ? tags.split('|').map(t => t.trim()) : [],
+      visible_to_players: true
+    });
+
+    if (error) alert("Failed to add character: " + error.message);
+    else loadCharacters();
   }
 
   async function saveInlineCharacterEdit(charId) {
@@ -1963,8 +1899,14 @@
       return;
     }
 
+    let html = '';
+    if (isDM) {
+      html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addTableBlock('npcs', 'npc-cards-container', 'NPC')">+ Add NPC</button>`;
+    }
+
     if (!npcs || npcs.length === 0) {
-      container.innerHTML = '<p class="empty-note">No NPCs recorded in database yet.</p>';
+      html += '<p class="empty-note">No NPCs recorded in database yet.</p>';
+      container.innerHTML = html;
       return;
     }
 
@@ -1978,7 +1920,8 @@
       }
     }
 
-    container.innerHTML = npcs.map(npc => renderNPCCard(npc, secretsMap[npc.id])).join('');
+    html += npcs.map(npc => renderNPCCard(npc, secretsMap[npc.id])).join('');
+    container.innerHTML = html;
   }
 
   function renderNPCCard(npc, npcSecret = '') {
