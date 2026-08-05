@@ -1388,6 +1388,16 @@ async function loadLoot() {
   const container = document.getElementById('loot-container');
   if (!container) return;
 
+  // Always build the dropdown selector for player inventories
+  await populatePlayerSelector();
+
+  // If NOT the DM, do not display the Campaign Loot Pool
+  if (!isDM) {
+    container.innerHTML = '<p class="empty-note">The campaign loot pool is managed by the DM.</p>';
+    return;
+  }
+
+  // DM-only query to fetch the campaign loot pool
   let { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
 
   if (error && error.message.includes('created_at')) {
@@ -1397,20 +1407,16 @@ async function loadLoot() {
   }
 
   if (error) {
-    container.innerHTML = `<p class="error-msg">Failed to load loot: ${escapeHtml(error.message)}</p>`;
+    container.innerHTML = `<p class="error-msg">Failed to load loot pool: ${escapeHtml(error.message)}</p>`;
     return;
   }
 
   activeLootItems = data || [];
-  await populatePlayerSelector();
 
-  let html = '';
-  if (isDM) {
-    html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addLootItem()">+ Add Inventory Item</button>`;
-  }
+  let html = `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addLootItem()">+ Add Inventory Item</button>`;
 
   if (!data || data.length === 0) {
-    html += '<p class="empty-note">No loot recorded yet.</p>';
+    html += '<p class="empty-note">No loot recorded in the main pool yet.</p>';
     container.innerHTML = html;
     return;
   }
@@ -1473,6 +1479,7 @@ async function loadPlayerPrivateInventory() {
     return;
   }
 
+  // Fetch inventory joined with the loot table for details
   const { data, error } = await sb.from('player_inventories')
     .select('*, loot(*)')
     .eq('user_id', targetUserId);
@@ -1492,14 +1499,18 @@ async function loadPlayerPrivateInventory() {
     const itemName = item.name || inv.item_name || 'Item';
     const itemDesc = item.description || item.body || 'No description provided.';
     
+    // Determine quantity and value
+    const qty = inv.quantity || item.quantity || 1;
+    const valueStr = item.value ? ` | Value: ${escapeHtml(item.value)}` : '';
+    
     const removeBtn = isDM ? `<button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>` : '';
 
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
         <div>
           <strong style="color:var(--gold);">${escapeHtml(itemName)}</strong>
-          ${inv.quantity > 1 ? `<span style="font-size:0.8rem; color:var(--text-faint);"> (x${inv.quantity})</span>` : ''}
-          <p style="margin:2px 0 0 0; font-size:0.85rem; color:var(--text-dim);">${escapeHtml(itemDesc)}</p>
+          <span style="font-size:0.85rem; color:var(--text-faint); font-family:var(--font-mono);"> (Qty: ${qty}${valueStr})</span>
+          <p style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-dim);">${escapeHtml(itemDesc)}</p>
         </div>
         ${removeBtn}
       </div>
