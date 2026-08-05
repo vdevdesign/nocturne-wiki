@@ -1419,12 +1419,22 @@
     container.innerHTML = html;
   }
 
-  async function populatePlayerSelector() {
+  // Helper: Capitalize player names (e.g., "marigold" -> "Marigold")
+function formatPlayerName(email) {
+  if (!email) return 'Player';
+  const prefix = email.split('@')[0];
+  return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+}
+
+async function populatePlayerSelector() {
   const selector = document.getElementById('playerInventorySelector');
   if (!selector) return;
 
-  // Fetch all profiles so the DM can switch between players
-  const { data: profiles, error } = await sb.from('profiles').select('id, username, email');
+  // 1. Fetch profiles table columns
+  const { data: profiles, error } = await sb
+    .from('profiles')
+    .select('id, email, role');
+
   selector.innerHTML = '';
 
   if (error || !profiles || profiles.length === 0) {
@@ -1434,20 +1444,27 @@
     selector.appendChild(opt);
   } else {
     profiles.forEach(p => {
-      const displayName = p.username || (p.email ? p.email.split('@')[0] : 'Player');
+      const isSelf = p.id === currentUser?.id;
+      const parsedName = formatPlayerName(p.email);
+
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = (p.id === currentUser?.id) ? `${displayName} (You)` : displayName;
-      selector.appendChild(opt);
+      
+      // Label display logic (e.g. "Grox", "Dungeonmaster (You)", etc.)
+      opt.textContent = isSelf ? `${parsedName} (You)` : parsedName;
+
+      // If non-DM player, only show their own option; DM gets all options
+      if (isDM || isSelf) {
+        selector.appendChild(opt);
+      }
     });
   }
 
-  // Auto-select the first player or current user, then load
-  if (selector.options.length > 0 && !selector.value) {
-    selector.selectedIndex = 0;
+  // Set initial selected value and load inventory
+  if (selector.options.length > 0) {
+    if (!selector.value) selector.selectedIndex = 0;
+    loadPlayerPrivateInventory();
   }
-
-  loadPlayerPrivateInventory();
 }
 
 async function loadPlayerPrivateInventory() {
