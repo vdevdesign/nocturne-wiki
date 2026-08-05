@@ -1557,7 +1557,7 @@ function renderLootCard(item) {
       </div>`;
   }
 
-  const valueDisplay = item.value ? `Value: ${escapeHtml(item.value)}` : '';
+  const valueDisplay = item.value ? `Value: ${escapeHtml(item.value)} GP` : '';
   const qtyDisplay = item.quantity ? `Qty: ${escapeHtml(String(item.quantity))}` : '';
   const metaText = [qtyDisplay, valueDisplay].filter(Boolean).join(' | ');
 
