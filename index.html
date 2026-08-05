@@ -1546,19 +1546,6 @@ async function loadPlayerPrivateInventory() {
     if (!isDM && !isVisible) return '';
 
     let dmControls = '';
-    let secretSection = '';
-
-    if (isDM) {
-      if (item.secret || item.dm_secret) {
-        secretSection = `
-          <div style="margin-top:12px;">
-            <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
-            <div class="spoiler-mask" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
-              ${escapeHtml(item.secret || item.dm_secret)}
-            </div>
-          </div>`;
-      }
-
       dmControls = `
         <div class="card-footer-controls">
           <div style="display:flex; align-items:center; gap:8px;">
@@ -1591,7 +1578,6 @@ async function loadPlayerPrivateInventory() {
             </div>
           </div>
           <div class="block-body" style="margin-top:10px;">${item.description || item.body || '<p class="empty-note">No description provided.</p>'}</div>
-          ${secretSection}
           ${dmControls}
         </div>
 
@@ -1619,11 +1605,6 @@ async function loadPlayerPrivateInventory() {
             <div class="form-group">
               <label>Description</label>
               <textarea id="edit-loot-desc-${item.id}" rows="3" class="input-field">${escapeHtml(item.description || item.body || '')}</textarea>
-            </div>
-
-            <div class="form-group">
-              <label class="secret-label">🔒 DM Secret (Curse, True Value)</label>
-              <textarea id="edit-loot-secret-${item.id}" rows="2" class="input-field input-field-secret">${escapeHtml(item.secret || item.dm_secret || '')}</textarea>
             </div>
 
             <div style="display:flex; gap:8px; margin-top:4px;">
@@ -1659,9 +1640,8 @@ async function loadPlayerPrivateInventory() {
     const quantity = parseInt(document.getElementById(`edit-loot-qty-${itemId}`)?.value, 10) || 1;
     const value = document.getElementById(`edit-loot-value-${itemId}`)?.value.trim();
     const description = document.getElementById(`edit-loot-desc-${itemId}`)?.value.trim();
-    const secret = document.getElementById(`edit-loot-secret-${itemId}`)?.value.trim();
 
-    const { error } = await sb.from('loot').update({ name, quantity, value, description, secret }).eq('id', itemId);
+    const { error } = await sb.from('loot').update({ name, quantity, value, description }).eq('id', itemId);
     if (error) alert("Failed to save: " + error.message);
     else loadLoot();
   }
