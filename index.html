@@ -1382,44 +1382,44 @@
   }
 
   /* ===================== LOOT & PLAYER PRIVATE INVENTORY SYSTEM ===================== */
-  let activeLootItems = [];
+let activeLootItems = [];
 
-  async function loadLoot() {
-    const container = document.getElementById('loot-container');
-    if (!container) return;
+async function loadLoot() {
+  const container = document.getElementById('loot-container');
+  if (!container) return;
 
-    let { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
+  let { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
 
-    if (error && error.message.includes('created_at')) {
-      const fallback = await sb.from('loot').select('*').order('id', { ascending: false });
-      data = fallback.data;
-      error = fallback.error;
-    }
-
-    if (error) {
-      container.innerHTML = `<p class="error-msg">Failed to load loot: ${escapeHtml(error.message)}</p>`;
-      return;
-    }
-
-    activeLootItems = data || [];
-    await populatePlayerSelector();
-
-    let html = '';
-    if (isDM) {
-      html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addLootItem()">+ Add Inventory Item</button>`;
-    }
-
-    if (!data || data.length === 0) {
-      html += '<p class="empty-note">No loot recorded yet.</p>';
-      container.innerHTML = html;
-      return;
-    }
-
-    html += data.map(item => renderLootCard(item)).join('');
-    container.innerHTML = html;
+  if (error && error.message.includes('created_at')) {
+    const fallback = await sb.from('loot').select('*').order('id', { ascending: false });
+    data = fallback.data;
+    error = fallback.error;
   }
 
-  // Helper: Capitalize player names (e.g., "marigold" -> "Marigold")
+  if (error) {
+    container.innerHTML = `<p class="error-msg">Failed to load loot: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  activeLootItems = data || [];
+  await populatePlayerSelector();
+
+  let html = '';
+  if (isDM) {
+    html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addLootItem()">+ Add Inventory Item</button>`;
+  }
+
+  if (!data || data.length === 0) {
+    html += '<p class="empty-note">No loot recorded yet.</p>';
+    container.innerHTML = html;
+    return;
+  }
+
+  html += data.map(item => renderLootCard(item)).join('');
+  container.innerHTML = html;
+}
+
+// Helper: Capitalize player names (e.g., "marigold" -> "Marigold")
 function formatPlayerName(email) {
   if (!email) return 'Player';
   const prefix = email.split('@')[0];
@@ -1430,7 +1430,6 @@ async function populatePlayerSelector() {
   const selector = document.getElementById('playerInventorySelector');
   if (!selector) return;
 
-  // 1. Fetch profiles table columns
   const { data: profiles, error } = await sb
     .from('profiles')
     .select('id, email, role');
@@ -1449,18 +1448,14 @@ async function populatePlayerSelector() {
 
       const opt = document.createElement('option');
       opt.value = p.id;
-      
-      // Label display logic (e.g. "Grox", "Dungeonmaster (You)", etc.)
       opt.textContent = isSelf ? `${parsedName} (You)` : parsedName;
 
-      // If non-DM player, only show their own option; DM gets all options
       if (isDM || isSelf) {
         selector.appendChild(opt);
       }
     });
   }
 
-  // Set initial selected value and load inventory
   if (selector.options.length > 0) {
     if (!selector.value) selector.selectedIndex = 0;
     loadPlayerPrivateInventory();
@@ -1478,7 +1473,6 @@ async function loadPlayerPrivateInventory() {
     return;
   }
 
-  // Fetch inventory joined with the loot table for details
   const { data, error } = await sb.from('player_inventories')
     .select('*, loot(*)')
     .eq('user_id', targetUserId);
@@ -1498,7 +1492,6 @@ async function loadPlayerPrivateInventory() {
     const itemName = item.name || inv.item_name || 'Item';
     const itemDesc = item.description || item.body || 'No description provided.';
     
-    // Display remove button for DM
     const removeBtn = isDM ? `<button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>` : '';
 
     return `
@@ -1514,147 +1507,149 @@ async function loadPlayerPrivateInventory() {
   }).join('');
 }
 
-  async function giveItemToSelectedPlayer(lootId) {
-    const selector = document.getElementById('playerInventorySelector');
-    if (!selector) return;
-    const targetUserId = selector.value;
+async function giveItemToSelectedPlayer(lootId) {
+  const selector = document.getElementById('playerInventorySelector');
+  if (!selector) return;
+  const targetUserId = selector.value;
 
-    const { error } = await sb.from('player_inventories').insert({
-      user_id: targetUserId,
-      loot_id: lootId,
-      quantity: 1
-    });
+  const { error } = await sb.from('player_inventories').insert({
+    user_id: targetUserId,
+    loot_id: lootId,
+    quantity: 1
+  });
 
-    if (error) {
-      alert("Failed to give item: " + error.message);
-    } else {
-      loadPlayerPrivateInventory();
-    }
+  if (error) {
+    alert("Failed to give item: " + error.message);
+  } else {
+    loadPlayerPrivateInventory();
   }
+}
 
-  async function removeInventoryItem(invId) {
-    const { error } = await sb.from('player_inventories').delete().eq('id', invId);
-    if (error) {
-      alert("Failed to remove item: " + error.message);
-    } else {
-      loadPlayerPrivateInventory();
-    }
+async function removeInventoryItem(invId) {
+  const { error } = await sb.from('player_inventories').delete().eq('id', invId);
+  if (error) {
+    alert("Failed to remove item: " + error.message);
+  } else {
+    loadPlayerPrivateInventory();
   }
+}
 
-  function renderLootCard(item) {
-    const isVisible = item.visible_to_players ?? true;
-    if (!isDM && !isVisible) return '';
+function renderLootCard(item) {
+  const isVisible = item.visible_to_players ?? true;
+  if (!isDM && !isVisible) return '';
 
-    let dmControls = '';
-      dmControls = `
-        <div class="card-footer-controls">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
-            <label class="switch">
-              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${item.id}', 'loot', 'loot-container', this.checked)">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-sm" onclick="giveItemToSelectedPlayer('${item.id}')">🎁 Give to Player</button>
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Edit</button>
-            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${item.id}', 'loot', 'loot-container')">Delete</button>
-          </div>
-        </div>`;
-    }
-
-    const valueDisplay = item.value ? `Value: ${escapeHtml(item.value)}` : '';
-    const qtyDisplay = item.quantity ? `Qty: ${escapeHtml(String(item.quantity))}` : '';
-    const metaText = [qtyDisplay, valueDisplay].filter(Boolean).join(' | ');
-
-    return `
-      <div class="block-card" id="loot-card-${item.id}">
-        <!-- View Mode -->
-        <div class="loot-view-mode">
-          <div class="card-title-group">
-            <div>
-              <h3 class="card-title">${escapeHtml(item.name || 'Unnamed Item')}</h3>
-              ${metaText ? `<p class="card-subtitle">${metaText}</p>` : ''}
-            </div>
-          </div>
-          <div class="block-body" style="margin-top:10px;">${item.description || item.body || '<p class="empty-note">No description provided.</p>'}</div>
-          ${dmControls}
+  let dmControls = '';
+  if (isDM) {
+    dmControls = `
+      <div class="card-footer-controls">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
+          <label class="switch">
+            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${item.id}', 'loot', 'loot-container', this.checked)">
+            <span class="slider"></span>
+          </label>
         </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm" onclick="giveItemToSelectedPlayer('${item.id}')">🎁 Give to Player</button>
+          <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Edit</button>
+          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${item.id}', 'loot', 'loot-container')">Delete</button>
+        </div>
+      </div>`;
+  }
 
-        <!-- Edit Mode -->
-        <div class="loot-edit-mode" style="display:none;">
-          <div class="card-edit-form">
-            <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Item</h4>
-            
-            <div class="form-group">
-              <label>Item Name</label>
-              <input type="text" id="edit-loot-name-${item.id}" value="${escapeHtml(item.name || '')}" class="input-field" />
-            </div>
+  const valueDisplay = item.value ? `Value: ${escapeHtml(item.value)}` : '';
+  const qtyDisplay = item.quantity ? `Qty: ${escapeHtml(String(item.quantity))}` : '';
+  const metaText = [qtyDisplay, valueDisplay].filter(Boolean).join(' | ');
 
-            <div class="form-row">
-              <div class="form-group" style="flex:1;">
-                <label>Quantity</label>
-                <input type="number" id="edit-loot-qty-${item.id}" value="${item.quantity ?? 1}" class="input-field" min="1" />
-              </div>
-              <div class="form-group" style="flex:2;">
-                <label>Value</label>
-                <input type="text" id="edit-loot-value-${item.id}" value="${escapeHtml(item.value || '')}" class="input-field" placeholder="500 gp" />
-              </div>
-            </div>
+  return `
+    <div class="block-card" id="loot-card-${item.id}">
+      <!-- View Mode -->
+      <div class="loot-view-mode">
+        <div class="card-title-group">
+          <div>
+            <h3 class="card-title">${escapeHtml(item.name || 'Unnamed Item')}</h3>
+            ${metaText ? `<p class="card-subtitle">${metaText}</p>` : ''}
+          </div>
+        </div>
+        <div class="block-body" style="margin-top:10px;">${item.description || item.body || '<p class="empty-note">No description provided.</p>'}</div>
+        ${dmControls}
+      </div>
 
-            <div class="form-group">
-              <label>Description</label>
-              <textarea id="edit-loot-desc-${item.id}" rows="3" class="input-field">${escapeHtml(item.description || item.body || '')}</textarea>
-            </div>
+      <!-- Edit Mode -->
+      <div class="loot-edit-mode" style="display:none;">
+        <div class="card-edit-form">
+          <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Item</h4>
+          
+          <div class="form-group">
+            <label>Item Name</label>
+            <input type="text" id="edit-loot-name-${item.id}" value="${escapeHtml(item.name || '')}" class="input-field" />
+          </div>
 
-            <div style="display:flex; gap:8px; margin-top:4px;">
-              <button class="btn btn-sm" onclick="saveInlineLootEdit('${item.id}')">Save Changes</button>
-              <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Cancel</button>
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label>Quantity</label>
+              <input type="number" id="edit-loot-qty-${item.id}" value="${item.quantity ?? 1}" class="input-field" min="1" />
             </div>
+            <div class="form-group" style="flex:2;">
+              <label>Value</label>
+              <input type="text" id="edit-loot-value-${item.id}" value="${escapeHtml(item.value || '')}" class="input-field" placeholder="500 gp" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="edit-loot-desc-${item.id}" rows="3" class="input-field">${escapeHtml(item.description || item.body || '')}</textarea>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:4px;">
+            <button class="btn btn-sm" onclick="saveInlineLootEdit('${item.id}')">Save Changes</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Cancel</button>
           </div>
         </div>
       </div>
-    `;
+    </div>
+  `;
+}
 
-  async function addLootItem() {
-    if (!isDM) return;
-    const name = prompt("Item Name:");
-    if (!name) return;
-    const description = prompt("Item Description:");
+async function addLootItem() {
+  if (!isDM) return;
+  const name = prompt("Item Name:");
+  if (!name) return;
+  const description = prompt("Item Description:");
 
-    const { error } = await sb.from('loot').insert({
-      name,
-      description,
-      quantity: 1,
-      visible_to_players: true
-    });
+  const { error } = await sb.from('loot').insert({
+    name,
+    description,
+    quantity: 1,
+    visible_to_players: true
+  });
 
-    if (error) alert("Failed to add loot item: " + error.message);
-    else loadLoot();
-  }
+  if (error) alert("Failed to add loot item: " + error.message);
+  else loadLoot();
+}
 
-  async function saveInlineLootEdit(itemId) {
-    if (!isDM) return;
-    const name = document.getElementById(`edit-loot-name-${itemId}`)?.value.trim();
-    const quantity = parseInt(document.getElementById(`edit-loot-qty-${itemId}`)?.value, 10) || 1;
-    const value = document.getElementById(`edit-loot-value-${itemId}`)?.value.trim();
-    const description = document.getElementById(`edit-loot-desc-${itemId}`)?.value.trim();
+async function saveInlineLootEdit(itemId) {
+  if (!isDM) return;
+  const name = document.getElementById(`edit-loot-name-${itemId}`)?.value.trim();
+  const quantity = parseInt(document.getElementById(`edit-loot-qty-${itemId}`)?.value, 10) || 1;
+  const value = document.getElementById(`edit-loot-value-${itemId}`)?.value.trim();
+  const description = document.getElementById(`edit-loot-desc-${itemId}`)?.value.trim();
 
-    const { error } = await sb.from('loot').update({ name, quantity, value, description }).eq('id', itemId);
-    if (error) alert("Failed to save: " + error.message);
-    else loadLoot();
-  }
+  const { error } = await sb.from('loot').update({ name, quantity, value, description }).eq('id', itemId);
+  if (error) alert("Failed to save: " + error.message);
+  else loadLoot();
+}
 
-  function toggleInlineEdit(type, id) {
-    const card = document.getElementById(`${type}-card-${id}`);
-    if (!card) return;
-    const viewMode = card.querySelector(`.${type}-view-mode`);
-    const editMode = card.querySelector(`.${type}-edit-mode`);
+function toggleInlineEdit(type, id) {
+  const card = document.getElementById(`${type}-card-${id}`);
+  if (!card) return;
+  const viewMode = card.querySelector(`.${type}-view-mode`);
+  const editMode = card.querySelector(`.${type}-edit-mode`);
 
-    const isEditing = editMode.style.display !== 'none';
-    viewMode.style.display = isEditing ? 'block' : 'none';
-    editMode.style.display = isEditing ? 'none' : 'block';
-  }
+  const isEditing = editMode.style.display !== 'none';
+  viewMode.style.display = isEditing ? 'block' : 'none';
+  editMode.style.display = isEditing ? 'none' : 'block';
+}
 
   /* ===================== RESTRICTED ARCHIVES HUB ===================== */
 
