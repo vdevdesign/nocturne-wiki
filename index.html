@@ -1420,70 +1420,82 @@
   }
 
   async function populatePlayerSelector() {
-    const selector = document.getElementById('playerInventorySelector');
-    if (!selector) return;
+  const selector = document.getElementById('playerInventorySelector');
+  if (!selector) return;
 
-    const { data: profiles } = await sb.from('profiles').select('id, username, email');
-    selector.innerHTML = '';
+  // Fetch all profiles so the DM can switch between players
+  const { data: profiles, error } = await sb.from('profiles').select('id, username, email');
+  selector.innerHTML = '';
 
-    const currentUsername = currentUser?.email ? currentUser.email.split('@')[0] : 'Your Account';
-    
-    if (profiles && profiles.length > 0) {
-      profiles.forEach(p => {
-        const name = p.username || (p.email ? p.email.split('@')[0] : 'Player');
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = p.id === currentUser?.id ? `${name} (You)` : name;
-        if (p.id === currentUser?.id) opt.selected = true;
-        selector.appendChild(opt);
-      });
-    } else {
+  if (error || !profiles || profiles.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = currentUser?.id || '';
+    opt.textContent = 'Dungeon Master (You)';
+    selector.appendChild(opt);
+  } else {
+    profiles.forEach(p => {
+      const displayName = p.username || (p.email ? p.email.split('@')[0] : 'Player');
       const opt = document.createElement('option');
-      opt.value = currentUser?.id || 'me';
-      opt.textContent = `${currentUsername} (You)`;
+      opt.value = p.id;
+      opt.textContent = (p.id === currentUser?.id) ? `${displayName} (You)` : displayName;
       selector.appendChild(opt);
-    }
-
-    loadPlayerPrivateInventory();
+    });
   }
 
-  async function loadPlayerPrivateInventory() {
-    const selector = document.getElementById('playerInventorySelector');
-    const container = document.getElementById('player-private-inventory-list');
-    if (!selector || !container) return;
+  // Auto-select the first player or current user, then load
+  if (selector.options.length > 0 && !selector.value) {
+    selector.selectedIndex = 0;
+  }
 
-    const targetUserId = selector.value;
-    const isOwner = targetUserId === currentUser?.id;
+  loadPlayerPrivateInventory();
+}
 
-    const { data, error } = await sb.from('player_inventories')
-      .select('*, loot(*)')
-      .eq('user_id', targetUserId);
+async function loadPlayerPrivateInventory() {
+  const selector = document.getElementById('playerInventorySelector');
+  const container = document.getElementById('player-private-inventory-list');
+  if (!selector || !container) return;
 
-    if (error) {
-      container.innerHTML = `<p class="error-msg">Error loading private inventory: ${escapeHtml(error.message)}</p>`;
-      return;
-    }
+  const targetUserId = selector.value;
+  if (!targetUserId) {
+    container.innerHTML = '<p class="empty-note">No player selected.</p>';
+    return;
+  }
 
-    if (!data || data.length === 0) {
-      container.innerHTML = '<p class="empty-note">Inventory is currently empty.</p>';
-      return;
-    }
+  // Fetch inventory joined with the loot table for details
+  const { data, error } = await sb.from('player_inventories')
+    .select('*, loot(*)')
+    .eq('user_id', targetUserId);
 
-    container.innerHTML = data.map(inv => {
-      const item = inv.loot || {};
-      const canRemove = isOwner || isDM;
-      return `
-        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
-          <div>
-            <strong style="color:var(--gold);">${escapeHtml(item.name || inv.item_name || 'Item')}</strong>
-            ${inv.quantity > 1 ? `<span style="font-size:0.8rem; color:var(--text-faint);"> (x${inv.quantity})</span>` : ''}
-            <p style="margin:2px 0 0 0; font-size:0.85rem; color:var(--text-dim);">${escapeHtml(item.description || item.body || 'No description.')}</p>
-          </div>
-          ${canRemove ? `<button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>` : ''}
+  if (error) {
+    container.innerHTML = `<p class="error-msg">Error loading private inventory: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = '<p class="empty-note">Inventory is currently empty for this player.</p>';
+    return;
+  }
+
+  container.innerHTML = data.map(inv => {
+    const item = inv.loot || {};
+    const itemName = item.name || inv.item_name || 'Item';
+    const itemDesc = item.description || item.body || 'No description provided.';
+    
+    // Display remove button for DM
+    const removeBtn = isDM ? `<button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>` : '';
+
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
+        <div>
+          <strong style="color:var(--gold);">${escapeHtml(itemName)}</strong>
+          ${inv.quantity > 1 ? `<span style="font-size:0.8rem; color:var(--text-faint);"> (x${inv.quantity})</span>` : ''}
+          <p style="margin:2px 0 0 0; font-size:0.85rem; color:var(--text-dim);">${escapeHtml(itemDesc)}</p>
         </div>
-      `;
-    }).join('');
-  }
+        ${removeBtn}
+      </div>
+    `;
+  }).join('');
+}
 
   async function giveItemToSelectedPlayer(lootId) {
     const selector = document.getElementById('playerInventorySelector');
