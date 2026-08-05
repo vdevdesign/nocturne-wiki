@@ -628,11 +628,6 @@
     <div class="eyebrow">Roster &amp; Lore</div>
     <h2 class="title">Character Directory</h2>
     <p class="subtitle">Party roster and player character backstories.</p>
-    
-    <!-- Player Warning Banner -->
-    <div class="warning-banner">
-      ⚠️ <strong>Important Notice:</strong> Please do not edit or change <code>Player: [your name]</code> in the character directory tags. This tag connects your account to your character sheet!
-    </div>
 
     <div id="character-cards-container"><p class="empty-note">Loading…</p></div>
   </section>
@@ -1599,7 +1594,7 @@ function renderLootCard(item) {
       </div>`;
   }
 
-  const valueDisplay = item.value ? `Value: ${escapeHtml(item.value)} GP` : '';
+  const valueDisplay = item.value ? `3 ${escapeHtml(item.value)} GP` : '';
   const qtyDisplay = item.quantity ? `Qty: ${escapeHtml(String(item.quantity))}` : '';
   const metaText = [qtyDisplay, valueDisplay].filter(Boolean).join(' | ');
 
