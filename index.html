@@ -2452,24 +2452,6 @@ function renderInventoryControls(itemId) {
     </div>
   `;
 }
-
-import { createClient } from '@supabase/supabase-client';
-
-// IMPORTANT: Use the SERVICE ROLE key, never expose this key on the client!
-const supabaseAdmin = createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_SERVICE_ROLE_KEY');
-
-async function resetPlayerPassword(userId, newPassword) {
-  const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
-    userId,
-    { password: newPassword }
-  );
-
-  if (error) {
-    console.error('Failed to reset password:', error.message);
-  } else {
-    console.log('Password updated successfully for user:', data.user.id);
-  }
-}
 </script>
 
 </body>
