@@ -1231,7 +1231,7 @@
       toolbar.innerHTML = '';
     }
 
-    const { data, error } = await sb.from('session_summaries')
+    const { data, error } = await sb.from('session_number')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -1255,7 +1255,7 @@
     const title = prompt("Session Title:");
     const body = prompt("Summary / Notes:");
 
-    const { error } = await sb.from('session_summaries').insert({
+    const { error } = await sb.from('session_number').insert({
       session_number,
       title: title || 'Untitled Session',
       body: body || '',
@@ -1295,7 +1295,7 @@
           <div style="display:flex; align-items:center; gap:10px;">
             <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
             <label class="switch">
-              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_summaries', 'summaries-container', this.checked)">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_number', 'summaries-container', this.checked)">
               <span class="slider"></span>
             </label>
           </div>
@@ -2451,6 +2451,24 @@ function renderInventoryControls(itemId) {
       <button class="btn btn-sm btn-secondary" onclick="deleteInventoryItem('${itemId}')">Delete</button>
     </div>
   `;
+}
+
+import { createClient } from '@supabase/supabase-client';
+
+// IMPORTANT: Use the SERVICE ROLE key, never expose this key on the client!
+const supabaseAdmin = createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_SERVICE_ROLE_KEY');
+
+async function resetPlayerPassword(userId, newPassword) {
+  const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
+    userId,
+    { password: newPassword }
+  );
+
+  if (error) {
+    console.error('Failed to reset password:', error.message);
+  } else {
+    console.log('Password updated successfully for user:', data.user.id);
+  }
 }
 </script>
 
