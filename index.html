@@ -785,7 +785,7 @@
         <input type="text" id="chatInput" class="input-control" placeholder="Session locked..." disabled style="flex:1;">
         <button type="submit" id="chatSendBtn" class="btn" disabled>Send</button>
       </form>
-      <p style="font-size:11px; color:var(--text-faint); margin:6px 0 0 0;">Tip: Type <code>/whisper [Name] message</code> to send a private note seen only by that player and the DM.</p>
+      <p style="font-size:11px; color:var(--text-faint); margin:6px 0 0 0;">Tip: Type <code>/whisper [Name] message</code> to send a private note. Type <code>/roll 1d20+5</code> to roll dice.</p>
     </div>
   </div>
 </div>
@@ -1076,7 +1076,7 @@
       badge.innerText = "Live Session Active";
       badge.style.color = "var(--gold)";
       badge.style.borderColor = "var(--gold-dim)";
-      input.placeholder = "Type a message or /whisper [Player]...";
+      input.placeholder = "Type a message, /whisper [Player], or /roll 1d20...";
     } else {
       badge.innerText = "Session Locked";
       badge.style.color = "var(--rose)";
@@ -1101,6 +1101,7 @@
     if (!rawText) return;
 
     let recipientId = null;
+    let recipientName = null;
     let isWhisper = false;
     let messageText = rawText;
 
@@ -1109,13 +1110,38 @@
       const targetName = parts[1];
       messageText = parts.slice(2).join(' ');
 
-      const { data: targetProfile } = await sb.from('profiles').select('id').ilike('email', `%${targetName}%`).maybeSingle();
+      const { data: targetProfile } = await sb.from('profiles').select('id, email').ilike('email', `%${targetName}%`).maybeSingle();
       if (targetProfile) {
         recipientId = targetProfile.id;
         isWhisper = true;
+        const recNameRaw = targetProfile.email.split('@')[0];
+        recipientName = recNameRaw.charAt(0).toUpperCase() + recNameRaw.slice(1);
       } else {
         alert(`Could not find player "${targetName}" to whisper.`);
         return;
+      }
+    } else if (rawText.startsWith('/roll ') || rawText.startsWith('/r ')) {
+      const diceExp = rawText.replace(/^\/(roll|r)\s+/i, '').replace(/\s+/g, '').toLowerCase();
+      const regex = /^(\d+)d(\d+)([\+\-]\d+)?$/;
+      const match = diceExp.match(regex);
+      
+      if (match) {
+        const count = parseInt(match[1]);
+        const faces = parseInt(match[2]);
+        const mod = match[3] ? parseInt(match[3]) : 0;
+        
+        let rolls = [];
+        let sum = 0;
+        for (let i = 0; i < count; i++) {
+          let r = Math.floor(Math.random() * faces) + 1;
+          rolls.push(r);
+          sum += r;
+        }
+        const total = sum + mod;
+        const modStr = mod > 0 ? `+${mod}` : (mod < 0 ? `${mod}` : ``);
+        messageText = `🎲 Rolled ${count}d${faces}${modStr}: [${rolls.join(', ')}]${modStr} = ${total}`;
+      } else {
+        messageText = `🎲 Invalid roll command: ${diceExp}. Use format like 1d20+5`;
       }
     }
 
@@ -1124,6 +1150,7 @@
       sender_id: currentUser.id,
       sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
       recipient_id: recipientId,
+      recipient_name: recipientName,
       content: messageText,
       is_whisper: isWhisper
     }).select();
@@ -1172,12 +1199,24 @@
     msgDiv.style.background = isWhisper ? 'rgba(138, 104, 214, 0.15)' : 'var(--surface)';
     msgDiv.style.borderLeft = isWhisper ? '3px solid var(--purple)' : '1px solid var(--line)';
 
-    const whisperTag = isWhisper ? `<span style="color:var(--purple); font-size:11px; font-weight:600;"> [WHISPER]</span>` : '';
     const deleteBtn = isDM ? `<button class="chat-msg-del-btn" onclick="deleteSessionMessage('${msg.id}')" title="Delete message">🗑</button>` : '';
+
+    let senderDisplay = `<strong style="color:${msg.sender_name === 'DM' ? 'var(--rose)' : 'var(--gold)'}">${escapeHtml(msg.sender_name)}</strong>`;
+    
+    if (isWhisper) {
+      const toName = msg.recipient_name ? escapeHtml(msg.recipient_name) : "Player";
+      senderDisplay = `<span style="color:var(--purple); font-size:11px; font-weight:600;">[WHISPER]</span> <strong style="color:var(--purple)">From ${escapeHtml(msg.sender_name)} To ${toName}</strong>`;
+    }
+
+    // Bold the final dice roll total nicely for easy reading
+    let finalContent = escapeHtml(msg.content);
+    if (finalContent.startsWith('🎲 Rolled')) {
+        finalContent = finalContent.replace(/=\s+(\d+)$/, '= <strong>$1</strong>');
+    }
 
     msgDiv.innerHTML = `
       <div>
-        <strong style="color:${msg.sender_name === 'DM' ? 'var(--rose)' : 'var(--gold)'}">${escapeHtml(msg.sender_name)}</strong>${whisperTag}: <span>${escapeHtml(msg.content)}</span>
+        ${senderDisplay}: <span>${finalContent}</span>
       </div>
       ${deleteBtn}
     `;
@@ -1231,7 +1270,7 @@
       toolbar.innerHTML = '';
     }
 
-    const { data, error } = await sb.from('session_number')
+    const { data, error } = await sb.from('session_summaries')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -1250,23 +1289,22 @@
 
   async function addNewSessionSummary() {
     if (!isDM) return;
-    const session_number = prompt("Session Number (e.g. 1):");
-    if (!session_number) return;
-    const title = prompt("Session Title:");
-    const body = prompt("Summary / Notes:");
 
-    const { error } = await sb.from('session_number').insert({
-      session_number,
-      title: title || 'Untitled Session',
-      body: body || '',
+    const { data, error } = await sb.from('session_summaries').insert({
+      session_number: '',
+      title: 'New Session Summary',
+      body: '',
       session_date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       visible_to_players: true
-    });
+    }).select();
 
     if (error) {
       alert("Error adding summary: " + error.message);
     } else {
-      loadSummaries();
+      await loadSummaries();
+      if (data && data.length > 0) {
+        setTimeout(() => toggleInlineSummaryEdit(data[0].id), 50);
+      }
     }
   }
 
@@ -1295,7 +1333,7 @@
           <div style="display:flex; align-items:center; gap:10px;">
             <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
             <label class="switch">
-              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_number', 'summaries-container', this.checked)">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_summaries', 'summaries-container', this.checked)">
               <span class="slider"></span>
             </label>
           </div>
@@ -1650,19 +1688,22 @@ function renderLootCard(item) {
 
 async function addLootItem() {
   if (!isDM) return;
-  const name = prompt("Item Name:");
-  if (!name) return;
-  const description = prompt("Item Description:");
-
-  const { error } = await sb.from('loot').insert({
-    name,
-    description,
+  
+  const { data, error } = await sb.from('loot').insert({
+    name: 'New Item',
+    description: '',
     quantity: 1,
     visible_to_players: true
-  });
+  }).select();
 
-  if (error) alert("Failed to add loot item: " + error.message);
-  else loadLoot();
+  if (error) {
+    alert("Failed to add loot item: " + error.message);
+  } else {
+    await loadLoot();
+    if (data && data.length > 0) {
+      setTimeout(() => toggleInlineEdit('loot', data[0].id), 50);
+    }
+  }
 }
 
 async function saveInlineLootEdit(itemId) {
@@ -1767,9 +1808,9 @@ function toggleInlineEdit(type, id) {
   }
 
   function renderContentBlock(row, tableName, containerId) {
+    const isVisible = row.visible_to_players ?? true;
     let dmControls = '';
     if (isDM) {
-      const isVisible = row.visible_to_players ?? true;
       dmControls = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
           <div style="display:flex; align-items:center; gap:10px;">
@@ -1810,18 +1851,58 @@ function toggleInlineEdit(type, id) {
       `;
     }
 
-    return `<div class="block-card">
-      <div class="block-header" style="display:flex; justify-content:space-between; align-items:center;">
-        <h4 style="margin:0;">${escapeHtml(row.title)}</h4>
-        ${isDM ? `<div class="block-actions" style="display:flex; gap:6px;">
-          <button class="btn btn-sm btn-secondary" onclick="editTableBlock('${row.id}', '${tableName}', '${containerId}')">Edit</button>
-          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${row.id}', '${tableName}', '${containerId}')">Delete</button>
-        </div>` : ''}
+    return `<div class="block-card" id="generic-block-${row.id}">
+      <!-- View Mode -->
+      <div class="block-view-mode">
+        <div class="block-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <h4 style="margin:0;">${escapeHtml(row.title)}</h4>
+          ${isDM ? `<div class="block-actions" style="display:flex; gap:6px;">
+            <button class="btn btn-sm btn-secondary" onclick="toggleGenericInlineEdit('${row.id}')">Edit</button>
+            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${row.id}', '${tableName}', '${containerId}')">Delete</button>
+          </div>` : ''}
+        </div>
+        ${hpWidget}
+        <div class="block-body" id="body-${row.id}">${row.body || ''}</div>
+        ${dmControls}
       </div>
-      ${hpWidget}
-      <div class="block-body" id="body-${row.id}">${row.body || ''}</div>
-      ${dmControls}
+
+      <!-- Edit Mode -->
+      <div class="block-edit-mode" style="display:none; margin-top:8px;">
+        <div class="card-edit-form">
+          <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Entry</h4>
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="edit-block-title-${row.id}" value="${escapeHtml(row.title || '')}" class="input-field" />
+          </div>
+          <div class="form-group">
+            <label>Body (HTML/Markdown)</label>
+            <textarea id="edit-block-body-${row.id}" rows="6" class="input-field">${escapeHtml(row.body || '')}</textarea>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:4px;">
+            <button class="btn btn-sm" onclick="saveGenericInlineEdit('${row.id}', '${tableName}', '${containerId}')">Save Changes</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleGenericInlineEdit('${row.id}')">Cancel</button>
+          </div>
+        </div>
+      </div>
     </div>`;
+  }
+
+  function toggleGenericInlineEdit(id) {
+    const card = document.getElementById(`generic-block-${id}`);
+    if (!card) return;
+    const viewMode = card.querySelector('.block-view-mode');
+    const editMode = card.querySelector('.block-edit-mode');
+    const isEditing = editMode.style.display !== 'none';
+    viewMode.style.display = isEditing ? 'block' : 'none';
+    editMode.style.display = isEditing ? 'none' : 'block';
+  }
+
+  async function saveGenericInlineEdit(id, tableName, containerId) {
+    const title = document.getElementById(`edit-block-title-${id}`).value.trim();
+    const body = document.getElementById(`edit-block-body-${id}`).value;
+    const { error } = await sb.from(tableName).update({ title, body }).eq('id', id);
+    if (error) alert("Error updating entry: " + error.message);
+    else loadTableSection(tableName, containerId, tableName);
   }
 
   function adjustHP(id, amount) {
@@ -1868,27 +1949,6 @@ function toggleInlineEdit(type, id) {
     if (input) input.value = '';
   }
 
-  async function editTableBlock(id, tableName, containerId) {
-    const { data, error } = await sb.from(tableName).select('*').eq('id', id).single();
-    if (error || !data) return alert("Failed to fetch entry for editing: " + (error?.message || 'Not found'));
-
-    const newTitle = prompt("Edit Title:", data.title);
-    if (newTitle === null) return;
-    
-    const newBody = prompt("Edit Description/Body (HTML supported):", data.body || '');
-    if (newBody === null) return;
-
-    const { error: updateError } = await sb.from(tableName)
-      .update({ title: newTitle, body: newBody })
-      .eq('id', id);
-
-    if (updateError) {
-      alert("Error updating entry: " + updateError.message);
-    } else {
-      loadTableSection(tableName, containerId, tableName);
-    }
-  }
-
   async function toggleBlockVisibility(id, tableName, containerId, visible) {
     const { error } = await sb.from(tableName).update({ visible_to_players: visible }).eq('id', id);
     if (error) {
@@ -1899,24 +1959,23 @@ function toggleInlineEdit(type, id) {
   }
 
   async function addTableBlock(tableName, containerId, addLabel) {
-    const title = prompt(`Enter ${addLabel} title:`);
-    if (!title) return;
-    const body = prompt("Enter description/body (HTML supported):");
-    
     const id = tableName + '_' + Date.now();
     
-    const { error } = await sb.from(tableName).insert({ 
+    const { data, error } = await sb.from(tableName).insert({ 
       id, 
-      title, 
-      body, 
+      title: `New ${addLabel}`, 
+      body: '', 
       visible_to_players: true,
       order_index: 99
-    });
+    }).select();
 
     if (error) {
       alert("Error adding entry: " + error.message);
     } else {
-      loadTableSection(tableName, containerId, addLabel);
+      await loadTableSection(tableName, containerId, addLabel);
+      if (data && data.length > 0) {
+        setTimeout(() => toggleGenericInlineEdit(data[0].id), 50);
+      }
     }
   }
 
@@ -2053,6 +2112,25 @@ async function loadCharacters() {
 
   html += data.map(char => renderCharacterCard(char)).join('');
   container.innerHTML = html;
+}
+
+async function addNewCharacter() {
+  if (!isDM) return;
+  
+  const { data, error } = await sb.from('characters').insert({
+    name: 'New Character',
+    bio: '',
+    visible_to_players: true
+  }).select();
+
+  if (error) {
+    alert("Failed to add character: " + error.message);
+  } else {
+    await loadCharacters();
+    if (data && data.length > 0) {
+      setTimeout(() => toggleInlineEdit('character', data[0].id), 50);
+    }
+  }
 }
 
 function renderCharacterCard(char) {
@@ -2212,247 +2290,7 @@ async function saveInlineCharacterEdit(charId) {
       container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(npcErr.message)}</p>`;
       return;
     }
-
-    let secretsMap = {};
-    if (isDM) {
-      const { data: secrets, error: secErr } = await sb.from('npc_secrets').select('*');
-      if (!secErr && secrets) {
-        secrets.forEach(s => {
-          secretsMap[s.npc_id] = s.secret || s.content || s.body || '';
-        });
-      }
-    }
-
-    let topAction = '';
-    if (isDM) {
-      topAction = `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addTableBlock('npcs', 'npc-cards-container', 'NPC')">+ Add NPC</button>`;
-    }
-
-    if (!npcs || npcs.length === 0) {
-      container.innerHTML = topAction + '<p class="empty-note">No NPCs recorded in database yet.</p>';
-      return;
-    }
-
-    // Group NPCs visually by Faction
-    const grouped = npcs.reduce((acc, npc) => {
-      const factionKey = npc.faction ? npc.faction.trim() : 'Unaffiliated / Independent';
-      if (!acc[factionKey]) acc[factionKey] = [];
-      acc[factionKey].push(npc);
-      return acc;
-    }, {});
-
-    let html = topAction;
-    Object.keys(grouped).forEach(faction => {
-      const factionCardsHtml = grouped[faction].map(npc => renderNPCCard(npc, secretsMap[npc.id])).join('');
-      if (factionCardsHtml.trim()) {
-        html += `
-          <div class="faction-group">
-            <div class="faction-title">
-              <span>🏛️ ${escapeHtml(faction)}</span>
-              <span style="font-size:0.8rem; color:var(--text-faint); font-weight:normal;">(${grouped[faction].length} members)</span>
-            </div>
-            <div>${factionCardsHtml}</div>
-          </div>
-        `;
-      }
-    });
-
-    container.innerHTML = html;
   }
-
-  function renderNPCCard(npc, npcSecret = '') {
-    const isVisible = npc.visible_to_players ?? true;
-    if (!isDM && !isVisible) return '';
-
-    const friendshipPoints = npc.friendship_points ?? 0;
-    const secretContent = npcSecret || npc.secret || npc.dm_secret || '';
-
-    let dmControls = '';
-    let secretSection = '';
-
-    if (isDM && secretContent) {
-      secretSection = `
-        <div style="margin-top:12px;">
-          <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
-          <div class="spoiler-mask" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
-            ${escapeHtml(secretContent)}
-          </div>
-        </div>`;
-    }
-
-    if (isDM) {
-      dmControls = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
-            <label class="switch">
-              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${npc.id}', 'npcs', 'npc-cards-container', this.checked)">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Edit NPC</button>
-            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${npc.id}', 'npcs', 'npc-cards-container')">Delete</button>
-          </div>
-        </div>`;
-    }
-
-    return `
-      <div class="block-card" id="npc-card-${npc.id}">
-        <!-- Display View -->
-        <div class="npc-view-mode">
-          <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-              <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
-              ${npc.hp || npc.role ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${npc.role ? escapeHtml(npc.role) : ''} ${npc.hp ? `| HP: ${escapeHtml(npc.hp)}` : ''}</p>` : ''}
-            </div>
-
-            <!-- Friendship Points Counter -->
-            <div class="friendship-counter" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.25); padding:4px 10px; border-radius:12px; border:1px solid var(--line);">
-              <span style="font-size:0.85rem; color:var(--gold); font-weight:600;">❤️ ${friendshipPoints}</span>
-              ${isDM ? `
-                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints - 1})">-</button>
-                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints + 1})">+</button>
-              ` : ''}
-            </div>
-          </div>
-
-          <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
-          ${secretSection}
-          ${dmControls}
-        </div>
-
-        <!-- Inline Expandable Edit Form -->
-        <div class="npc-edit-mode" style="display:none; margin-top:8px;">
-          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit NPC Details</h4>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <label style="font-size:0.8rem; color:var(--text-faint);">Name</label>
-            <input type="text" id="edit-npc-name-${npc.id}" value="${escapeHtml(npc.name || npc.title || '')}" class="input-field" />
-            
-            <div style="display:flex; gap:8px;">
-              <div style="flex:1;">
-                <label style="font-size:0.8rem; color:var(--text-faint);">HP</label>
-                <input type="text" id="edit-npc-hp-${npc.id}" value="${escapeHtml(npc.hp || '')}" class="input-field" />
-              </div>
-              <div style="flex:1;">
-                <label style="font-size:0.8rem; color:var(--text-faint);">Faction</label>
-                <input type="text" id="edit-npc-faction-${npc.id}" value="${escapeHtml(npc.faction || '')}" class="input-field" />
-              </div>
-            </div>
-
-            <label style="font-size:0.8rem; color:var(--text-faint);">Friendship Points</label>
-            <input type="number" id="edit-npc-points-${npc.id}" value="${friendshipPoints}" class="input-field" style="width:100px;" />
-
-            <label style="font-size:0.8rem; color:var(--text-faint);">Bio / Description</label>
-            <textarea id="edit-npc-bio-${npc.id}" rows="3" class="input-field">${escapeHtml(npc.bio || npc.body || npc.description || '')}</textarea>
-
-            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (npc_secrets Table)</label>
-            <textarea id="edit-npc-secret-${npc.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(secretContent)}</textarea>
-
-            <div style="display:flex; gap:8px; margin-top:8px;">
-              <button class="btn btn-sm" onclick="saveInlineNPCEdit('${npc.id}')">Save Changes</button>
-              <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Cancel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  function toggleInlineNPCEdit(npcId) {
-    const card = document.getElementById(`npc-card-${npcId}`);
-    if (!card) return;
-    const viewMode = card.querySelector('.npc-view-mode');
-    const editMode = card.querySelector('.npc-edit-mode');
-
-    const isEditing = editMode.style.display !== 'none';
-    viewMode.style.display = isEditing ? 'block' : 'none';
-    editMode.style.display = isEditing ? 'none' : 'block';
-  }
-
-  async function saveInlineNPCEdit(npcId) {
-    if (!isDM) return;
-
-    const nameEl = document.getElementById(`edit-npc-name-${npcId}`);
-    const hpEl = document.getElementById(`edit-npc-hp-${npcId}`);
-    const factionEl = document.getElementById(`edit-npc-faction-${npcId}`);
-    const pointsEl = document.getElementById(`edit-npc-points-${npcId}`);
-    const bioEl = document.getElementById(`edit-npc-bio-${npcId}`);
-    const secretEl = document.getElementById(`edit-npc-secret-${npcId}`);
-
-    if (!nameEl || !hpEl || !factionEl || !pointsEl || !bioEl || !secretEl) {
-      alert("Error: Missing input fields in the DOM.");
-      return;
-    }
-
-    const name = nameEl.value.trim();
-    const hp = hpEl.value.trim();
-    const faction = factionEl.value.trim();
-    const pointsVal = parseInt(pointsEl.value, 10);
-    const friendship_points = isNaN(pointsVal) ? 0 : pointsVal;
-    const bio = bioEl.value.trim();
-    const secretText = secretEl.value.trim();
-
-    const { error: npcErr } = await sb.from('npcs')
-      .update({
-        name,
-        hp,
-        faction,
-        friendship_points,
-        bio
-      })
-      .eq('id', npcId);
-
-    if (npcErr) {
-      alert("Failed to save NPC updates: " + npcErr.message);
-      return;
-    }
-
-    const { data: existingSecret } = await sb.from('npc_secrets').select('id').eq('npc_id', npcId).maybeSingle();
-
-    if (existingSecret) {
-      if (secretText) {
-        await sb.from('npc_secrets').update({ secret: secretText }).eq('npc_id', npcId);
-      } else {
-        await sb.from('npc_secrets').delete().eq('npc_id', npcId);
-      }
-    } else if (secretText) {
-      await sb.from('npc_secrets').insert({ npc_id: npcId, secret: secretText });
-    }
-
-    loadNPCs();
-  }
-
-  async function adjustFriendship(npcId, newScore) {
-    if (!isDM) return;
-    const score = Math.max(0, newScore);
-
-    const { error } = await sb.from('npcs')
-      .update({ friendship_points: score })
-      .eq('id', npcId);
-
-    if (error) {
-      alert("Failed to update friendship points: " + error.message);
-    } else {
-      loadNPCs();
-    }
-  }
-
-  checkSession();
-  
-  // Render function helper for inventory elements
-function renderInventoryControls(itemId) {
-  // If not the DM, do not render edit/delete controls
-  if (!isDM) return '';
-
-  return `
-    <div class="inventory-controls">
-      <button class="btn btn-sm btn-secondary" onclick="editInventoryItem('${itemId}')">Edit</button>
-      <button class="btn btn-sm btn-secondary" onclick="deleteInventoryItem('${itemId}')">Delete</button>
-    </div>
-  `;
-}
 </script>
-
 </body>
 </html>
