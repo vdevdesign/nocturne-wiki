@@ -93,6 +93,27 @@
     gap: 8px;
   }
 
+  .faction-group {
+    margin-bottom: 28px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .faction-title {
+    font-family: var(--font-title);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--gold);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
   .switch input { opacity: 0; width: 0; height: 0; }
   .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg); border: 1px solid var(--line); transition: .3s; border-radius: 22px; }
@@ -112,7 +133,6 @@
   .input-group label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); margin-bottom: 0.35rem; }
   .input-control { width: 100%; padding: 0.65rem 0.9rem; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: 0.9rem; outline: none; }
   .input-control:focus { border-color: var(--purple); }
-  
   .block-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
   .block-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 8px; }
   .block-actions { display:flex; gap:6px; flex-shrink:0; }
@@ -341,6 +361,94 @@
   border-left: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.hp-input {
+  width: 48px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  color: #fff;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.hp-input:focus {
+  outline: none;
+  border-color: var(--gold, #c9a050);
+}
+
+.hp-input::-webkit-inner-spin-button, 
+.hp-input::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+.hp-input {
+  -moz-appearance: textfield;
+}
+
+.block-card {
+  background: rgba(20, 20, 25, 0.6);
+  border: 1px solid var(--line, #333);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.block-card:hover {
+  border-color: rgba(201, 160, 80, 0.4);
+}
+
+.card-title-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.card-title {
+  margin: 0;
+  color: var(--gold, #c9a050);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--text-faint, #a0a0a0);
+}
+
+.card-footer-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line, #333);
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.status-badge.public { color: var(--gold, #c9a050); }
+.status-badge.hidden { color: var(--text-faint, #777); }
+
+.card-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line, #333);
+}
+
 .input-field {
   width: 100%;
   padding: 8px 12px;
@@ -356,6 +464,11 @@
   border-color: var(--purple);
 }
 
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -363,6 +476,52 @@
   flex: 1;
 }
 
+.form-group label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-faint, #888);
+}
+
+.form-group label.secret-label {
+  color: var(--rose, #ff6b6b);
+}
+
+.input-field-secret {
+  border-color: rgba(220, 50, 50, 0.35) !important;
+}
+
+.input-field-secret:focus {
+  border-color: var(--rose, #ff6b6b) !important;
+}
+
+/* Markdown Editor Controls */
+.md-toolbar {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  padding: 4px 6px;
+}
+.md-toolbar button {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.md-toolbar button:hover {
+  background: var(--purple-dim);
+  color: #fff;
+}
+.md-textarea {
+  border-radius: 0 0 6px 6px !important;
+}
 </style>
 </head>
 <body>
@@ -435,6 +594,7 @@
 </nav>
 
 <main id="appMain" style="display:none;">
+
   <section id="home" class="active">
     <div class="eyebrow">Welcome</div>
     <h2 class="title">The World of Nocturne</h2>
@@ -468,6 +628,7 @@
     <div class="eyebrow">Roster &amp; Lore</div>
     <h2 class="title">Character Directory</h2>
     <p class="subtitle">Party roster and player character backstories.</p>
+
     <div id="character-cards-container"><p class="empty-note">Loading…</p></div>
   </section>
 
@@ -481,6 +642,10 @@
       <li>Psychological horror over gore (mind control, memory loss, identity)</li>
     </ul>
     <p>If any of this doesn't sound fun, session zero is the time to say so.</p>
+    <h3>Safety Tools</h3>
+    <p>Our safe word is <strong>COCONUT</strong>. Say it and we pause, change, or skip whatever's happening, no explanation needed in the moment. Checking in privately (a message after session) works too.</p>
+    <h3>System &amp; Tools</h3>
+    <p>D&amp;D 5th Edition, 2024 rules. Character sheets on D&amp;D Beyond.</p>
   </section>
 
   <section id="summaries">
@@ -497,6 +662,7 @@
     <h2 class="title">Loot &amp; Homebrew Inventory</h2>
     <p class="subtitle">Party rewards, items, and personal character inventories.</p>
     
+    <!-- Personal Inventory System Container -->
     <div class="block-card" style="border-color: var(--gold-dim); background: var(--surface-2); margin-bottom:24px;">
       <h3 style="margin-top:0; border-bottom:1px solid var(--line); padding-bottom:8px;">🎒 Personal Private Inventory</h3>
       <p style="font-size:0.88rem; color:var(--text-faint);">Items assigned specifically to player accounts.</p>
@@ -523,12 +689,45 @@
     <p class="subtitle">What you need to know before making a character.</p>
     <h3>The Basics</h3>
     <p>D&amp;D 5th Edition, 2024 rules. Sheets on D&amp;D Beyond. Dark fantasy with a cheerful surface, mystery and magic with something a little unsettling underneath.</p>
+    <h3>The World</h3>
+    <p><strong>Elthizar Adventurer Academy</strong> — founded by Euduneus, deep roots in magic and monster fighting. Groups travel by dragon, solo/paired by pegasus. Curfew enforced, chimeras banned.</p>
+    <p>Other places: <strong>Kirael</strong> (fae kingdom), <strong>Vardok</strong> (dragonkin city), <strong>Evron</strong> (human settlement, tense with Vardok).</p>
+    <h3>Tone and Content, Honestly</h3>
+    <p>Loss and grief as backstory &middot; political corruption and class injustice &middot; psychological horror over gore. If this doesn't sound fun, session zero is the time to say so.</p>
+    <h3>Safety Tools</h3>
+    <p>Our safe word is <strong>COCONUT</strong>. Say it and we pause, change, or skip whatever's happening, no explanation needed. Messaging the DM after session works too.</p>
+    <h3>Rumours & Mysteries</h3>
+    <ul class="mystery-list">
+      <li>Something lurks in the forest near the academy.</li>
+      <li>The paintings below the Herbology classroom cry, for reasons no one's explained.</li>
+      <li>The river near the academy is making people sick.</li>
+      <li>There's a locked door in the headmaster's office, and nobody knows what opens it.</li>
+    </ul>
+    <h3>Friendship Points</h3>
+    <p>Build real relationships with major NPCs through genuine roleplay. Reaching new milestones with them unlocks a deeper scene. Happens naturally through play.</p>
+    <hr style="border:none; border-top:1px solid var(--line); margin:30px 0;">
+    <div class="eyebrow">Quick Reference</div>
+    <h2 class="title" style="font-size:30px;">How to Play D&amp;D</h2>
+    <h3>What it is</h3>
+    <p>A collaborative story. The DM describes the world and plays every character who isn't yours. You decide what your character does. Dice decide uncertain outcomes.</p>
+    <h3>The basic loop</h3>
+    <p>DM describes the scene &rarr; you say what you do &rarr; roll if uncertain &rarr; DM narrates the result.</p>
+    <h3>The dice</h3>
+    <p><code>d20 + modifier</code> vs. a DC (target number) set by the DM. Meet or beat it, you succeed.</p>
+    <h3>Character sheet, in short</h3>
+    <p>Six ability scores (Str/Dex/Con/Int/Wis/Cha) &middot; skills tied to those abilities &middot; HP (damage you can take) &middot; AC (how hard you are to hit).</p>
+    <h3>In combat</h3>
+    <p>Roll initiative &rarr; on your turn take an action and usually a move &rarr; repeat until it ends.</p>
+    <h3>Roleplay is just talking</h3>
+    <p>Speak as your character, make choices as your character would, ask questions when curious.</p>
   </section>
 
   <section id="restricted">
     <div class="eyebrow">DM Eyes Only</div>
     <h2 class="title">Restricted Archives</h2>
     <p class="subtitle">Confidential DM notes, campaign outlines, lore, and encounters.</p>
+    
+    <!-- Container for the Hub menu & sub-views -->
     <div id="restricted-container">
       <p class="empty-note">Loading Hub…</p>
     </div>
@@ -551,15 +750,20 @@
       </div>
     </div>
 
+    <!-- Slide-out Hamburger Menu for Stored Chats -->
     <div id="chatMenuDrawer" class="chat-menu-drawer">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <strong style="font-size:12px; text-transform:uppercase; color:var(--text-faint);">Past Sessions</strong>
         <span id="dmNewChatBtn"></span>
       </div>
-      <div id="previousChatsList"></div>
+      <div id="previousChatsList">
+        <!-- Rendered dynamically -->
+      </div>
     </div>
 
+    <!-- Chat Body -->
     <div style="flex:1; display:flex; flex-direction:column; padding:16px; overflow:hidden;">
+      <!-- DM Controls Bar -->
       <div id="dmChatControls" style="display:none; margin-bottom:10px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
           <div style="display:flex; align-items:center;">
@@ -573,13 +777,15 @@
         </div>
       </div>
 
+      <!-- Messages Window -->
       <div id="chatMessages" style="flex:1; overflow-y:auto; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:12px; display:flex; flex-direction:column; gap:8px;"></div>
 
+      <!-- Message Form -->
       <form id="chatForm" style="display:flex; gap:8px;">
         <input type="text" id="chatInput" class="input-control" placeholder="Session locked..." disabled style="flex:1;">
         <button type="submit" id="chatSendBtn" class="btn" disabled>Send</button>
       </form>
-      <p style="font-size:11px; color:var(--text-faint); margin:6px 0 0 0;">Tip: Type <code>/whisper [Name] message</code> to send a private note, or <code>/roll 1d20+5</code> to roll dice.</p>
+      <p style="font-size:11px; color:var(--text-faint); margin:6px 0 0 0;">Tip: Type <code>/whisper [Name] message</code> to send a private note seen only by that player and the DM.</p>
     </div>
   </div>
 </div>
@@ -787,12 +993,15 @@
     
     if (input === "DELETE") {
       const { error } = await sb.from('session_messages').delete().eq('session_id', sessionId);
-      if (error) alert("Failed to delete chat: " + error.message);
-      else {
+      if (error) {
+        alert("Failed to delete chat: " + error.message);
+      } else {
         alert(`Session "${sessionId}" deleted.`);
         if (currentSessionId === sessionId) currentSessionId = "session_1";
         openChatModal();
       }
+    } else if (input !== null) {
+      alert("Deletion canceled. You must type DELETE in all caps to confirm.");
     }
   }
 
@@ -800,7 +1009,20 @@
     const name = prompt("Enter new session name (e.g., Session 2):");
     if (!name) return;
     const newId = name.trim().toLowerCase().replace(/\s+/g, '_');
+
     switchSessionChat(newId);
+
+    const { data, error } = await sb.from('session_messages').insert({
+      session_id: newId,
+      sender_id: currentUser.id,
+      sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
+      content: '--- Session Chat Created ---',
+      is_whisper: false
+    }).select();
+
+    if (!error && data && data.length > 0) {
+      appendMessageUI(data[0]);
+    }
   }
 
   async function initSessionChat(sessionId) {
@@ -822,7 +1044,14 @@
         if (deletedId) {
           const el = document.getElementById(`msg-${deletedId}`);
           if (el) el.remove();
+        } else {
+          loadSessionMessages();
         }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'active_session' }, payload => {
+        const state = payload.new;
+        isSessionOpen = state.is_open && (state.active_session_id === currentSessionId);
+        updateChatUI();
       })
       .subscribe();
   }
@@ -847,7 +1076,7 @@
       badge.innerText = "Live Session Active";
       badge.style.color = "var(--gold)";
       badge.style.borderColor = "var(--gold-dim)";
-      input.placeholder = "Type a message, /whisper [Player] or /roll 1d20...";
+      input.placeholder = "Type a message or /whisper [Player]...";
     } else {
       badge.innerText = "Session Locked";
       badge.style.color = "var(--rose)";
@@ -857,34 +1086,12 @@
   }
 
   async function toggleSessionChat(isOpen) {
-    await sb.from('active_session').upsert({
+    const { error } = await sb.from('active_session').upsert({
       id: 1,
       active_session_id: currentSessionId,
       is_open: isOpen
     });
-  }
-
-  /* In-Chat Dice Parser Helper */
-  function parseAndRollDice(command) {
-      const match = command.match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/i);
-      if (!match) return null;
-      let count = parseInt(match[1]);
-      let sides = parseInt(match[2]);
-      let sign = match[3];
-      let modifier = parseInt(match[4]) || 0;
-
-      let rolls = [];
-      let total = 0;
-      for (let i=0; i<count; i++) {
-          let r = Math.floor(Math.random() * sides) + 1;
-          rolls.push(r);
-          total += r;
-      }
-      if (sign === '+') total += modifier;
-      else if (sign === '-') total -= modifier;
-
-      let modStr = sign ? ` ${sign} ${modifier}` : '';
-      return `rolled ${count}d${sides}${modStr}: [${rolls.join(', ')}]${modStr} = **${total}**`;
+    if (error) alert("Failed to change session status: " + error.message);
   }
 
   document.getElementById('chatForm').addEventListener('submit', async (e) => {
@@ -894,27 +1101,17 @@
     if (!rawText) return;
 
     let recipientId = null;
-    let recipientName = null;
     let isWhisper = false;
     let messageText = rawText;
 
-    if (rawText.startsWith('/roll ') || rawText.startsWith('/r ')) {
-        const cmd = rawText.replace(/^\/(roll|r)\s+/i, '').trim();
-        const resultText = parseAndRollDice(cmd);
-        if(resultText) {
-            messageText = resultText;
-        } else {
-            messageText = "Invalid dice format. Example: /roll 1d20+5";
-        }
-    } else if (rawText.startsWith('/whisper ')) {
+    if (rawText.startsWith('/whisper ')) {
       const parts = rawText.split(' ');
       const targetName = parts[1];
       messageText = parts.slice(2).join(' ');
 
-      const { data: targetProfile } = await sb.from('profiles').select('id, email').ilike('email', `%${targetName}%`).maybeSingle();
+      const { data: targetProfile } = await sb.from('profiles').select('id').ilike('email', `%${targetName}%`).maybeSingle();
       if (targetProfile) {
         recipientId = targetProfile.id;
-        recipientName = targetProfile.email.split('@')[0];
         isWhisper = true;
       } else {
         alert(`Could not find player "${targetName}" to whisper.`);
@@ -927,7 +1124,6 @@
       sender_id: currentUser.id,
       sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
       recipient_id: recipientId,
-      recipient_name: recipientName,
       content: messageText,
       is_whisper: isWhisper
     }).select();
@@ -936,7 +1132,9 @@
       alert("Could not send message: " + error.message);
     } else {
       input.value = '';
-      if (data && data.length > 0) appendMessageUI(data[0]);
+      if (data && data.length > 0) {
+        appendMessageUI(data[0]);
+      }
     }
   });
 
@@ -974,31 +1172,12 @@
     msgDiv.style.background = isWhisper ? 'rgba(138, 104, 214, 0.15)' : 'var(--surface)';
     msgDiv.style.borderLeft = isWhisper ? '3px solid var(--purple)' : '1px solid var(--line)';
 
+    const whisperTag = isWhisper ? `<span style="color:var(--purple); font-size:11px; font-weight:600;"> [WHISPER]</span>` : '';
     const deleteBtn = isDM ? `<button class="chat-msg-del-btn" onclick="deleteSessionMessage('${msg.id}')" title="Delete message">🗑</button>` : '';
-
-    let whisperPrefix = '';
-    let senderColor = msg.sender_name === 'DM' ? 'var(--rose)' : 'var(--gold)';
-    let senderText = escapeHtml(msg.sender_name);
-
-    if (isWhisper) {
-        if (msg.sender_id === currentUser.id) {
-            senderText = `To ${escapeHtml(msg.recipient_name || 'Player')}`;
-            whisperPrefix = `<span style="color:var(--purple); font-size:11px; font-weight:600;"> [WHISPER]</span>`;
-        } else if (msg.recipient_id === currentUser.id) {
-            senderText = `From ${escapeHtml(msg.sender_name)}`;
-            whisperPrefix = `<span style="color:var(--purple); font-size:11px; font-weight:600;"> [WHISPER]</span>`;
-        } else if (isDM) {
-            senderText = `${escapeHtml(msg.sender_name)} -> ${escapeHtml(msg.recipient_name || 'Player')}`;
-            whisperPrefix = `<span style="color:var(--purple); font-size:11px; font-weight:600;"> [WHISPER]</span>`;
-        }
-    }
-
-    // Render markdown style bold text for dice rolls (e.g. **20**)
-    let renderedContent = escapeHtml(msg.content).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     msgDiv.innerHTML = `
       <div>
-        <strong style="color:${senderColor}">${senderText}</strong>${whisperPrefix}: <span>${renderedContent}</span>
+        <strong style="color:${msg.sender_name === 'DM' ? 'var(--rose)' : 'var(--gold)'}">${escapeHtml(msg.sender_name)}</strong>${whisperTag}: <span>${escapeHtml(msg.content)}</span>
       </div>
       ${deleteBtn}
     `;
@@ -1010,8 +1189,12 @@
   async function deleteSessionMessage(messageId) {
     if (!isDM) return;
     if (!confirm("Are you sure you want to delete this message?")) return;
+
     const { error } = await sb.from('session_messages').delete().eq('id', messageId);
-    if (!error) {
+
+    if (error) {
+      alert("Failed to delete message: " + error.message);
+    } else {
       const msgEl = document.getElementById(`msg-${messageId}`);
       if (msgEl) msgEl.remove();
     }
@@ -1020,8 +1203,12 @@
   async function clearAllSessionMessages() {
     if (!isDM) return;
     if (!confirm(`Are you sure you want to clear all chat messages in "${currentSessionId}"?`)) return;
+
     const { error } = await sb.from('session_messages').delete().eq('session_id', currentSessionId);
-    if (!error) {
+
+    if (error) {
+      alert("Failed to clear messages: " + error.message);
+    } else {
       const chatBox = document.getElementById('chatMessages');
       if (chatBox) chatBox.innerHTML = '<p class="empty-note">No logs recorded for this session yet.</p>';
     }
@@ -1030,10 +1217,6 @@
   /* ===================== CONTENT LOADERS & HELPERS ===================== */
   async function loadWorldbook() { 
     await loadTableSection('worldbook', 'worldbook-container', 'Worldbook Entry'); 
-  }
-
-  async function loadNPCs() { 
-    await loadTableSection('npcs', 'npc-cards-container', 'NPC'); 
   }
 
   /* ===================== SESSION SUMMARIES ===================== */
@@ -1048,9 +1231,9 @@
       toolbar.innerHTML = '';
     }
 
-    const { data, error } = await sb.from('session_summaries')
+    const { data, error } = await sb.from('session_number')
       .select('*')
-      .order('session_number', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       container.innerHTML = `<p class="error-msg">Failed to load summaries: ${escapeHtml(error.message)}</p>`;
@@ -1067,25 +1250,29 @@
 
   async function addNewSessionSummary() {
     if (!isDM) return;
-    
-    const { data, error } = await sb.from('session_summaries').insert({
-      session_number: 'New',
-      title: 'Untitled Session',
-      body: '',
+    const session_number = prompt("Session Number (e.g. 1):");
+    if (!session_number) return;
+    const title = prompt("Session Title:");
+    const body = prompt("Summary / Notes:");
+
+    const { error } = await sb.from('session_number').insert({
+      session_number,
+      title: title || 'Untitled Session',
+      body: body || '',
       session_date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       visible_to_players: true
-    }).select();
+    });
 
     if (error) {
       alert("Error adding summary: " + error.message);
-    } else if (data && data.length > 0) {
-      await loadSummaries();
-      toggleInlineSummaryEdit(data[0].id);
+    } else {
+      loadSummaries();
     }
   }
 
   function renderSummaryCard(summary) {
     const isVisible = summary.visible_to_players ?? true;
+
     if (!isDM && !isVisible) return '';
 
     let dmControls = '';
@@ -1108,7 +1295,7 @@
           <div style="display:flex; align-items:center; gap:10px;">
             <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
             <label class="switch">
-              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_summaries', 'summaries-container', this.checked)">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_number', 'summaries-container', this.checked)">
               <span class="slider"></span>
             </label>
           </div>
@@ -1132,7 +1319,8 @@
               ${dateStr ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${dateStr}</p>` : ''}
             </div>
           </div>
-          <div class="block-body" style="margin-top:10px;">${renderMarkdown(summary.body || summary.content || summary.description || '')}</div>
+
+          <div class="block-body" style="margin-top:10px;">${summary.body || summary.content || summary.description || '<p class="empty-note">No summary text.</p>'}</div>
           ${secretSection}
           ${dmControls}
         </div>
@@ -1158,7 +1346,7 @@
             <label style="font-size:0.8rem; color:var(--text-faint);">Public Summary / Notes</label>
             <textarea id="edit-summary-body-${summary.id}" rows="5" class="input-field">${escapeHtml(summary.body || summary.content || summary.description || '')}</textarea>
 
-            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret</label>
+            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Blacked out for players)</label>
             <textarea id="edit-summary-secret-${summary.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(summary.secret || summary.dm_secret || '')}</textarea>
 
             <div style="display:flex; gap:8px; margin-top:8px;">
@@ -1176,6 +1364,7 @@
     if (!card) return;
     const viewMode = card.querySelector('.summary-view-mode');
     const editMode = card.querySelector('.summary-edit-mode');
+
     const isEditing = editMode.style.display !== 'none';
     viewMode.style.display = isEditing ? 'block' : 'none';
     editMode.style.display = isEditing ? 'none' : 'block';
@@ -1183,265 +1372,349 @@
 
   async function saveInlineSummaryEdit(summaryId) {
     if (!isDM) return;
-    const session_number = document.getElementById(`edit-summary-num-${summaryId}`).value.trim();
-    const title = document.getElementById(`edit-summary-title-${summaryId}`).value.trim();
-    const session_date = document.getElementById(`edit-summary-date-${summaryId}`).value.trim();
-    const body = document.getElementById(`edit-summary-body-${summaryId}`).value.trim();
-    const secret = document.getElementById(`edit-summary-secret-${summaryId}`).value.trim();
 
-    const { error } = await sb.from('session_summaries').update({ session_number, title, session_date, body, secret }).eq('id', summaryId);
-    if (error) alert("Failed to save summary updates: " + error.message);
-    else loadSummaries();
+    const numEl = document.getElementById(`edit-summary-num-${summaryId}`);
+    const titleEl = document.getElementById(`edit-summary-title-${summaryId}`);
+    const dateEl = document.getElementById(`edit-summary-date-${summaryId}`);
+    const bodyEl = document.getElementById(`edit-summary-body-${summaryId}`);
+    const secretEl = document.getElementById(`edit-summary-secret-${summaryId}`);
+
+    if (!numEl || !titleEl || !dateEl || !bodyEl || !secretEl) {
+      alert("Error: Unable to find form inputs in DOM.");
+      return;
+    }
+
+    const session_number = numEl.value.trim();
+    const title = titleEl.value.trim();
+    const session_date = dateEl.value.trim();
+    const body = bodyEl.value.trim();
+    const secret = secretEl.value.trim();
+
+    const { error } = await sb.from('session_summaries')
+      .update({
+        session_number,
+        title,
+        session_date,
+        body,
+        secret
+      })
+      .eq('id', summaryId);
+
+    if (error) {
+      alert("Failed to save summary updates: " + error.message);
+    } else {
+      loadSummaries();
+    }
   }
 
   /* ===================== LOOT & PLAYER PRIVATE INVENTORY SYSTEM ===================== */
-  async function loadLoot() {
-    const container = document.getElementById('loot-container');
-    if (!container) return;
+let activeLootItems = [];
 
-    await populatePlayerSelector();
+async function loadLoot() {
+  const container = document.getElementById('loot-container');
+  if (!container) return;
 
-    if (!isDM) {
-      container.innerHTML = '<p class="empty-note">The campaign loot pool is managed by the DM.</p>';
-      return;
-    }
+  // Always build the dropdown selector for player inventories
+  await populatePlayerSelector();
 
-    const { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
+  // If NOT the DM, do not display the Campaign Loot Pool
+  if (!isDM) {
+    container.innerHTML = '<p class="empty-note">The campaign loot pool is managed by the DM.</p>';
+    return;
+  }
 
-    if (error) {
-      container.innerHTML = `<p class="error-msg">Failed to load loot pool: ${escapeHtml(error.message)}</p>`;
-      return;
-    }
+  // DM-only query to fetch the campaign loot pool
+  let { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
 
-    let html = `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addLootItem()">+ Add Inventory Item</button>`;
-    if (!data || data.length === 0) {
-      html += '<p class="empty-note">No loot recorded in the main pool yet.</p>';
-      container.innerHTML = html;
-      return;
-    }
-    html += data.map(item => renderLootCard(item)).join('');
+  if (error && error.message.includes('created_at')) {
+    const fallback = await sb.from('loot').select('*').order('id', { ascending: false });
+    data = fallback.data;
+    error = fallback.error;
+  }
+
+  if (error) {
+    container.innerHTML = `<p class="error-msg">Failed to load loot pool: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  activeLootItems = data || [];
+
+  let html = `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addLootItem()">+ Add Inventory Item</button>`;
+
+  if (!data || data.length === 0) {
+    html += '<p class="empty-note">No loot recorded in the main pool yet.</p>';
     container.innerHTML = html;
+    return;
   }
 
-  function formatPlayerName(email) {
-    if (!email) return 'Player';
-    const prefix = email.split('@')[0];
-    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
-  }
+  html += data.map(item => renderLootCard(item)).join('');
+  container.innerHTML = html;
+}
 
-  async function populatePlayerSelector() {
-    const selector = document.getElementById('playerInventorySelector');
-    if (!selector) return;
-    const { data: profiles, error } = await sb.from('profiles').select('id, email, role');
-    selector.innerHTML = '';
-    
-    if (error || !profiles || profiles.length === 0) {
+// Helper: Capitalize player names (e.g., "marigold" -> "Marigold")
+function formatPlayerName(email) {
+  if (!email) return 'Player';
+  const prefix = email.split('@')[0];
+  return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+}
+
+async function populatePlayerSelector() {
+  const selector = document.getElementById('playerInventorySelector');
+  if (!selector) return;
+
+  const { data: profiles, error } = await sb
+    .from('profiles')
+    .select('id, email, role');
+
+  selector.innerHTML = '';
+
+  if (error || !profiles || profiles.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = currentUser?.id || '';
+    opt.textContent = 'Dungeon Master (You)';
+    selector.appendChild(opt);
+  } else {
+    profiles.forEach(p => {
+      const isSelf = p.id === currentUser?.id;
+      const parsedName = formatPlayerName(p.email);
+
       const opt = document.createElement('option');
-      opt.value = currentUser?.id || '';
-      opt.textContent = 'Dungeon Master (You)';
-      selector.appendChild(opt);
-    } else {
-      profiles.forEach(p => {
-        const isSelf = p.id === currentUser?.id;
-        const parsedName = formatPlayerName(p.email);
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = isSelf ? `${parsedName} (You)` : parsedName;
-        if (isDM || isSelf) selector.appendChild(opt);
-      });
-    }
+      opt.value = p.id;
+      opt.textContent = isSelf ? `${parsedName} (You)` : parsedName;
 
-    if (selector.options.length > 0) {
-      if (!selector.value) selector.selectedIndex = 0;
-      loadPlayerPrivateInventory();
-    }
+      if (isDM || isSelf) {
+        selector.appendChild(opt);
+      }
+    });
   }
 
-  async function loadPlayerPrivateInventory() {
-    const selector = document.getElementById('playerInventorySelector');
-    const container = document.getElementById('player-private-inventory-list');
-    if (!selector || !container) return;
+  if (selector.options.length > 0) {
+    if (!selector.value) selector.selectedIndex = 0;
+    loadPlayerPrivateInventory();
+  }
+}
 
-    const targetUserId = selector.value;
-    if (!targetUserId) {
-      container.innerHTML = '<p class="empty-note">No player selected.</p>';
-      return;
-    }
+async function loadPlayerPrivateInventory() {
+  const selector = document.getElementById('playerInventorySelector');
+  const container = document.getElementById('player-private-inventory-list');
+  if (!selector || !container) return;
 
-    const { data, error } = await sb.from('player_inventories').select('*, loot(*)').eq('user_id', targetUserId);
-    if (error) {
-      container.innerHTML = `<p class="error-msg">Error loading private inventory: ${escapeHtml(error.message)}</p>`;
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      container.innerHTML = '<p class="empty-note">Inventory is currently empty for this player.</p>';
-      return;
-    }
-
-    container.innerHTML = data.map(inv => {
-      const item = inv.loot || {};
-      const itemName = item.name || inv.item_name || 'Item';
-      const itemDesc = item.description || item.body || 'No description provided.';
-      const qty = inv.quantity || item.quantity || 1;
-      const valueStr = item.value ? ` | Value: ${escapeHtml(item.value)} GP` : '';
-      const removeBtn = isDM ? `<button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>` : '';
-
-      return `
-        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
-          <div>
-            <strong style="color:var(--gold);">${escapeHtml(itemName)}</strong>
-            <span style="font-size:0.85rem; color:var(--text-faint); font-family:var(--font-mono);"> (Qty: ${qty}${valueStr})</span>
-            <p style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-dim);">${escapeHtml(itemDesc)}</p>
-          </div>
-          ${removeBtn}
-        </div>
-      `;
-    }).join('');
+  const targetUserId = selector.value;
+  if (!targetUserId) {
+    container.innerHTML = '<p class="empty-note">No player selected.</p>';
+    return;
   }
 
-  async function giveItemToSelectedPlayer(lootId) {
-    const selector = document.getElementById('playerInventorySelector');
-    if (!selector) return;
-    const targetUserId = selector.value;
-    const { error } = await sb.from('player_inventories').insert({ user_id: targetUserId, loot_id: lootId, quantity: 1 });
-    if (error) alert("Failed to give item: " + error.message);
-    else loadPlayerPrivateInventory();
+  // Fetch inventory joined with the loot table for details
+  const { data, error } = await sb.from('player_inventories')
+    .select('*, loot(*)')
+    .eq('user_id', targetUserId);
+
+  if (error) {
+    container.innerHTML = `<p class="error-msg">Error loading private inventory: ${escapeHtml(error.message)}</p>`;
+    return;
   }
 
-  async function removeInventoryItem(invId) {
-    const { error } = await sb.from('player_inventories').delete().eq('id', invId);
-    if (error) alert("Failed to remove item: " + error.message);
-    else loadPlayerPrivateInventory();
+  if (!data || data.length === 0) {
+    container.innerHTML = '<p class="empty-note">Inventory is currently empty for this player.</p>';
+    return;
   }
 
-  function renderLootCard(item) {
-    const isVisible = item.visible_to_players ?? true;
-    if (!isDM && !isVisible) return '';
-
-    let dmControls = '';
-    if (isDM) {
-      dmControls = `
-        <div class="card-footer-controls" style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px dashed var(--line);">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
-            <label class="switch">
-              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${item.id}', 'loot', 'loot-container', this.checked)">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-sm" onclick="giveItemToSelectedPlayer('${item.id}')">🎁 Give to Player</button>
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Edit</button>
-            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${item.id}', 'loot', 'loot-container')">Delete</button>
-          </div>
-        </div>`;
-    }
-
-    const valueDisplay = item.value ? `Value: ${escapeHtml(item.value)} GP` : '';
-    const qtyDisplay = item.quantity ? `Qty: ${escapeHtml(String(item.quantity))}` : '';
-    const metaText = [qtyDisplay, valueDisplay].filter(Boolean).join(' | ');
+  container.innerHTML = data.map(inv => {
+    const item = inv.loot || {};
+    const itemName = item.name || inv.item_name || 'Item';
+    const itemDesc = item.description || item.body || 'No description provided.';
+    
+    // Determine quantity and value
+    const qty = inv.quantity || item.quantity || 1;
+    const valueStr = item.value ? ` | Value: ${escapeHtml(item.value)} GP` : '';
+    
+    const removeBtn = isDM ? `<button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>` : '';
 
     return `
-      <div class="block-card" id="loot-card-${item.id}">
-        <!-- View Mode -->
-        <div class="loot-view-mode">
-          <div class="card-title-group">
-            <div>
-              <h3 style="margin:0; color:var(--gold); font-size: 1.15rem;">${escapeHtml(item.name || 'Unnamed Item')}</h3>
-              ${metaText ? `<p style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${metaText}</p>` : ''}
+      <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
+        <div>
+          <strong style="color:var(--gold);">${escapeHtml(itemName)}</strong>
+          <span style="font-size:0.85rem; color:var(--text-faint); font-family:var(--font-mono);"> (Qty: ${qty}${valueStr})</span>
+          <p style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-dim);">${escapeHtml(itemDesc)}</p>
+        </div>
+        ${removeBtn}
+      </div>
+    `;
+  }).join('');
+}
+
+async function giveItemToSelectedPlayer(lootId) {
+  const selector = document.getElementById('playerInventorySelector');
+  if (!selector) return;
+  const targetUserId = selector.value;
+
+  const { error } = await sb.from('player_inventories').insert({
+    user_id: targetUserId,
+    loot_id: lootId,
+    quantity: 1
+  });
+
+  if (error) {
+    alert("Failed to give item: " + error.message);
+  } else {
+    loadPlayerPrivateInventory();
+  }
+}
+
+async function removeInventoryItem(invId) {
+  const { error } = await sb.from('player_inventories').delete().eq('id', invId);
+  if (error) {
+    alert("Failed to remove item: " + error.message);
+  } else {
+    loadPlayerPrivateInventory();
+  }
+}
+
+function renderLootCard(item) {
+  const isVisible = item.visible_to_players ?? true;
+  if (!isDM && !isVisible) return '';
+
+  let dmControls = '';
+  if (isDM) {
+    dmControls = `
+      <div class="card-footer-controls">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
+          <label class="switch">
+            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${item.id}', 'loot', 'loot-container', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm" onclick="giveItemToSelectedPlayer('${item.id}')">🎁 Give to Player</button>
+          <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Edit</button>
+          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${item.id}', 'loot', 'loot-container')">Delete</button>
+        </div>
+      </div>`;
+  }
+
+  const valueDisplay = item.value ? `3 ${escapeHtml(item.value)} GP` : '';
+  const qtyDisplay = item.quantity ? `Qty: ${escapeHtml(String(item.quantity))}` : '';
+  const metaText = [qtyDisplay, valueDisplay].filter(Boolean).join(' | ');
+
+  return `
+    <div class="block-card" id="loot-card-${item.id}">
+      <!-- View Mode -->
+      <div class="loot-view-mode">
+        <div class="card-title-group">
+          <div>
+            <h3 class="card-title">${escapeHtml(item.name || 'Unnamed Item')}</h3>
+            ${metaText ? `<p class="card-subtitle">${metaText}</p>` : ''}
+          </div>
+        </div>
+        <div class="block-body" style="margin-top:10px;">${item.description || item.body || '<p class="empty-note">No description provided.</p>'}</div>
+        ${dmControls}
+      </div>
+
+      <!-- Edit Mode -->
+      <div class="loot-edit-mode" style="display:none;">
+        <div class="card-edit-form">
+          <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Item</h4>
+          
+          <div class="form-group">
+            <label>Item Name</label>
+            <input type="text" id="edit-loot-name-${item.id}" value="${escapeHtml(item.name || '')}" class="input-field" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label>Quantity</label>
+              <input type="number" id="edit-loot-qty-${item.id}" value="${item.quantity ?? 1}" class="input-field" min="1" />
+            </div>
+            <div class="form-group" style="flex:2;">
+              <label>Value</label>
+              <input type="text" id="edit-loot-value-${item.id}" value="${escapeHtml(item.value || '')}" class="input-field" placeholder="500 gp" />
             </div>
           </div>
-          <div class="block-body" style="margin-top:10px;">${renderMarkdown(item.description || item.body || '')}</div>
-          ${dmControls}
-        </div>
 
-        <!-- Edit Mode -->
-        <div class="loot-edit-mode" style="display:none; margin-top:8px;">
-          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit Item</h4>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <label style="font-size:0.8rem; color:var(--text-faint);">Item Name</label>
-            <input type="text" id="edit-loot-name-${item.id}" value="${escapeHtml(item.name || '')}" class="input-field" />
-            <div style="display:flex; gap:8px;">
-              <div style="flex:1;">
-                <label style="font-size:0.8rem; color:var(--text-faint);">Quantity</label>
-                <input type="number" id="edit-loot-qty-${item.id}" value="${item.quantity ?? 1}" class="input-field" min="1" />
-              </div>
-              <div style="flex:2;">
-                <label style="font-size:0.8rem; color:var(--text-faint);">Value</label>
-                <input type="text" id="edit-loot-value-${item.id}" value="${escapeHtml(item.value || '')}" class="input-field" placeholder="500 gp" />
-              </div>
-            </div>
-            <label style="font-size:0.8rem; color:var(--text-faint);">Description</label>
+          <div class="form-group">
+            <label>Description</label>
             <textarea id="edit-loot-desc-${item.id}" rows="3" class="input-field">${escapeHtml(item.description || item.body || '')}</textarea>
-            <div style="display:flex; gap:8px; margin-top:4px;">
-              <button class="btn btn-sm" onclick="saveInlineLootEdit('${item.id}')">Save Changes</button>
-              <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Cancel</button>
-            </div>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:4px;">
+            <button class="btn btn-sm" onclick="saveInlineLootEdit('${item.id}')">Save Changes</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('loot', '${item.id}')">Cancel</button>
           </div>
         </div>
       </div>
-    `;
-  }
+    </div>
+  `;
+}
 
-  async function addLootItem() {
-    if (!isDM) return;
-    const { data, error } = await sb.from('loot').insert({
-      name: 'New Item',
-      description: '',
-      quantity: 1,
-      visible_to_players: true
-    }).select();
+async function addLootItem() {
+  if (!isDM) return;
+  const name = prompt("Item Name:");
+  if (!name) return;
+  const description = prompt("Item Description:");
 
-    if (error) alert("Failed to add loot item: " + error.message);
-    else if (data && data.length > 0) {
-      await loadLoot();
-      toggleInlineEdit('loot', data[0].id);
-    }
-  }
+  const { error } = await sb.from('loot').insert({
+    name,
+    description,
+    quantity: 1,
+    visible_to_players: true
+  });
 
-  async function saveInlineLootEdit(itemId) {
-    if (!isDM) return;
-    const name = document.getElementById(`edit-loot-name-${itemId}`)?.value.trim();
-    const quantity = parseInt(document.getElementById(`edit-loot-qty-${itemId}`)?.value, 10) || 1;
-    const value = document.getElementById(`edit-loot-value-${itemId}`)?.value.trim();
-    const description = document.getElementById(`edit-loot-desc-${itemId}`)?.value.trim();
+  if (error) alert("Failed to add loot item: " + error.message);
+  else loadLoot();
+}
 
-    const { error } = await sb.from('loot').update({ name, quantity, value, description }).eq('id', itemId);
-    if (error) alert("Failed to save: " + error.message);
-    else loadLoot();
-  }
+async function saveInlineLootEdit(itemId) {
+  if (!isDM) return;
+  const name = document.getElementById(`edit-loot-name-${itemId}`)?.value.trim();
+  const quantity = parseInt(document.getElementById(`edit-loot-qty-${itemId}`)?.value, 10) || 1;
+  const value = document.getElementById(`edit-loot-value-${itemId}`)?.value.trim();
+  const description = document.getElementById(`edit-loot-desc-${itemId}`)?.value.trim();
 
-  function toggleInlineEdit(type, id) {
-    const card = document.getElementById(`${type}-card-${id}`);
-    if (!card) return;
-    const viewMode = card.querySelector(`.${type}-view-mode`);
-    const editMode = card.querySelector(`.${type}-edit-mode`);
-    const isEditing = editMode.style.display !== 'none';
-    viewMode.style.display = isEditing ? 'block' : 'none';
-    editMode.style.display = isEditing ? 'none' : 'block';
-  }
+  const { error } = await sb.from('loot').update({ name, quantity, value, description }).eq('id', itemId);
+  if (error) alert("Failed to save: " + error.message);
+  else loadLoot();
+}
+
+function toggleInlineEdit(type, id) {
+  const card = document.getElementById(`${type}-card-${id}`);
+  if (!card) return;
+  const viewMode = card.querySelector(`.${type}-view-mode`);
+  const editMode = card.querySelector(`.${type}-edit-mode`);
+
+  const isEditing = editMode.style.display !== 'none';
+  viewMode.style.display = isEditing ? 'block' : 'none';
+  editMode.style.display = isEditing ? 'none' : 'block';
+}
 
   /* ===================== RESTRICTED ARCHIVES HUB ===================== */
-  async function loadRestricted() { showRestrictedHub(); }
+
+  async function loadRestricted() {
+    showRestrictedHub();
+  }
 
   function showRestrictedHub() {
     const container = document.getElementById('restricted-container');
     if (!container) return;
+
     container.innerHTML = `
       <div class="restricted-grid">
         <div class="hub-card" onclick="openRestrictedSubSection('encounters', 'Encounters & Stat Blocks', 'Monsters, NPC combat stats, and tactical notes with HP trackers.', 'Encounter')">
           <h4>⚔️ Encounters</h4>
           <p class="hub-desc">Monsters, NPC combat stats, and tactical notes with HP trackers.</p>
         </div>
+
         <div class="hub-card" onclick="openRestrictedSubSection('lore', 'Deep Lore', 'Behind-the-scenes world history, truths, and campaign secrets.', 'Lore Entry')">
           <h4>📜 Deep Lore</h4>
           <p class="hub-desc">Behind-the-scenes world history, truths, and campaign secrets.</p>
         </div>
+
         <div class="hub-card" onclick="openRestrictedSubSection('session_skeletons', 'Session Skeletons', 'Upcoming session outlines, beats, and contingencies.', 'Session Skeleton')">
           <h4>💀 Session Skeletons</h4>
           <p class="hub-desc">Upcoming session outlines, beats, and contingencies.</p>
         </div>
+
         <div class="hub-card" onclick="openRestrictedSubSection('character_template_secrets', 'Template Characters', 'Pre-made character archetypes, secret stats, and player templates.', 'Template Character')">
           <h4>🎭 Template Characters</h4>
           <p class="hub-desc">Pre-made character archetypes, secret stats, and player templates.</p>
@@ -1453,6 +1726,7 @@
   async function openRestrictedSubSection(tableName, title, description, label) {
     const container = document.getElementById('restricted-container');
     if (!container) return;
+
     container.innerHTML = `
       <div style="margin-bottom: 20px;">
         <button class="btn btn-secondary btn-sm" onclick="showRestrictedHub()">← Back to Restricted Hub</button>
@@ -1461,12 +1735,16 @@
       <p class="subtitle" style="margin-bottom: 20px;">${escapeHtml(description)}</p>
       <div id="sub-${tableName}-container" class="spoiler-block"><p class="empty-note">Loading…</p></div>
     `;
+
     await loadTableSection(tableName, `sub-${tableName}-container`, label);
   }
 
   async function loadTableSection(tableName, containerId, addLabel) {
     let query = sb.from(tableName).select('*').order('order_index', { ascending: true, nullsFirst: false });
-    if (!isDM) query = query.eq('visible_to_players', true);
+    
+    if (!isDM) {
+      query = query.eq('visible_to_players', true);
+    }
 
     const { data, error } = await query;
     const container = document.getElementById(containerId);
@@ -1477,7 +1755,9 @@
       return; 
     }
 
-    let html = (data && data.length) ? data.map(row => renderContentBlock(row, tableName, containerId)).join('') : `<p class="empty-note">Nothing here yet.</p>`;
+    let html = (data && data.length) 
+      ? data.map(row => renderContentBlock(row, tableName, containerId)).join('') 
+      : `<p class="empty-note">Nothing here yet.</p>`;
 
     if (isDM) {
       html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addTableBlock('${tableName}', '${containerId}', '${addLabel}')">+ Add ${addLabel}</button>`;
@@ -1499,10 +1779,6 @@
               <span class="slider"></span>
             </label>
           </div>
-          <div class="block-actions" style="display:flex; gap:6px;">
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('content', '${row.id}')">Edit</button>
-            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${row.id}', '${tableName}', '${containerId}')">Delete</button>
-          </div>
         </div>`;
     }
 
@@ -1513,60 +1789,52 @@
 
       hpWidget = `
         <div class="hp-tracker" id="hp-tracker-${row.id}" data-max-hp="${maxHp}" data-current-hp="${maxHp}">
-          <div class="hp-display">❤️ HP: <span id="hp-val-${row.id}">${maxHp}</span> / ${maxHp}</div>
+          <div class="hp-display">
+            ❤️ HP: <span id="hp-val-${row.id}">${maxHp}</span> / ${maxHp}
+          </div>
           <div class="hp-controls">
             <button class="hp-btn damage" title="Take 5 Damage" onclick="adjustHP('${row.id}', -5)">-5</button>
             <button class="hp-btn damage" title="Take 1 Damage" onclick="adjustHP('${row.id}', -1)">-1</button>
             <button class="hp-btn heal" title="Heal 1 HP" onclick="adjustHP('${row.id}', 1)">+1</button>
             <button class="hp-btn heal" title="Heal 5 HP" onclick="adjustHP('${row.id}', 5)">+5</button>
+
             <div class="hp-custom-group">
               <input type="number" id="hp-input-${row.id}" class="hp-input" placeholder="0" min="1" onkeydown="if(event.key==='Enter') applyCustomHP('${row.id}', -1)">
               <button class="hp-btn damage" title="Apply Custom Damage" onclick="applyCustomHP('${row.id}', -1)">-</button>
               <button class="hp-btn heal" title="Apply Custom Healing" onclick="applyCustomHP('${row.id}', 1)">+</button>
             </div>
+
             <button class="hp-btn" title="Reset HP" onclick="resetHP('${row.id}')" style="margin-left:4px;">🔄</button>
           </div>
-        </div>`;
+        </div>
+      `;
     }
 
-    return `
-      <div class="block-card" id="content-card-${row.id}">
-        <!-- View Mode -->
-        <div class="content-view-mode">
-          <div class="block-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <h4 style="margin:0;">${escapeHtml(row.title || 'Untitled')}</h4>
-          </div>
-          ${hpWidget}
-          <div class="block-body" id="body-${row.id}" style="margin-top:10px;">${renderMarkdown(row.body || '')}</div>
-          ${dmControls}
-        </div>
-
-        <!-- Edit Mode -->
-        <div class="content-edit-mode" style="display:none; margin-top:8px;">
-          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit Block</h4>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <label style="font-size:0.8rem; color:var(--text-faint);">Title</label>
-            <input type="text" id="edit-content-title-${row.id}" value="${escapeHtml(row.title || '')}" class="input-field" />
-            <label style="font-size:0.8rem; color:var(--text-faint);">Description / Body</label>
-            <textarea id="edit-content-body-${row.id}" rows="5" class="input-field">${escapeHtml(row.body || '')}</textarea>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-              <button class="btn btn-sm" onclick="saveContentEdit('${row.id}', '${tableName}', '${containerId}')">Save Changes</button>
-              <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('content', '${row.id}')">Cancel</button>
-            </div>
-          </div>
-        </div>
+    return `<div class="block-card">
+      <div class="block-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <h4 style="margin:0;">${escapeHtml(row.title)}</h4>
+        ${isDM ? `<div class="block-actions" style="display:flex; gap:6px;">
+          <button class="btn btn-sm btn-secondary" onclick="editTableBlock('${row.id}', '${tableName}', '${containerId}')">Edit</button>
+          <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${row.id}', '${tableName}', '${containerId}')">Delete</button>
+        </div>` : ''}
       </div>
-    `;
+      ${hpWidget}
+      <div class="block-body" id="body-${row.id}">${row.body || ''}</div>
+      ${dmControls}
+    </div>`;
   }
 
   function adjustHP(id, amount) {
     const tracker = document.getElementById(`hp-tracker-${id}`);
     const display = document.getElementById(`hp-val-${id}`);
     if (!tracker || !display) return;
+
     let current = parseInt(tracker.getAttribute('data-current-hp'), 10);
     const max = parseInt(tracker.getAttribute('data-max-hp'), 10);
+
     current = Math.max(0, current + amount);
     tracker.setAttribute('data-current-hp', current);
+
     if (current === 0) {
       display.innerHTML = `0 💀 (Dead)`;
       display.style.color = '#888';
@@ -1579,6 +1847,7 @@
   function applyCustomHP(id, multiplier) {
     const input = document.getElementById(`hp-input-${id}`);
     if (!input || !input.value) return;
+
     const amount = parseInt(input.value, 10);
     if (!isNaN(amount) && amount > 0) {
       adjustHP(id, amount * multiplier);
@@ -1591,6 +1860,7 @@
     const display = document.getElementById(`hp-val-${id}`);
     const input = document.getElementById(`hp-input-${id}`);
     if (!tracker || !display) return;
+
     const max = parseInt(tracker.getAttribute('data-max-hp'), 10);
     tracker.setAttribute('data-current-hp', max);
     display.textContent = max;
@@ -1598,178 +1868,490 @@
     if (input) input.value = '';
   }
 
-  async function saveContentEdit(id, tableName, containerId) {
-    const title = document.getElementById(`edit-content-title-${id}`).value.trim();
-    const body = document.getElementById(`edit-content-body-${id}`).value.trim();
+  async function editTableBlock(id, tableName, containerId) {
+    const { data, error } = await sb.from(tableName).select('*').eq('id', id).single();
+    if (error || !data) return alert("Failed to fetch entry for editing: " + (error?.message || 'Not found'));
 
-    const { error } = await sb.from(tableName).update({ title, body }).eq('id', id);
-    if (error) alert("Error updating entry: " + error.message);
-    else loadTableSection(tableName, containerId, tableName);
+    const newTitle = prompt("Edit Title:", data.title);
+    if (newTitle === null) return;
+    
+    const newBody = prompt("Edit Description/Body (HTML supported):", data.body || '');
+    if (newBody === null) return;
+
+    const { error: updateError } = await sb.from(tableName)
+      .update({ title: newTitle, body: newBody })
+      .eq('id', id);
+
+    if (updateError) {
+      alert("Error updating entry: " + updateError.message);
+    } else {
+      loadTableSection(tableName, containerId, tableName);
+    }
   }
 
   async function toggleBlockVisibility(id, tableName, containerId, visible) {
     const { error } = await sb.from(tableName).update({ visible_to_players: visible }).eq('id', id);
-    if (error) alert('Failed to update visibility: ' + error.message);
-    else loadTableSection(tableName, containerId, tableName);
+    if (error) {
+      alert('Failed to update visibility: ' + error.message);
+    } else {
+      loadTableSection(tableName, containerId, tableName);
+    }
   }
 
   async function addTableBlock(tableName, containerId, addLabel) {
+    const title = prompt(`Enter ${addLabel} title:`);
+    if (!title) return;
+    const body = prompt("Enter description/body (HTML supported):");
+    
     const id = tableName + '_' + Date.now();
+    
     const { error } = await sb.from(tableName).insert({ 
-      id, title: 'New Entry', body: '', visible_to_players: true, order_index: 99 
+      id, 
+      title, 
+      body, 
+      visible_to_players: true,
+      order_index: 99
     });
 
-    if (error) alert("Error adding entry: " + error.message);
-    else {
-      await loadTableSection(tableName, containerId, addLabel);
-      toggleInlineEdit('content', id);
+    if (error) {
+      alert("Error adding entry: " + error.message);
+    } else {
+      loadTableSection(tableName, containerId, addLabel);
     }
   }
 
   async function deleteTableBlock(id, tableName, containerId) {
     if (!confirm("Delete this entry?")) return;
     const { error } = await sb.from(tableName).delete().eq('id', id);
-    if (error) alert("Error deleting entry: " + error.message);
-    else loadTableSection(tableName, containerId, tableName);
+    if (error) {
+      alert("Error deleting entry: " + error.message);
+    } else {
+      loadTableSection(tableName, containerId, tableName);
+    }
   }
 
   /* ===================== MARKDOWN HELPER ===================== */
-  if (window.marked) marked.setOptions({ breaks: true, gfm: true });
 
-  function renderMarkdown(str) {
-    if (!str) return '<p class="empty-note">No description available.</p>';
-    return window.marked ? marked.parse(str) : escapeHtml(str);
+// Configure marked.js so single line breaks (Enter) render as <br>
+if (window.marked) {
+  marked.setOptions({
+    breaks: true,
+    gfm: true
+  });
+}
+
+function renderMarkdown(str) {
+  if (!str) return '<p class="empty-note">No backstory available.</p>';
+  return window.marked ? marked.parse(str) : escapeHtml(str);
+}
+
+// Helper to insert formatting at current cursor selection
+function insertMdFormat(id, type) {
+  const textarea = document.getElementById(id);
+  if (!textarea) return;
+
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = textarea.value.substring(start, end);
+
+  let prefix = '';
+  let suffix = '';
+
+  switch (type) {
+    case 'h1': prefix = '# '; break;
+    case 'h2': prefix = '## '; break;
+    case 'h3': prefix = '### '; break;
+    case 'bold': prefix = '**'; suffix = '**'; break;
+    case 'italic': prefix = '*'; suffix = '*'; break;
+    case 'list': prefix = '- '; break;
   }
 
-  /* ===================== CHARACTER DIRECTORY ===================== */
-  function getCurrentPlayerId() {
-    if (!currentUser?.email) return '';
-    return currentUser.email.split('@')[0].toLowerCase().trim();
+  const replacement = prefix + (selectedText || 'Text') + suffix;
+  textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+  textarea.focus();
+  textarea.setSelectionRange(start + prefix.length, start + prefix.length + (selectedText.length || 4));
+}
+
+/* ===================== CHARACTER DIRECTORY ===================== */
+
+// Helper: Extract username prefix (e.g. 'test' from 'test@campaign.local')
+function getCurrentPlayerId() {
+  if (!currentUser?.email) return '';
+  return currentUser.email.split('@')[0].toLowerCase().trim();
+}
+
+function cleanPlayerName(str) {
+  if (!str) return '';
+  return str
+    .replace(/^["'\s]+|["'\s]+$/g, '')
+    .replace(/[|].*$/, '')
+    .trim()
+    .toLowerCase();
+}
+
+function parsePlayerName(char) {
+  if (!char) return '';
+  if (char.player_name) return cleanPlayerName(char.player_name);
+
+  let searchPool = [];
+  if (Array.isArray(char.tags)) {
+    searchPool = searchPool.concat(char.tags);
+  } else if (typeof char.tags === 'string') {
+    searchPool.push(char.tags);
   }
 
-  function cleanPlayerName(str) {
-    if (!str) return '';
-    return str.replace(/^["'\s]+|["'\s]+$/g, '').replace(/[|].*$/, '').trim().toLowerCase();
+  if (typeof char.role === 'string') searchPool.push(char.role);
+  if (typeof char.role_tag === 'string') searchPool.push(char.role_tag);
+
+  const fullText = searchPool.join(' | ');
+
+  const match = fullText.match(/Player:\s*([^|\n,]+)/i);
+  return match ? cleanPlayerName(match[1]) : '';
+}
+
+function canEditCharacter(char) {
+  if (typeof isDM !== 'undefined' && isDM === true) {
+    return true;
   }
 
-  function parsePlayerName(char) {
-    if (!char) return '';
-    if (char.player_name) return cleanPlayerName(char.player_name);
+  const activeUser = getCurrentPlayerId();
+  if (!activeUser) return false;
 
-    let searchPool = [];
-    if (Array.isArray(char.tags)) searchPool = searchPool.concat(char.tags);
-    else if (typeof char.tags === 'string') searchPool.push(char.tags);
-
-    if (typeof char.role === 'string') searchPool.push(char.role);
-    if (typeof char.role_tag === 'string') searchPool.push(char.role_tag);
-
-    const fullText = searchPool.join(' | ');
-    const match = fullText.match(/Player:\s*([^|\n,]+)/i);
-    return match ? cleanPlayerName(match[1]) : '';
+  // Check 1: Match directly on characters.id (e.g., char.id === 'test')
+  if (char?.id && char.id.toString().toLowerCase().trim() === activeUser) {
+    return true;
   }
 
-  function canEditCharacter(char) {
-    if (typeof isDM !== 'undefined' && isDM === true) return true;
-    const activeUser = getCurrentPlayerId();
-    if (!activeUser) return false;
-    if (char?.id && char.id.toString().toLowerCase().trim() === activeUser) return true;
-    const assignedPlayer = parsePlayerName(char);
-    return Boolean(assignedPlayer && assignedPlayer === activeUser);
+  // Check 2: Match via tags/player_name (e.g., Player: test)
+  const assignedPlayer = parsePlayerName(char);
+  return Boolean(assignedPlayer && assignedPlayer === activeUser);
+}
+
+async function loadCharacters() {
+  const container = document.getElementById('character-cards-container');
+  if (!container) return;
+
+  const { data, error } = await sb.from('characters')
+    .select('*')
+    .order('name');
+
+  if (error) {
+    container.innerHTML = `<p class="error-msg">Failed to load characters: ${escapeHtml(error.message)}</p>`;
+    return;
   }
 
-  async function loadCharacters() {
-    const container = document.getElementById('character-cards-container');
+  let html = '';
+  if (isDM) {
+    html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewCharacter()">+ Add Character</button>`;
+  }
+
+  if (!data || data.length === 0) {
+    html += '<p class="empty-note">No characters recorded yet.</p>';
+    container.innerHTML = html;
+    return;
+  }
+
+  html += data.map(char => renderCharacterCard(char)).join('');
+  container.innerHTML = html;
+}
+
+function renderCharacterCard(char) {
+  const isVisible = char.visible_to_players ?? true;
+  if (!isDM && !isVisible) return '';
+
+  const canEdit = canEditCharacter(char);
+
+  let tagDisplay = '';
+  if (Array.isArray(char.tags)) {
+    tagDisplay = char.tags.join(' | ');
+  } else {
+    tagDisplay = char.role_tag || char.tags || char.role || '';
+  }
+
+  let dmControls = '';
+  let secretSection = '';
+
+  if (isDM && (char.secret || char.dm_secret)) {
+    const secretText = char.secret || char.dm_secret;
+    secretSection = `
+      <div style="margin-top:12px;">
+        <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
+        <div class="spoiler-mask" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
+          ${renderMarkdown(secretText)}
+        </div>
+      </div>`;
+  }
+
+  if (canEdit || isDM) {
+    const visibilityToggle = isDM ? `
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
+        <label class="switch">
+          <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${char.id}', 'characters', 'character-cards-container', this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>` : '<div></div>';
+
+    dmControls = `
+      <div class="card-footer-controls">
+        ${visibilityToggle}
+        <div style="display:flex; gap:6px;">
+          ${canEdit ? `<button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Edit</button>` : ''}
+          ${isDM ? `<button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${char.id}', 'characters', 'character-cards-container')">Delete</button>` : ''}
+        </div>
+      </div>`;
+  }
+
+  const bioRaw = char.bio || char.description || '';
+
+  return `
+    <div class="block-card" id="character-card-${char.id}">
+      <!-- View Mode -->
+      <div class="character-view-mode">
+        <div class="card-title-group">
+          <div>
+            <h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>
+            ${tagDisplay ? `<p class="card-subtitle">${escapeHtml(tagDisplay)}</p>` : ''}
+          </div>
+        </div>
+
+        <div class="block-body" style="margin-top:10px;">${renderMarkdown(bioRaw)}</div>
+        ${secretSection}
+        ${dmControls}
+      </div>
+
+      <!-- Edit Mode -->
+      <div class="character-edit-mode" style="display:none;">
+        <div class="card-edit-form">
+          <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character</h4>
+
+          <div class="form-group">
+            <label>Character Name</label>
+            <input type="text" id="edit-char-name-${char.id}" value="${escapeHtml(char.name || '')}" class="input-field" />
+          </div>
+
+          ${isDM ? `
+          <div class="form-group">
+            <label>Tags (e.g. "Player: Name | Lvl 1 | Elf | Wizard")</label>
+            <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
+          </div>` : ''}
+
+          <!-- Markdown Editor Toolbar & Textarea -->
+          <div class="form-group">
+            <label>Bio / Backstory (Markdown Enabled)</label>
+            <div class="md-toolbar">
+              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'h1')">H1</button>
+              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'h2')">H2</button>
+              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'h3')">H3</button>
+              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'bold')">B</button>
+              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'italic')">I</button>
+              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'list')">• List</button>
+            </div>
+            <textarea id="edit-char-bio-${char.id}" rows="6" class="input-field md-textarea">${escapeHtml(bioRaw)}</textarea>
+          </div>
+
+          ${isDM ? `
+          <div class="form-group">
+            <label class="secret-label">🔒 DM Secret</label>
+            <textarea id="edit-char-secret-${char.id}" rows="2" class="input-field input-field-secret">${escapeHtml(char.secret || char.dm_secret || '')}</textarea>
+          </div>` : ''}
+
+          <div style="display:flex; gap:8px; margin-top:4px;">
+            <button class="btn btn-sm" onclick="saveInlineCharacterEdit('${char.id}')">Save Changes</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function saveInlineCharacterEdit(charId) {
+  const nameEl = document.getElementById(`edit-char-name-${charId}`);
+  const bioEl = document.getElementById(`edit-char-bio-${charId}`);
+  const tagsEl = document.getElementById(`edit-char-tags-${charId}`);
+  const secretEl = document.getElementById(`edit-char-secret-${charId}`);
+
+  if (!nameEl || !bioEl) return;
+
+  const name = nameEl.value.trim();
+  const bio = bioEl.value; // Retains raw linebreaks and Markdown formatting
+
+  const updateData = { name, bio };
+
+  // Only update tags and secrets if the DM is editing
+  if (isDM) {
+    if (tagsEl) {
+      const rawTags = tagsEl.value.trim();
+      updateData.tags = rawTags.split('|').map(t => t.trim()).filter(Boolean);
+    }
+    if (secretEl) {
+      updateData.secret = secretEl.value.trim();
+    }
+  }
+
+  const { error } = await sb.from('characters')
+    .update(updateData)
+    .eq('id', charId);
+
+  if (error) {
+    alert("Failed to save character: " + error.message);
+  } else {
+    loadCharacters();
+  }
+}
+
+  /* ===================== NPCS & GROUPED FACTIONS ===================== */
+  async function loadNPCs() {
+    const container = document.getElementById('npc-cards-container');
     if (!container) return;
-    const { data, error } = await sb.from('characters').select('*').order('name');
-    if (error) {
-      container.innerHTML = `<p class="error-msg">Failed to load characters: ${escapeHtml(error.message)}</p>`;
+
+    const { data: npcs, error: npcErr } = await sb.from('npcs').select('*').order('name');
+
+    if (npcErr) {
+      container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(npcErr.message)}</p>`;
       return;
     }
 
-    let html = '';
-    if (isDM) html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewCharacter()">+ Add Character</button>`;
-    
-    if (!data || data.length === 0) {
-      html += '<p class="empty-note">No characters recorded yet.</p>';
-      container.innerHTML = html;
+    let secretsMap = {};
+    if (isDM) {
+      const { data: secrets, error: secErr } = await sb.from('npc_secrets').select('*');
+      if (!secErr && secrets) {
+        secrets.forEach(s => {
+          secretsMap[s.npc_id] = s.secret || s.content || s.body || '';
+        });
+      }
+    }
+
+    let topAction = '';
+    if (isDM) {
+      topAction = `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addTableBlock('npcs', 'npc-cards-container', 'NPC')">+ Add NPC</button>`;
+    }
+
+    if (!npcs || npcs.length === 0) {
+      container.innerHTML = topAction + '<p class="empty-note">No NPCs recorded in database yet.</p>';
       return;
     }
 
-    html += data.map(char => renderCharacterCard(char)).join('');
+    // Group NPCs visually by Faction
+    const grouped = npcs.reduce((acc, npc) => {
+      const factionKey = npc.faction ? npc.faction.trim() : 'Unaffiliated / Independent';
+      if (!acc[factionKey]) acc[factionKey] = [];
+      acc[factionKey].push(npc);
+      return acc;
+    }, {});
+
+    let html = topAction;
+    Object.keys(grouped).forEach(faction => {
+      const factionCardsHtml = grouped[faction].map(npc => renderNPCCard(npc, secretsMap[npc.id])).join('');
+      if (factionCardsHtml.trim()) {
+        html += `
+          <div class="faction-group">
+            <div class="faction-title">
+              <span>🏛️ ${escapeHtml(faction)}</span>
+              <span style="font-size:0.8rem; color:var(--text-faint); font-weight:normal;">(${grouped[faction].length} members)</span>
+            </div>
+            <div>${factionCardsHtml}</div>
+          </div>
+        `;
+      }
+    });
+
     container.innerHTML = html;
   }
 
-  function renderCharacterCard(char) {
-    const isVisible = char.visible_to_players ?? true;
+  function renderNPCCard(npc, npcSecret = '') {
+    const isVisible = npc.visible_to_players ?? true;
     if (!isDM && !isVisible) return '';
 
-    const canEdit = canEditCharacter(char);
-    let tagDisplay = Array.isArray(char.tags) ? char.tags.join(' | ') : (char.role_tag || char.tags || char.role || '');
+    const friendshipPoints = npc.friendship_points ?? 0;
+    const secretContent = npcSecret || npc.secret || npc.dm_secret || '';
+
     let dmControls = '';
     let secretSection = '';
 
-    if (isDM && (char.secret || char.dm_secret)) {
-      const secretText = char.secret || char.dm_secret;
+    if (isDM && secretContent) {
       secretSection = `
         <div style="margin-top:12px;">
-          <strong style="color:var(--rose, #ff6b6b); font-size:0.75rem; text-transform:uppercase;">🔒 DM Secret:</strong>
-          <div class="spoiler-mask" title="Click to reveal" style="margin-top:4px; font-size:0.88rem;">
-            ${renderMarkdown(secretText)}
+          <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
+          <div class="spoiler-mask" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
+            ${escapeHtml(secretContent)}
           </div>
         </div>`;
     }
 
-    if (canEdit || isDM) {
-      const visibilityToggle = isDM ? `
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
-          <label class="switch">
-            <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${char.id}', 'characters', 'character-cards-container', this.checked)">
-            <span class="slider"></span>
-          </label>
-        </div>` : '<div></div>';
-
+    if (isDM) {
       dmControls = `
-        <div class="card-footer-controls" style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px dashed var(--line);">
-          ${visibilityToggle}
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('char', '${char.id}')">Edit</button>
-            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${char.id}', 'characters', 'character-cards-container')">Delete</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
+            <label class="switch">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${npc.id}', 'npcs', 'npc-cards-container', this.checked)">
+              <span class="slider"></span>
+            </label>
           </div>
-        </div>
-      `;
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Edit NPC</button>
+            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${npc.id}', 'npcs', 'npc-cards-container')">Delete</button>
+          </div>
+        </div>`;
     }
 
     return `
-      <div class="block-card" id="char-card-${char.id}">
-        <!-- View Mode -->
-        <div class="char-view-mode">
+      <div class="block-card" id="npc-card-${npc.id}">
+        <!-- Display View -->
+        <div class="npc-view-mode">
           <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-              <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(char.name || 'Unnamed Character')}</h3>
-              ${tagDisplay ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${escapeHtml(tagDisplay)}</p>` : ''}
+              <h3 style="margin:0; color:var(--gold,#c9a050);">${escapeHtml(npc.name || npc.title || 'Unnamed NPC')}</h3>
+              ${npc.hp || npc.role ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${npc.role ? escapeHtml(npc.role) : ''} ${npc.hp ? `| HP: ${escapeHtml(npc.hp)}` : ''}</p>` : ''}
+            </div>
+
+            <!-- Friendship Points Counter -->
+            <div class="friendship-counter" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.25); padding:4px 10px; border-radius:12px; border:1px solid var(--line);">
+              <span style="font-size:0.85rem; color:var(--gold); font-weight:600;">❤️ ${friendshipPoints}</span>
+              ${isDM ? `
+                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints - 1})">-</button>
+                <button class="btn btn-sm btn-secondary" style="padding:0px 6px; font-size:0.75rem; min-width:20px;" onclick="adjustFriendship('${npc.id}', ${friendshipPoints + 1})">+</button>
+              ` : ''}
             </div>
           </div>
-          <div class="block-body" style="margin-top:10px;">${renderMarkdown(char.body || char.description || '')}</div>
+
+          <div class="block-body" style="margin-top:10px;">${npc.bio || npc.body || npc.description || '<p class="empty-note">No background details.</p>'}</div>
           ${secretSection}
           ${dmControls}
         </div>
 
-        <!-- Edit Mode -->
-        <div class="char-edit-mode" style="display:none; margin-top:8px;">
-          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit Character</h4>
+        <!-- Inline Expandable Edit Form -->
+        <div class="npc-edit-mode" style="display:none; margin-top:8px;">
+          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit NPC Details</h4>
           <div style="display:flex; flex-direction:column; gap:8px;">
             <label style="font-size:0.8rem; color:var(--text-faint);">Name</label>
-            <input type="text" id="edit-char-name-${char.id}" value="${escapeHtml(char.name || '')}" class="input-field" />
-            <label style="font-size:0.8rem; color:var(--text-faint);">Tags / Role (e.g., Player: test | Wizard)</label>
-            <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
-            <label style="font-size:0.8rem; color:var(--text-faint);">Description / Backstory</label>
-            <textarea id="edit-char-body-${char.id}" rows="5" class="input-field">${escapeHtml(char.body || char.description || '')}</textarea>
-            ${isDM ? `<label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret</label>
-            <textarea id="edit-char-secret-${char.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(char.secret || char.dm_secret || '')}</textarea>` : ''}
+            <input type="text" id="edit-npc-name-${npc.id}" value="${escapeHtml(npc.name || npc.title || '')}" class="input-field" />
+            
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">HP</label>
+                <input type="text" id="edit-npc-hp-${npc.id}" value="${escapeHtml(npc.hp || '')}" class="input-field" />
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">Faction</label>
+                <input type="text" id="edit-npc-faction-${npc.id}" value="${escapeHtml(npc.faction || '')}" class="input-field" />
+              </div>
+            </div>
+
+            <label style="font-size:0.8rem; color:var(--text-faint);">Friendship Points</label>
+            <input type="number" id="edit-npc-points-${npc.id}" value="${friendshipPoints}" class="input-field" style="width:100px;" />
+
+            <label style="font-size:0.8rem; color:var(--text-faint);">Bio / Description</label>
+            <textarea id="edit-npc-bio-${npc.id}" rows="3" class="input-field">${escapeHtml(npc.bio || npc.body || npc.description || '')}</textarea>
+
+            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (npc_secrets Table)</label>
+            <textarea id="edit-npc-secret-${npc.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(secretContent)}</textarea>
+
             <div style="display:flex; gap:8px; margin-top:8px;">
-              <button class="btn btn-sm" onclick="saveCharEdit('${char.id}')">Save Changes</button>
-              <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('char', '${char.id}')">Cancel</button>
+              <button class="btn btn-sm" onclick="saveInlineNPCEdit('${npc.id}')">Save Changes</button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleInlineNPCEdit('${npc.id}')">Cancel</button>
             </div>
           </div>
         </div>
@@ -1777,36 +2359,100 @@
     `;
   }
 
-  async function addNewCharacter() {
+  function toggleInlineNPCEdit(npcId) {
+    const card = document.getElementById(`npc-card-${npcId}`);
+    if (!card) return;
+    const viewMode = card.querySelector('.npc-view-mode');
+    const editMode = card.querySelector('.npc-edit-mode');
+
+    const isEditing = editMode.style.display !== 'none';
+    viewMode.style.display = isEditing ? 'block' : 'none';
+    editMode.style.display = isEditing ? 'none' : 'block';
+  }
+
+  async function saveInlineNPCEdit(npcId) {
     if (!isDM) return;
-    const { data, error } = await sb.from('characters').insert({ 
-      name: 'New Character', tags: '', description: '', visible_to_players: true 
-    }).select();
 
-    if (error) alert("Failed to add character: " + error.message);
-    else if (data && data.length > 0) {
-      await loadCharacters();
-      toggleInlineEdit('char', data[0].id);
+    const nameEl = document.getElementById(`edit-npc-name-${npcId}`);
+    const hpEl = document.getElementById(`edit-npc-hp-${npcId}`);
+    const factionEl = document.getElementById(`edit-npc-faction-${npcId}`);
+    const pointsEl = document.getElementById(`edit-npc-points-${npcId}`);
+    const bioEl = document.getElementById(`edit-npc-bio-${npcId}`);
+    const secretEl = document.getElementById(`edit-npc-secret-${npcId}`);
+
+    if (!nameEl || !hpEl || !factionEl || !pointsEl || !bioEl || !secretEl) {
+      alert("Error: Missing input fields in the DOM.");
+      return;
+    }
+
+    const name = nameEl.value.trim();
+    const hp = hpEl.value.trim();
+    const faction = factionEl.value.trim();
+    const pointsVal = parseInt(pointsEl.value, 10);
+    const friendship_points = isNaN(pointsVal) ? 0 : pointsVal;
+    const bio = bioEl.value.trim();
+    const secretText = secretEl.value.trim();
+
+    const { error: npcErr } = await sb.from('npcs')
+      .update({
+        name,
+        hp,
+        faction,
+        friendship_points,
+        bio
+      })
+      .eq('id', npcId);
+
+    if (npcErr) {
+      alert("Failed to save NPC updates: " + npcErr.message);
+      return;
+    }
+
+    const { data: existingSecret } = await sb.from('npc_secrets').select('id').eq('npc_id', npcId).maybeSingle();
+
+    if (existingSecret) {
+      if (secretText) {
+        await sb.from('npc_secrets').update({ secret: secretText }).eq('npc_id', npcId);
+      } else {
+        await sb.from('npc_secrets').delete().eq('npc_id', npcId);
+      }
+    } else if (secretText) {
+      await sb.from('npc_secrets').insert({ npc_id: npcId, secret: secretText });
+    }
+
+    loadNPCs();
+  }
+
+  async function adjustFriendship(npcId, newScore) {
+    if (!isDM) return;
+    const score = Math.max(0, newScore);
+
+    const { error } = await sb.from('npcs')
+      .update({ friendship_points: score })
+      .eq('id', npcId);
+
+    if (error) {
+      alert("Failed to update friendship points: " + error.message);
+    } else {
+      loadNPCs();
     }
   }
 
-  async function saveCharEdit(charId) {
-    const name = document.getElementById(`edit-char-name-${charId}`).value.trim();
-    const tags = document.getElementById(`edit-char-tags-${charId}`).value.trim();
-    const description = document.getElementById(`edit-char-body-${charId}`).value.trim();
-    
-    let updatePayload = { name, tags, description };
+  checkSession();
+  
+  // Render function helper for inventory elements
+function renderInventoryControls(itemId) {
+  // If not the DM, do not render edit/delete controls
+  if (!isDM) return '';
 
-    if (isDM) {
-      const secretEl = document.getElementById(`edit-char-secret-${charId}`);
-      if (secretEl) updatePayload.secret = secretEl.value.trim();
-    }
-
-    const { error } = await sb.from('characters').update(updatePayload).eq('id', charId);
-    if (error) alert("Error updating character: " + error.message);
-    else loadCharacters();
-  }
-
+  return `
+    <div class="inventory-controls">
+      <button class="btn btn-sm btn-secondary" onclick="editInventoryItem('${itemId}')">Edit</button>
+      <button class="btn btn-sm btn-secondary" onclick="deleteInventoryItem('${itemId}')">Delete</button>
+    </div>
+  `;
+}
 </script>
+
 </body>
 </html>
