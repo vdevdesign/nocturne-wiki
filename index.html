@@ -10,6 +10,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Marked.js for inline Markdown rendering -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <style>
   :root {
@@ -21,8 +24,21 @@
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
+  #react-root { display: flex; flex: 1; min-width: 0; min-height: 100vh; }
   body { margin: 0; background: radial-gradient(ellipse 900px 500px at 15% -10%, rgba(138,104,214,0.10), transparent 60%), radial-gradient(ellipse 700px 500px at 100% 10%, rgba(201,162,75,0.06), transparent 55%), var(--bg); color: var(--text); font-family: var(--font-body); display: flex; min-height: 100vh; }
   @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; } }
+  @media (max-width: 760px) {
+    nav.sidebar { width: 220px; min-width: 220px; }
+    main { padding: 40px 28px; }
+  }
+  @media (max-width: 560px) {
+    body { display: block; }
+    #react-root { display: block; }
+    nav.sidebar { width: 100%; min-width: 0; height: auto; max-height: none; position: relative; padding: 18px 0; }
+    .navlist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .nav-chat-btn { grid-column: 1 / -1; }
+    main { max-width: none; padding: 32px 20px 80px; }
+  }
 
   /* Auth */
   #authScreen { position: fixed; inset: 0; background: radial-gradient(ellipse 900px 600px at 50% 0%, rgba(138,104,214,0.14), transparent 60%), var(--bg); display: flex; align-items: center; justify-content: center; z-index: 200; }
@@ -37,18 +53,39 @@
   .auth-box input { width: 100%; padding: 11px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 7px; color: var(--text); font-family: var(--font-body); font-size: 14.5px; margin-bottom: 16px; outline: none; }
   .auth-box input:focus { border-color: var(--purple); }
   .auth-box button[type="submit"] { width: 100%; }
+  .auth-link { display: block; margin: 12px auto 0; padding: 0; background: none; border: 0; color: var(--text-faint); font: inherit; font-size: 12px; cursor: pointer; }
+  .auth-link:hover { color: var(--gold); text-decoration: underline; }
   .auth-error { color: var(--rose); font-size: 12.5px; margin-top: 10px; min-height: 14px; }
   .auth-note { color: var(--text-faint); font-size: 11.5px; margin-top: 14px; line-height:1.5; }
 
-  nav.sidebar { width: 260px; flex-shrink: 0; background: var(--bg-alt); border-right: 1px solid var(--line); padding: 28px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+  nav.sidebar { width: 260px; min-width: 260px; flex-shrink: 0; background: var(--bg-alt); border-right: 1px solid var(--line); padding: 28px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
   .brand { padding: 0 24px 22px 24px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+  .brand-title-row, .brand-meta-row { display: flex; align-items: center; }
+  .brand-title-row { gap: 10px; }
+  .brand-title-row h1 { margin: 0; }
+  .brand-title-row p { margin: 4px 0 0; }
+  .brand-meta-row { justify-content: space-between; margin-top: 8px; }
+  .inbox-button { position: relative; width: 34px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: #fff; cursor: pointer; }
+  .inbox-button:hover { border-color: var(--gold); color: var(--gold); }
+  .email-icon { font-size: 20px; line-height: 1; }
+  .notification-bubble { position: absolute; top: -8px; right: -8px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--rose); color: #fff; font: 11px/18px var(--font-mono); text-align: center; }
+  .password-inbox { margin-top: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .password-request { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--text-dim); }
+  .password-request:last-child { border-bottom: 0; }
+  .password-request strong { color: var(--text); }
+  .password-request-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .inline-status { margin-top: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--text-dim); font-size: 12px; }
+  .inline-status.error { color: var(--rose); border-color: var(--rose-dim); }
   .brand h1 { font-family: var(--font-title); font-weight: 600; font-size: 26px; letter-spacing: 0.5px; margin: 0; color: var(--text); }
   .brand p { margin: 4px 0 0 0; font-size: 12px; color: var(--text-faint); letter-spacing: 0.6px; text-transform: uppercase; }
   .role-pill { display:inline-block; margin-top:8px; font-size:10.5px; letter-spacing:0.5px; text-transform:uppercase; padding:2px 8px; border-radius:10px; border:1px solid var(--gold-dim); color:var(--gold); }
   .role-pill.dm { border-color: var(--rose); color: #f182a0; }
   .navlist { list-style: none; margin: 0; padding: 0 12px; flex-grow: 1; }
   .navlist li { margin-bottom: 2px; }
-  .navlist button { width: 100%; text-align: left; background: none; border: none; color: var(--text-dim); font-family: var(--font-body); font-size: 14.5px; padding: 10px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s, color 0.15s; }
+  .navlist button { width: 100%; min-width: 0; text-align: left; background: none; border: none; color: var(--text-dim); font-family: var(--font-body); font-size: 14.5px; padding: 10px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s, color 0.15s; }
+  .nav-icon { width: 30px; flex: 0 0 30px; color: #fff; font-size: 25px; line-height: 1; text-align: center; }
+  .nav-label { min-width: 0; overflow-wrap: anywhere; }
+  .nav-chat-label { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .navlist button:hover { background: var(--surface); color: var(--text); }
   .navlist button.active { background: var(--surface-2); color: var(--gold); box-shadow: inset 2px 0 0 var(--gold-dim); }
   .navlist .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--purple-dim); flex-shrink: 0; }
@@ -59,7 +96,7 @@
   .logout-btn { margin: 12px; padding: 8px 12px; font-size: 12px; color: var(--text-faint); background: none; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
   .logout-btn:hover { color: var(--text); border-color: var(--purple-dim); }
 
-  main { flex: 1; padding: 56px 64px; max-width: 900px; }
+  main { flex: 1 1 900px; min-width: 0; width: 100%; padding: 56px 64px; max-width: 900px; overflow-x: hidden; }
   section { display: none; animation: fade-in 0.25s ease; }
   section.active { display: block; }
   @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -254,6 +291,8 @@
     border-bottom: 1px solid var(--line);
     background: var(--surface);
   }
+  .chat-header-left, .chat-header-actions { display: flex; align-items: center; gap: 10px; }
+  .chat-header h4 { margin: 0; font-family: var(--font-title); font-size: 20px; color: var(--text); }
   .chat-menu-drawer {
     position: absolute;
     top: 55px;
@@ -264,10 +303,12 @@
     border-right: 1px solid var(--line);
     transition: left 0.25s ease;
     z-index: 10;
-    padding: 12px;
+    padding: 16px;
     overflow-y: auto;
   }
   .chat-menu-drawer.open { left: 0; }
+  .chat-drawer-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .chat-drawer-header strong { font-size: 12px; text-transform: uppercase; color: var(--text-faint); }
 
   .chat-item {
     display: flex;
@@ -280,6 +321,35 @@
     font-size: 13px;
   }
   .chat-item:hover, .chat-item.active { background: rgba(255,255,255,0.08); }
+  .chat-body { flex: 1; display: flex; flex-direction: column; padding: 16px; overflow: hidden; }
+  .chat-dm-controls { margin-bottom: 12px; }
+  .chat-control-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .chat-unlock-control { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 12px; }
+  .chat-clear-button { margin-left: auto; color: var(--rose); border-color: var(--rose-dim); }
+  .chat-messages { position: relative; flex: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .chat-help-panel { flex: 0 0 auto; max-height: 150px; margin-bottom: 12px; padding: 12px; overflow-y: auto; background: var(--surface); border: 1px solid var(--purple-dim); border-radius: 6px; }
+  .chat-help-panel-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text); }
+  .chat-command-list p { margin: 0 0 7px; color: var(--text-dim); font-size: 12px; line-height: 1.45; }
+  .chat-command-list p:last-child { margin-bottom: 0; }
+  .chat-form { display: flex; gap: 8px; align-items: center; }
+  .chat-form .input-control { min-width: 0; }
+  .dice-menu-anchor { position: relative; flex: 0 0 auto; }
+  .dice-roll-button { min-width: 92px; color: var(--gold); border-color: var(--gold-dim); }
+  .dice-roll-button:hover { background: var(--gold-dim); color: var(--bg); }
+  .dice-roll-menu { position: absolute; right: 0; bottom: calc(100% + 10px); z-index: 20; width: 220px; padding: 14px; background: var(--surface); border: 1px solid var(--gold-dim); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+  .dice-roll-menu::after { content: ''; position: absolute; right: 34px; bottom: -7px; width: 12px; height: 12px; background: var(--surface); border-right: 1px solid var(--gold-dim); border-bottom: 1px solid var(--gold-dim); transform: rotate(45deg); }
+  .dice-menu-title { display: block; margin-bottom: 10px; color: var(--gold); font-family: var(--font-title); font-size: 18px; }
+  .dice-roll-menu label { display: block; margin-bottom: 9px; color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .dice-roll-menu .input-field { margin-top: 4px; padding: 7px 9px; font-size: 13px; }
+  .dice-roll-menu > .btn { width: 100%; margin-top: 3px; }
+  .dice-roll-animation { position: absolute; left: 10%; top: 50%; z-index: 4; pointer-events: none; animation: dice-cross-chat 0.9s ease-in-out forwards; }
+  .dice-roll-frame { position: absolute; width: 58px; height: 58px; opacity: 0; animation: dice-frame 0.9s steps(1, end) forwards; }
+  .dice-roll-frame:nth-child(1) { animation-delay: 0s; }
+  .dice-roll-frame:nth-child(2) { animation-delay: 0.16s; }
+  .dice-roll-frame:nth-child(3) { animation-delay: 0.32s; }
+  @keyframes dice-cross-chat { from { transform: translateX(0) translateY(-50%) rotate(-18deg); } to { transform: translateX(620px) translateY(-50%) rotate(360deg); } }
+  @keyframes dice-frame { 0%, 17% { opacity: 1; } 18%, 100% { opacity: 0; } }
+  .chat-help { margin: 6px 0 0; color: var(--text-faint); font-size: 11px; line-height: 1.5; }
 
   /* Message styling with delete controls */
   .chat-msg-row {
@@ -525,6 +595,20 @@
 </style>
 </head>
 <body>
+
+<div id="react-root"></div>
+<script type="text/babel" src="pages/PageSection.jsx"></script>
+<script type="text/babel" src="pages/HomePage.jsx"></script>
+<script type="text/babel" src="pages/WorldbookPage.jsx"></script>
+<script type="text/babel" src="pages/NpcsPage.jsx"></script>
+<script type="text/babel" src="pages/CharactersPage.jsx"></script>
+<script type="text/babel" src="pages/SessionZeroPage.jsx"></script>
+<script type="text/babel" src="pages/SummariesPage.jsx"></script>
+<script type="text/babel" src="pages/LootPage.jsx"></script>
+<script type="text/babel" src="pages/PrimerPage.jsx"></script>
+<script type="text/babel" src="pages/RestrictedPage.jsx"></script>
+<script type="text/babel" src="App.jsx?v=20260828-d20-click"></script>
+<div id="legacy-app" style="display:none;">
 
 <!-- ================= AUTH SCREEN ================= -->
 <div id="authScreen">
@@ -790,6 +874,7 @@
   </div>
 </div>
 
+ </div>
 <script>
   /* ===================== CONFIG ===================== */
   const SUPABASE_URL = "https://xpsaorwxjminbnmooojc.supabase.co";
@@ -803,6 +888,7 @@
   let currentSessionId = "session_1";
   let isSessionOpen = false;
   let chatSubscription = null;
+  let passwordRequestSubscription = null;
 
   /* ===================== GLOBAL SPOILER DELEGATION ===================== */
   document.addEventListener('click', function(e) {
@@ -810,6 +896,11 @@
     if (target) {
       target.classList.toggle('revealed');
     }
+  });
+
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('#react-root #diceRollBtn')) toggleDiceMenu();
+    if (e.target.closest('#react-root #rollConfiguredDiceBtn')) rollConfiguredDice();
   });
 
   /* ===================== HELPER FUNCTIONS ===================== */
@@ -824,6 +915,7 @@
   }
 
   /* ===================== AUTH ===================== */
+  const DEV_MODE = window.location.protocol === 'file:';
   let authMode = 'signin';
   function setAuthMode(mode) {
     authMode = mode;
@@ -833,8 +925,24 @@
     document.getElementById('authError').textContent = '';
   }
 
-  document.getElementById('authForm').addEventListener('submit', async (e) => {
+  function enterDevMode() {
+    if (!DEV_MODE) return;
+
+    currentUser = { id: 'dev-user', email: 'dm@campaign.local' };
+    isDM = true;
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('appSidebar').style.display = 'flex';
+    document.getElementById('appMain').style.display = 'block';
+    document.getElementById('rolePill').textContent = 'dm (offline)';
+    document.getElementById('rolePill').classList.add('dm');
+    document.getElementById('dmNavBtn').style.display = 'flex';
+    document.getElementById('spoilerToolbar').style.display = 'flex';
+    document.getElementById('inboxButton').style.display = 'inline-block';
+  }
+
+  async function handleAuthSubmit(e) {
     e.preventDefault();
+    document.getElementById('authError').textContent = '';
     const username = document.getElementById('authUsername').value.trim().toLowerCase();
     const password = document.getElementById('authPass').value;
     
@@ -856,12 +964,98 @@
       return;
     }
     await onSignedIn();
-  });
+  }
 
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await sb.auth.signOut();
-    location.reload();
-  });
+  async function handleForgotPassword() {
+    const username = document.getElementById('authUsername')?.value.trim().toLowerCase();
+    const message = document.getElementById('authError');
+    if (!username) {
+      message.textContent = 'Enter your username first, then request a reset.';
+      return;
+    }
+
+    const { error } = await sb.from('password_reset_requests').insert({
+      username,
+      email: `${username}@campaign.local`,
+      status: 'pending'
+    });
+
+    if (error) {
+      message.textContent = error.message;
+      return;
+    }
+    message.className = 'inline-status';
+    message.textContent = 'Your reset request is now in the DM inbox.';
+  }
+
+  function togglePasswordInbox() {
+    const inbox = document.getElementById('passwordInbox');
+    const isOpen = inbox.style.display !== 'none';
+    inbox.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen && isDM) loadPasswordRequests();
+  }
+
+  async function loadPasswordRequests() {
+    const inbox = document.getElementById('passwordInbox');
+    const count = document.getElementById('inboxCount');
+    if (!inbox || !isDM) return;
+
+    const { data, error } = await sb.from('password_reset_requests')
+      .select('*').eq('status', 'pending').order('created_at', { ascending: false });
+    if (error) {
+      inbox.innerHTML = '<div class="inline-status error">Create the password_reset_requests table to enable this inbox.</div>';
+      count.style.display = 'none';
+      return;
+    }
+
+    count.textContent = String(data?.length || 0);
+    count.style.display = data?.length ? 'block' : 'none';
+    inbox.innerHTML = data?.length ? data.map(request => `
+      <div class="password-request" id="password-request-${request.id}">
+        <strong>${escapeHtml(request.username)}</strong><br>
+        <span>Requested ${new Date(request.created_at).toLocaleString()}</span>
+        <div class="password-request-actions">
+          <button class="btn btn-sm btn-secondary" onclick="markPasswordRequestHandled('${request.id}')">Mark handled</button>
+        </div>
+      </div>`).join('') : '<div class="empty-note">No pending password requests.</div>';
+  }
+
+  function subscribeToPasswordRequests() {
+    if (!isDM || passwordRequestSubscription) return;
+    passwordRequestSubscription = sb.channel('password_reset_notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'password_reset_requests' }, () => loadPasswordRequests())
+      .subscribe();
+  }
+
+  async function markPasswordRequestHandled(requestId) {
+    const { error } = await sb.from('password_reset_requests').update({
+      status: 'handled', handled_by: currentUser.id, handled_at: new Date().toISOString()
+    }).eq('id', requestId);
+    if (error) {
+      document.getElementById('passwordInbox').insertAdjacentHTML('afterbegin', `<div class="inline-status error">${escapeHtml(error.message)}</div>`);
+      return;
+    }
+    loadPasswordRequests();
+  }
+
+  async function handleLogout() {
+    if (DEV_MODE && currentUser?.id === 'dev-user') {
+      location.reload();
+      return;
+    }
+    const { error } = await sb.auth.signOut();
+    if (error) {
+      document.getElementById('authError').textContent = error.message;
+      return;
+    }
+
+    currentUser = null;
+    isDM = false;
+    document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('appSidebar').style.display = 'none';
+    document.getElementById('appMain').style.display = 'none';
+    document.getElementById('passwordInbox').style.display = 'none';
+  }
 
   async function checkSession() {
     const { data: { session } } = await sb.auth.getSession();
@@ -885,6 +1079,14 @@
     rolePill.classList.toggle('dm', isDM);
     document.getElementById('dmNavBtn').style.display = isDM ? 'flex' : 'none';
     document.getElementById('spoilerToolbar').style.display = isDM ? 'flex' : 'none';
+    document.getElementById('inboxButton').style.display = isDM ? 'inline-block' : 'none';
+    const savedPage = window.localStorage.getItem('nocturne-active-page');
+    const restoredPage = savedPage === 'restricted' && !isDM ? 'home' : savedPage;
+    if (restoredPage && document.getElementById(restoredPage)) navigateTo(restoredPage);
+    if (isDM) {
+      loadPasswordRequests();
+      subscribeToPasswordRequests();
+    }
 
     loadWorldbook();
     loadNPCs();
@@ -1062,6 +1264,7 @@
     const badge = document.getElementById('chatStatusBadge');
     const dmControls = document.getElementById('dmChatControls');
     const toggle = document.getElementById('sessionOpenToggle');
+    const diceButton = document.getElementById('diceRollBtn');
 
     if (isDM) {
       dmControls.style.display = 'block';
@@ -1071,18 +1274,97 @@
     const canType = isDM || isSessionOpen;
     input.disabled = !canType;
     sendBtn.disabled = !canType;
+    diceButton.disabled = !canType;
 
     if (isSessionOpen) {
       badge.innerText = "Live Session Active";
       badge.style.color = "var(--gold)";
       badge.style.borderColor = "var(--gold-dim)";
-      input.placeholder = "Type a message, /whisper [Player], or /roll 1d20...";
+      input.placeholder = "Type /help for chat commands...";
     } else {
       badge.innerText = "Session Locked";
       badge.style.color = "var(--rose)";
       badge.style.borderColor = "var(--rose-dim)";
-      input.placeholder = isDM ? "Session locked for players (DM can still post)..." : "Session locked by DM.";
+      input.placeholder = isDM ? "Type /help for chat commands..." : "Session locked by DM.";
     }
+  }
+
+  function d20Svg(frame) {
+    const points = frame === 1 ? '30,3 56,20 48,52 12,52 4,20' : frame === 2 ? '30,6 54,24 44,50 16,50 6,24' : '30,2 57,22 45,55 15,55 3,22';
+    const number = frame === 1 ? 7 : frame === 2 ? 14 : 20;
+    return `<svg viewBox="0 0 60 60" aria-hidden="true"><polygon points="${points}" fill="var(--surface-2)" stroke="var(--gold)" stroke-width="2"/><path d="M30 3 L30 57 M4 20 L56 20 M12 52 L48 52 M4 20 L30 57 L56 20" fill="none" stroke="var(--purple)" stroke-width="1.2" opacity="0.9"/><text x="30" y="38" text-anchor="middle" fill="white" font-family="var(--font-mono)" font-size="14" font-weight="700">${number}</text></svg>`;
+  }
+
+  function playDiceAnimation() {
+    const container = document.getElementById('chatMessages');
+    if (!container) return;
+    const animation = document.createElement('div');
+    animation.className = 'dice-roll-animation';
+    animation.innerHTML = [1, 2, 3].map(frame => `<span class="dice-roll-frame">${d20Svg(frame)}</span>`).join('');
+    container.appendChild(animation);
+    setTimeout(() => animation.remove(), 1000);
+  }
+
+  function createRollMessage(diceExp) {
+    const normalized = diceExp.replace(/\s+/g, '').toLowerCase();
+    const match = normalized.match(/^(\d+)d(\d+)([\+\-]\d+)?$/);
+    if (!match) return `🎲 Invalid roll command: ${normalized}. Use format like 1d20+5`;
+
+    const count = parseInt(match[1], 10);
+    const faces = parseInt(match[2], 10);
+    const mod = match[3] ? parseInt(match[3], 10) : 0;
+    const rolls = Array.from({ length: count }, () => Math.floor(Math.random() * faces) + 1);
+    const sum = rolls.reduce((total, value) => total + value, 0);
+    const total = sum + mod;
+    const modStr = mod > 0 ? `+${mod}` : mod < 0 ? `${mod}` : '';
+    return `🎲 Rolled ${count}d${faces}${modStr}: [${rolls.join(', ')}]${modStr} = ${total}`;
+  }
+
+  function toggleDiceMenu(forceOpen) {
+    const menu = document.getElementById('diceRollMenu');
+    if (!menu) return;
+    const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : menu.style.display === 'none';
+    menu.style.display = shouldOpen ? 'block' : 'none';
+  }
+
+  async function rollD20(diceExp = '1d20') {
+    if (!isDM && !isSessionOpen) return;
+    playDiceAnimation();
+    await postChatMessage(createRollMessage(diceExp));
+  }
+
+  async function rollConfiguredDice() {
+    const count = Math.max(1, Math.min(100, parseInt(document.getElementById('diceCountInput').value, 10) || 1));
+    const faces = parseInt(document.getElementById('diceTypeInput').value, 10) || 20;
+    const modifier = parseInt(document.getElementById('diceModifierInput').value, 10) || 0;
+    const modifierText = modifier > 0 ? `+${modifier}` : modifier < 0 ? `${modifier}` : '';
+    toggleDiceMenu(false);
+    await rollD20(`${count}d${faces}${modifierText}`);
+  }
+
+  async function postChatMessage(messageText) {
+    const { data, error } = await sb.from('session_messages').insert({
+      session_id: currentSessionId,
+      sender_id: currentUser.id,
+      sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
+      content: messageText,
+      is_whisper: false
+    }).select();
+
+    if (error) {
+      document.getElementById('chatMessages').insertAdjacentHTML('beforeend', `<p class="error-msg">Could not send message: ${escapeHtml(error.message)}</p>`);
+    } else if (data && data.length > 0) {
+      appendMessageUI(data[0]);
+    }
+  }
+
+  function toggleChatHelp(forceOpen) {
+    const panel = document.getElementById('chatHelpPanel');
+    if (!panel) return;
+    const shouldOpen = typeof forceOpen === 'boolean'
+      ? forceOpen
+      : panel.style.display === 'none';
+    panel.style.display = shouldOpen ? 'block' : 'none';
   }
 
   async function toggleSessionChat(isOpen) {
@@ -1094,7 +1376,7 @@
     if (error) alert("Failed to change session status: " + error.message);
   }
 
-  document.getElementById('chatForm').addEventListener('submit', async (e) => {
+  async function handleChatSubmit(e) {
     e.preventDefault();
     const input = document.getElementById('chatInput');
     const rawText = input.value.trim();
@@ -1105,7 +1387,11 @@
     let isWhisper = false;
     let messageText = rawText;
 
-    if (rawText.startsWith('/whisper ')) {
+    if (rawText.toLowerCase() === '/help') {
+      input.value = '';
+      toggleChatHelp();
+      return;
+    } else if (rawText.startsWith('/whisper ')) {
       const parts = rawText.split(' ');
       const targetName = parts[1];
       messageText = parts.slice(2).join(' ');
@@ -1122,27 +1408,7 @@
       }
     } else if (rawText.startsWith('/roll ') || rawText.startsWith('/r ')) {
       const diceExp = rawText.replace(/^\/(roll|r)\s+/i, '').replace(/\s+/g, '').toLowerCase();
-      const regex = /^(\d+)d(\d+)([\+\-]\d+)?$/;
-      const match = diceExp.match(regex);
-      
-      if (match) {
-        const count = parseInt(match[1]);
-        const faces = parseInt(match[2]);
-        const mod = match[3] ? parseInt(match[3]) : 0;
-        
-        let rolls = [];
-        let sum = 0;
-        for (let i = 0; i < count; i++) {
-          let r = Math.floor(Math.random() * faces) + 1;
-          rolls.push(r);
-          sum += r;
-        }
-        const total = sum + mod;
-        const modStr = mod > 0 ? `+${mod}` : (mod < 0 ? `${mod}` : ``);
-        messageText = `🎲 Rolled ${count}d${faces}${modStr}: [${rolls.join(', ')}]${modStr} = ${total}`;
-      } else {
-        messageText = `🎲 Invalid roll command: ${diceExp}. Use format like 1d20+5`;
-      }
+      messageText = createRollMessage(diceExp);
     }
 
     const { data, error } = await sb.from('session_messages').insert({
@@ -1163,7 +1429,7 @@
         appendMessageUI(data[0]);
       }
     }
-  });
+  }
 
   async function loadSessionMessages() {
     const container = document.getElementById('chatMessages');
@@ -1205,7 +1471,7 @@
     
     if (isWhisper) {
       const toName = msg.recipient_name ? escapeHtml(msg.recipient_name) : "Player";
-      senderDisplay = `<span style="color:var(--purple); font-size:11px; font-weight:600;">[WHISPER]</span> <strong style="color:var(--purple)">From ${escapeHtml(msg.sender_name)} To ${toName}</strong>`;
+      senderDisplay = `<span style="color:var(--purple); font-size:11px; font-weight:600;">[WHISPER]</span> <strong style="color:var(--purple)">Whisper from ${escapeHtml(msg.sender_name)} to ${toName}</strong>`;
     }
 
     // Bold the final dice roll total nicely for easy reading
@@ -1323,7 +1589,7 @@
           <div style="margin-top:12px;">
             <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
             <div class="spoiler-mask" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
-              ${escapeHtml(secretText)}
+              ${renderMarkdown(secretText, 'No secret text.')}
             </div>
           </div>`;
       }
@@ -1358,7 +1624,7 @@
             </div>
           </div>
 
-          <div class="block-body" style="margin-top:10px;">${summary.body || summary.content || summary.description || '<p class="empty-note">No summary text.</p>'}</div>
+          <div class="block-body" style="margin-top:10px;">${renderMarkdown(summary.body || summary.content || summary.description, 'No summary text.')}</div>
           ${secretSection}
           ${dmControls}
         </div>
@@ -1382,10 +1648,10 @@
             <input type="text" id="edit-summary-date-${summary.id}" value="${escapeHtml(summary.session_date || '')}" class="input-field" placeholder="e.g. Oct 12, 2024" />
 
             <label style="font-size:0.8rem; color:var(--text-faint);">Public Summary / Notes</label>
-            <textarea id="edit-summary-body-${summary.id}" rows="5" class="input-field">${escapeHtml(summary.body || summary.content || summary.description || '')}</textarea>
+            ${markdownEditor(`edit-summary-body-${summary.id}`, summary.body || summary.content || summary.description || '', 5)}
 
             <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Blacked out for players)</label>
-            <textarea id="edit-summary-secret-${summary.id}" rows="2" class="input-field" style="border-color:rgba(220,50,50,0.4);">${escapeHtml(summary.secret || summary.dm_secret || '')}</textarea>
+            ${markdownEditor(`edit-summary-secret-${summary.id}`, summary.secret || summary.dm_secret || '', 2, 'input-field-secret')}
 
             <div style="display:flex; gap:8px; margin-top:8px;">
               <button class="btn btn-sm" onclick="saveInlineSummaryEdit('${summary.id}')">Save Changes</button>
@@ -1646,7 +1912,7 @@ function renderLootCard(item) {
             ${metaText ? `<p class="card-subtitle">${metaText}</p>` : ''}
           </div>
         </div>
-        <div class="block-body" style="margin-top:10px;">${item.description || item.body || '<p class="empty-note">No description provided.</p>'}</div>
+        <div class="block-body" style="margin-top:10px;">${renderMarkdown(item.description || item.body, 'No description provided.')}</div>
         ${dmControls}
       </div>
 
@@ -1673,7 +1939,7 @@ function renderLootCard(item) {
 
           <div class="form-group">
             <label>Description</label>
-            <textarea id="edit-loot-desc-${item.id}" rows="3" class="input-field">${escapeHtml(item.description || item.body || '')}</textarea>
+            ${markdownEditor(`edit-loot-desc-${item.id}`, item.description || item.body || '', 3)}
           </div>
 
           <div style="display:flex; gap:8px; margin-top:4px;">
@@ -1862,7 +2128,7 @@ function toggleInlineEdit(type, id) {
           </div>` : ''}
         </div>
         ${hpWidget}
-        <div class="block-body" id="body-${row.id}">${row.body || ''}</div>
+        <div class="block-body" id="body-${row.id}">${renderMarkdown(row.body, 'No entry text.')}</div>
         ${dmControls}
       </div>
 
@@ -1876,7 +2142,7 @@ function toggleInlineEdit(type, id) {
           </div>
           <div class="form-group">
             <label>Body (HTML/Markdown)</label>
-            <textarea id="edit-block-body-${row.id}" rows="6" class="input-field">${escapeHtml(row.body || '')}</textarea>
+            ${markdownEditor(`edit-block-body-${row.id}`, row.body || '', 6)}
           </div>
           <div style="display:flex; gap:8px; margin-top:4px;">
             <button class="btn btn-sm" onclick="saveGenericInlineEdit('${row.id}', '${tableName}', '${containerId}')">Save Changes</button>
@@ -1999,9 +2265,24 @@ if (window.marked) {
   });
 }
 
-function renderMarkdown(str) {
-  if (!str) return '<p class="empty-note">No backstory available.</p>';
+function renderMarkdown(str, emptyLabel = 'No content available.') {
+  if (!str) return `<p class="empty-note">${escapeHtml(emptyLabel)}</p>`;
   return window.marked ? marked.parse(str) : escapeHtml(str);
+}
+
+function markdownEditor(id, value, rows = 6, className = '') {
+  return `
+    <div class="markdown-editor">
+      <div class="md-toolbar" aria-label="Markdown formatting">
+        <button type="button" onclick="insertMdFormat('${id}', 'h1')">H1</button>
+        <button type="button" onclick="insertMdFormat('${id}', 'h2')">H2</button>
+        <button type="button" onclick="insertMdFormat('${id}', 'h3')">H3</button>
+        <button type="button" onclick="insertMdFormat('${id}', 'bold')">B</button>
+        <button type="button" onclick="insertMdFormat('${id}', 'italic')">I</button>
+        <button type="button" onclick="insertMdFormat('${id}', 'list')">• List</button>
+      </div>
+      <textarea id="${id}" rows="${rows}" class="input-field md-textarea ${className}">${escapeHtml(value)}</textarea>
+    </div>`;
 }
 
 // Helper to insert formatting at current cursor selection
@@ -2214,24 +2495,15 @@ function renderCharacterCard(char) {
             <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
           </div>` : ''}
 
-          <!-- Markdown Editor Toolbar & Textarea -->
           <div class="form-group">
             <label>Bio / Backstory (Markdown Enabled)</label>
-            <div class="md-toolbar">
-              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'h1')">H1</button>
-              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'h2')">H2</button>
-              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'h3')">H3</button>
-              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'bold')">B</button>
-              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'italic')">I</button>
-              <button type="button" onclick="insertMdFormat('edit-char-bio-${char.id}', 'list')">• List</button>
-            </div>
-            <textarea id="edit-char-bio-${char.id}" rows="6" class="input-field md-textarea">${escapeHtml(bioRaw)}</textarea>
+            ${markdownEditor(`edit-char-bio-${char.id}`, bioRaw, 6)}
           </div>
 
           ${isDM ? `
           <div class="form-group">
             <label class="secret-label">🔒 DM Secret</label>
-            <textarea id="edit-char-secret-${char.id}" rows="2" class="input-field input-field-secret">${escapeHtml(char.secret || char.dm_secret || '')}</textarea>
+            ${markdownEditor(`edit-char-secret-${char.id}`, char.secret || char.dm_secret || '', 2, 'input-field-secret')}
           </div>` : ''}
 
           <div style="display:flex; gap:8px; margin-top:4px;">
@@ -2291,6 +2563,8 @@ async function saveInlineCharacterEdit(charId) {
       return;
     }
   }
+
+  checkSession();
 </script>
 </body>
 </html>
