@@ -318,6 +318,20 @@
     border-radius: 4px;
     cursor: pointer;
     margin-bottom: 4px;
+  .death-saves-anchor { position: relative; flex: 0 0 auto; }
+  .death-saves-button { min-width: 96px; color: var(--rose); border-color: var(--rose-dim); }
+  .death-saves-button:hover { background: var(--rose-dim); color: var(--text); }
+  .death-saves-menu { width: 260px; }
+  .death-saves-menu > .btn { width: 100%; margin-top: 7px; }
+  .death-saves-help { margin: -4px 0 12px; color: var(--text-faint); font-size: 11px; line-height: 1.45; }
+  .death-save-tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .death-save-track-label { color: var(--text-faint); font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase; }
+  .death-save-markers { display: flex; gap: 6px; margin-top: 6px; }
+  .death-save-marker { width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; background: var(--bg); }
+  .death-save-marker.filled.success { background: var(--gold-dim); border-color: var(--gold); }
+  .death-save-marker.filled.failure { background: var(--rose-dim); border-color: var(--rose); }
+  .death-save-status { min-height: 18px; margin: 0 0 6px; color: var(--text-dim); font-size: 11px; line-height: 1.45; }
+  .death-save-status.error { color: var(--rose); }
     font-size: 13px;
   }
   .chat-item:hover, .chat-item.active { background: rgba(255,255,255,0.08); }
@@ -326,6 +340,11 @@
   .chat-control-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   .chat-unlock-control { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 12px; }
   .chat-clear-button { margin-left: auto; color: var(--rose); border-color: var(--rose-dim); }
+  @media (max-width: 560px) {
+    .chat-form { flex-wrap: wrap; }
+    .chat-form .input-control { flex: 1 1 100%; }
+    .death-saves-menu { right: auto; left: 0; }
+  }
   .chat-messages { position: relative; flex: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
   .chat-help-panel { flex: 0 0 auto; max-height: 150px; margin-bottom: 12px; padding: 12px; overflow-y: auto; background: var(--surface); border: 1px solid var(--purple-dim); border-radius: 6px; }
   .chat-help-panel-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text); }
@@ -607,7 +626,7 @@
 <script type="text/babel" src="pages/LootPage.jsx"></script>
 <script type="text/babel" src="pages/PrimerPage.jsx"></script>
 <script type="text/babel" src="pages/RestrictedPage.jsx"></script>
-<script type="text/babel" src="App.jsx?v=20260828-d20-click"></script>
+<script type="text/babel" src="App.jsx?v=20261002-death-saves"></script>
 <div id="legacy-app" style="display:none;">
 
 <!-- ================= AUTH SCREEN ================= -->
@@ -705,6 +724,7 @@
     </div>
     <h2 class="title">NPCs &amp; Friendship Points</h2>
     <p class="subtitle">Faculty, allies, and notable figures across the realm.</p>
+<script type="text/babel" src="pages/QuestBoardPage.jsx"></script>
     <div id="npc-cards-container"><p class="empty-note">Loading…</p></div>
   </section>
 
@@ -985,6 +1005,11 @@
       return;
     }
     message.className = 'inline-status';
+  let deathSaveState = { successes: 0, failures: 0 };
+  let deathSaveMessage = '';
+  let deathSaveStorageError = '';
+  let questBoardEntries = [];
+  let questBoardFilter = 'all';
     message.textContent = 'Your reset request is now in the DM inbox.';
   }
 
@@ -1002,6 +1027,9 @@
 
     const { data, error } = await sb.from('password_reset_requests')
       .select('*').eq('status', 'pending').order('created_at', { ascending: false });
+    if (e.target.closest('#react-root #deathSavesBtn')) toggleDeathSavesMenu();
+    if (e.target.closest('#react-root #rollDeathSaveBtn')) rollDeathSave();
+    if (e.target.closest('#react-root #resetDeathSavesBtn')) resetDeathSaves();
     if (error) {
       inbox.innerHTML = '<div class="inline-status error">Create the password_reset_requests table to enable this inbox.</div>';
       count.style.display = 'none';
@@ -1193,6 +1221,8 @@
     event.stopPropagation();
     const input = prompt(`Are you sure you want to delete all logs for "${sessionId}"?\n\nType DELETE below to confirm:`);
     
+    loadQuestBoard();
+    loadDashboard();
     if (input === "DELETE") {
       const { error } = await sb.from('session_messages').delete().eq('session_id', sessionId);
       if (error) {
@@ -1374,6 +1404,7 @@
       is_open: isOpen
     });
     if (error) alert("Failed to change session status: " + error.message);
+    loadDeathSaveState();
   }
 
   async function handleChatSubmit(e) {
@@ -1410,6 +1441,7 @@
       const diceExp = rawText.replace(/^\/(roll|r)\s+/i, '').replace(/\s+/g, '').toLowerCase();
       messageText = createRollMessage(diceExp);
     }
+    const deathSavesButton = document.getElementById('deathSavesBtn');
 
     const { data, error } = await sb.from('session_messages').insert({
       session_id: currentSessionId,
@@ -1420,6 +1452,8 @@
       content: messageText,
       is_whisper: isWhisper
     }).select();
+    deathSavesButton.disabled = !canType;
+    renderDeathSaveTracker();
 
     if (error) {
       alert("Could not send message: " + error.message);
@@ -1472,6 +1506,120 @@
     if (isWhisper) {
       const toName = msg.recipient_name ? escapeHtml(msg.recipient_name) : "Player";
       senderDisplay = `<span style="color:var(--purple); font-size:11px; font-weight:600;">[WHISPER]</span> <strong style="color:var(--purple)">Whisper from ${escapeHtml(msg.sender_name)} to ${toName}</strong>`;
+  function deathSaveStorageKey() {
+    return `nocturne-death-saves:${currentUser.id}:${currentSessionId}`;
+  }
+
+  function loadDeathSaveState() {
+    deathSaveState = { successes: 0, failures: 0 };
+    deathSaveMessage = '';
+    deathSaveStorageError = '';
+    try {
+      const saved = window.localStorage.getItem(deathSaveStorageKey());
+      if (saved) {
+        const state = JSON.parse(saved);
+        if (!Number.isInteger(state.successes) || !Number.isInteger(state.failures)
+          || state.successes < 0 || state.successes > 3
+          || state.failures < 0 || state.failures > 3) {
+          throw new Error('Saved death save tracker data is invalid.');
+        }
+        deathSaveState = { successes: state.successes, failures: state.failures };
+      }
+    } catch (error) {
+      deathSaveStorageError = `Could not load saved death saves: ${error.message}`;
+    }
+    renderDeathSaveTracker();
+  }
+
+  function saveDeathSaveState() {
+    try {
+      window.localStorage.setItem(deathSaveStorageKey(), JSON.stringify(deathSaveState));
+      deathSaveStorageError = '';
+      return true;
+    } catch (error) {
+      deathSaveStorageError = `Could not save death saves: ${error.message}`;
+      return false;
+    }
+  }
+
+  function renderDeathSaveTracker() {
+    const successMarkers = document.getElementById('deathSaveSuccesses');
+    const failureMarkers = document.getElementById('deathSaveFailures');
+    const status = document.getElementById('deathSaveStatus');
+    const rollButton = document.getElementById('rollDeathSaveBtn');
+    const resetButton = document.getElementById('resetDeathSavesBtn');
+    if (!successMarkers || !failureMarkers || !status || !rollButton || !resetButton) return;
+
+    const terminal = deathSaveState.successes >= 3 || deathSaveState.failures >= 3;
+    successMarkers.innerHTML = Array.from({ length: 3 }, (_, index) =>
+      `<span class="death-save-marker ${index < deathSaveState.successes ? 'filled success' : ''}" aria-hidden="true"></span>`
+    ).join('');
+    failureMarkers.innerHTML = Array.from({ length: 3 }, (_, index) =>
+      `<span class="death-save-marker ${index < deathSaveState.failures ? 'filled failure' : ''}" aria-hidden="true"></span>`
+    ).join('');
+    successMarkers.setAttribute('aria-label', `${deathSaveState.successes} of 3 successes`);
+    failureMarkers.setAttribute('aria-label', `${deathSaveState.failures} of 3 failures`);
+    const outcome = deathSaveState.successes >= 3
+      ? 'Stable — your character is unconscious but no longer making death saves.'
+      : deathSaveState.failures >= 3
+        ? 'Three failures — your character has died.'
+        : deathSaveMessage;
+    status.textContent = [outcome, deathSaveStorageError].filter(Boolean).join(' ');
+    status.classList.toggle('error', Boolean(deathSaveStorageError));
+    rollButton.disabled = terminal;
+    resetButton.disabled = deathSaveState.successes === 0 && deathSaveState.failures === 0 && !deathSaveMessage;
+  }
+
+  function toggleDeathSavesMenu(forceOpen) {
+    const menu = document.getElementById('deathSavesMenu');
+    if (!menu) return;
+    const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : menu.style.display === 'none';
+    if (shouldOpen) {
+      toggleDiceMenu(false);
+      loadDeathSaveState();
+    }
+    menu.style.display = shouldOpen ? 'block' : 'none';
+  }
+
+  async function rollDeathSave() {
+    if (!isDM && !isSessionOpen) return;
+    if (deathSaveState.successes >= 3 || deathSaveState.failures >= 3) return;
+
+    const roll = Math.floor(Math.random() * 20) + 1;
+    let result;
+    if (roll === 20) {
+      deathSaveState = { successes: 0, failures: 0 };
+      result = 'Natural 20 — regain 1 hit point and reset all death saves.';
+    } else if (roll === 1) {
+      deathSaveState.failures = Math.min(3, deathSaveState.failures + 2);
+      result = 'Natural 1 — mark two failures.';
+    } else if (roll >= 10) {
+      deathSaveState.successes = Math.min(3, deathSaveState.successes + 1);
+      result = 'Success — mark one success.';
+    } else {
+      deathSaveState.failures = Math.min(3, deathSaveState.failures + 1);
+      result = 'Failure — mark one failure.';
+    }
+
+    if (deathSaveState.successes >= 3) {
+      result += ' Three successes — stabilized.';
+    } else if (deathSaveState.failures >= 3) {
+      result += ' Three failures — character dies.';
+    }
+    deathSaveMessage = `${result} (${deathSaveState.successes}/3 successes, ${deathSaveState.failures}/3 failures)`;
+    saveDeathSaveState();
+    renderDeathSaveTracker();
+    playDiceAnimation();
+    await postChatMessage(`🎲 Death save: d20 = ${roll}. ${deathSaveMessage}`);
+  }
+
+  function resetDeathSaves() {
+    deathSaveState = { successes: 0, failures: 0 };
+    deathSaveMessage = 'Death save tracker reset.';
+    saveDeathSaveState();
+    renderDeathSaveTracker();
+  }
+
     }
 
     // Bold the final dice roll total nicely for easy reading
@@ -1698,6 +1846,311 @@
       .update({
         session_number,
         title,
+  /* ===================== QUEST & RUMOR BOARD ===================== */
+  async function loadQuestBoard() {
+    const container = document.getElementById('quest-board-container');
+    const toolbar = document.getElementById('quest-board-toolbar');
+    if (!container || !toolbar) return;
+
+    if (isDM) {
+      toolbar.innerHTML = `
+        <button class="btn btn-sm" onclick="addQuestBoardEntry('quest')">+ Add Quest</button>
+        <button class="btn btn-sm btn-secondary" onclick="addQuestBoardEntry('rumor')">+ Add Rumor</button>`;
+    } else {
+      toolbar.innerHTML = '';
+    }
+
+    const { data, error } = await sb.from('quest_board')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Failed to load the quest board: ${escapeHtml(error.message)}</p>`;
+      return;
+    }
+
+    questBoardEntries = data || [];
+    renderQuestBoard();
+  }
+
+  function filterQuestBoard(filter) {
+    questBoardFilter = filter;
+    renderQuestBoard();
+  }
+
+  function renderQuestBoard() {
+    const container = document.getElementById('quest-board-container');
+    const toolbar = document.getElementById('quest-board-toolbar');
+    if (!container || !toolbar) return;
+
+    const filters = [['all', 'All Leads'], ['quest', 'Quests'], ['rumor', 'Rumors']];
+    const manageButtons = isDM
+      ? `<button class="btn btn-sm" onclick="addQuestBoardEntry('quest')">+ Add Quest</button>
+         <button class="btn btn-sm btn-secondary" onclick="addQuestBoardEntry('rumor')">+ Add Rumor</button>`
+      : '';
+    toolbar.innerHTML = `
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${filters.map(([filter, label]) => `<button class="btn btn-sm ${questBoardFilter === filter ? '' : 'btn-secondary'}" onclick="filterQuestBoard('${filter}')">${label}</button>`).join('')}
+        </div>
+        ${manageButtons}
+      </div>`;
+
+    const entries = questBoardEntries.filter(entry => questBoardFilter === 'all' || entry.entry_type === questBoardFilter);
+    if (!entries.length) {
+      container.innerHTML = `<p class="empty-note">${questBoardFilter === 'all' ? 'No leads on the board yet.' : `No ${questBoardFilter === 'quest' ? 'quests' : 'rumors'} on the board yet.`}${isDM ? ' Add one to get the party started.' : ''}</p>`;
+      return;
+    }
+    container.innerHTML = entries.map(renderQuestBoardCard).join('');
+  }
+
+  function questBoardStatusLabel(entry) {
+    const labels = entry.entry_type === 'rumor'
+      ? { unverified: 'Unverified', confirmed: 'Confirmed', false: 'False' }
+      : { open: 'Open', in_progress: 'In Progress', completed: 'Completed' };
+    return labels[entry.status] || entry.status;
+  }
+
+  function renderQuestBoardCard(entry) {
+    const kind = entry.entry_type === 'rumor' ? 'rumor' : 'quest';
+    const status = questBoardStatusLabel(entry);
+    const dmControls = isDM ? `
+      <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-top:14px; padding-top:10px; border-top:1px dashed var(--line);">
+        <label style="display:flex; align-items:center; gap:8px; color:var(--text-faint); font-size:0.85rem;">
+          <input type="checkbox" ${entry.visible_to_players ? 'checked' : ''} onchange="setQuestBoardVisibility(${entry.id}, this.checked)">
+          Visible to players
+        </label>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm btn-secondary" onclick="toggleQuestBoardEdit(${entry.id})">Edit</button>
+          <button class="btn btn-sm btn-secondary" onclick="deleteQuestBoardEntry(${entry.id})">Delete</button>
+        </div>
+      </div>` : '';
+
+    return `
+      <article class="block-card" id="quest-board-card-${entry.id}" style="border-color:${kind === 'rumor' ? 'var(--purple-dim)' : 'var(--gold-dim)'};">
+        <div class="quest-board-view-mode">
+          <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:10px;">
+            <div>
+              <span class="role-tag" style="color:${kind === 'rumor' ? 'var(--purple)' : 'var(--gold)'};">${kind === 'rumor' ? 'Rumor' : 'Quest'}</span>
+              <h3 style="margin:6px 0 0; color:var(--gold);">${escapeHtml(entry.title)}</h3>
+            </div>
+            <span class="role-tag">${escapeHtml(status)}</span>
+          </div>
+          ${entry.description ? `<div style="margin-top:10px;">${renderMarkdown(entry.description)}</div>` : ''}
+          ${entry.reward ? `<p style="margin:10px 0 0; color:var(--text-dim);"><strong>Reward / Lead:</strong> ${escapeHtml(entry.reward)}</p>` : ''}
+          ${dmControls}
+        </div>
+        ${isDM ? renderQuestBoardEditForm(entry) : ''}
+      </article>`;
+  }
+
+  function renderQuestBoardEditForm(entry) {
+    const kind = entry.entry_type === 'rumor' ? 'rumor' : 'quest';
+    const statuses = kind === 'rumor'
+      ? [['unverified', 'Unverified'], ['confirmed', 'Confirmed'], ['false', 'False']]
+      : [['open', 'Open'], ['in_progress', 'In Progress'], ['completed', 'Completed']];
+    return `
+      <div class="quest-board-edit-mode" style="display:none;">
+        <label for="quest-title-${entry.id}">Title</label>
+        <input id="quest-title-${entry.id}" class="input-field" maxlength="120" value="${escapeHtml(entry.title)}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-top:10px;">
+          <label>Type
+            <select id="quest-kind-${entry.id}" class="input-field" onchange="updateQuestBoardStatusOptions(${entry.id})">
+              <option value="quest" ${kind === 'quest' ? 'selected' : ''}>Quest</option>
+              <option value="rumor" ${kind === 'rumor' ? 'selected' : ''}>Rumor</option>
+            </select>
+          </label>
+          <label>Status
+            <select id="quest-status-${entry.id}" class="input-field">
+              ${statuses.map(([value, label]) => `<option value="${value}" ${entry.status === value ? 'selected' : ''}>${label}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+        <label for="quest-description-${entry.id}" style="display:block; margin-top:10px;">Details</label>
+        <textarea id="quest-description-${entry.id}" class="input-field" rows="4" maxlength="10000">${escapeHtml(entry.description || '')}</textarea>
+        <label for="quest-reward-${entry.id}" style="display:block; margin-top:10px;">Reward / Lead</label>
+        <input id="quest-reward-${entry.id}" class="input-field" maxlength="500" value="${escapeHtml(entry.reward || '')}">
+        <div style="display:flex; gap:6px; margin-top:12px;">
+          <button class="btn btn-sm" onclick="saveQuestBoardEntry(${entry.id})">Save</button>
+          <button class="btn btn-sm btn-secondary" onclick="toggleQuestBoardEdit(${entry.id})">Cancel</button>
+        </div>
+      </div>`;
+  }
+
+  async function addQuestBoardEntry(entryType) {
+    if (!isDM || !['quest', 'rumor'].includes(entryType)) return;
+    const { data, error } = await sb.from('quest_board').insert({
+      entry_type: entryType,
+      status: entryType === 'rumor' ? 'unverified' : 'open',
+      title: entryType === 'rumor' ? 'New Rumor' : 'New Quest',
+      description: '',
+      reward: '',
+      visible_to_players: true,
+      created_by: currentUser.id
+    }).select('id').single();
+
+    if (error) {
+      alert(`Failed to add ${entryType}: ${error.message}`);
+      return;
+    }
+    await loadQuestBoard();
+    if (questBoardFilter !== 'all' && questBoardFilter !== entryType) filterQuestBoard(entryType);
+    setTimeout(() => toggleQuestBoardEdit(data.id), 50);
+  }
+
+  function toggleQuestBoardEdit(entryId) {
+    const card = document.getElementById(`quest-board-card-${entryId}`);
+    if (!card) return;
+    const viewMode = card.querySelector('.quest-board-view-mode');
+    const editMode = card.querySelector('.quest-board-edit-mode');
+    const isEditing = editMode.style.display !== 'none';
+    viewMode.style.display = isEditing ? 'block' : 'none';
+    editMode.style.display = isEditing ? 'none' : 'block';
+  }
+
+  function updateQuestBoardStatusOptions(entryId) {
+    const kind = document.getElementById(`quest-kind-${entryId}`).value;
+    const status = document.getElementById(`quest-status-${entryId}`);
+    const statuses = kind === 'rumor'
+      ? [['unverified', 'Unverified'], ['confirmed', 'Confirmed'], ['false', 'False']]
+      : [['open', 'Open'], ['in_progress', 'In Progress'], ['completed', 'Completed']];
+    status.innerHTML = statuses.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+  }
+
+  async function saveQuestBoardEntry(entryId) {
+    if (!isDM) return;
+    const entryType = document.getElementById(`quest-kind-${entryId}`).value;
+    const title = document.getElementById(`quest-title-${entryId}`).value.trim();
+    if (!title) {
+      alert('Give this quest or rumor a title before saving.');
+      return;
+    }
+    const { error } = await sb.from('quest_board').update({
+      entry_type: entryType,
+      status: document.getElementById(`quest-status-${entryId}`).value,
+      title,
+      description: document.getElementById(`quest-description-${entryId}`).value.trim(),
+      reward: document.getElementById(`quest-reward-${entryId}`).value.trim()
+    }).eq('id', entryId);
+
+    if (error) {
+      alert(`Failed to save board entry: ${error.message}`);
+      return;
+    }
+    await loadQuestBoard();
+  }
+
+  async function setQuestBoardVisibility(entryId, visible) {
+    if (!isDM) return;
+    const { error } = await sb.from('quest_board').update({ visible_to_players: visible }).eq('id', entryId);
+    if (error) {
+      alert(`Failed to update visibility: ${error.message}`);
+      await loadQuestBoard();
+      return;
+    }
+    await loadQuestBoard();
+  }
+
+  async function deleteQuestBoardEntry(entryId) {
+    if (!isDM || !confirm('Delete this quest or rumor from the board?')) return;
+    const { error } = await sb.from('quest_board').delete().eq('id', entryId);
+    if (error) {
+      alert(`Failed to delete board entry: ${error.message}`);
+      return;
+    }
+    await loadQuestBoard();
+  }
+
+  /* ===================== CAMPAIGN DASHBOARD ===================== */
+  async function loadDashboard() {
+    const container = document.getElementById('campaign-dashboard-content');
+    if (!container) return;
+
+    let summaryQuery = sb.from('session_summaries')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (!isDM) summaryQuery = summaryQuery.eq('visible_to_players', true);
+
+    const [summaryResult, questResult, dashboardResult] = await Promise.all([
+      summaryQuery,
+      sb.from('quest_board').select('entry_type, status'),
+      sb.from('campaign_dashboard').select('*').eq('id', 1).maybeSingle()
+    ]);
+    const errors = [summaryResult.error, questResult.error, dashboardResult.error].filter(Boolean);
+    if (errors.length) {
+      container.innerHTML = `<p class="error-msg">Failed to load campaign dashboard: ${escapeHtml(errors.map(error => error.message).join('; '))}</p>`;
+      return;
+    }
+
+    const summary = summaryResult.data?.[0];
+    const quests = questResult.data || [];
+    const dashboard = dashboardResult.data || {};
+    const activeQuests = quests.filter(entry => entry.entry_type === 'quest' && ['open', 'in_progress'].includes(entry.status)).length;
+    const unresolvedRumors = quests.filter(entry => entry.entry_type === 'rumor' && entry.status === 'unverified').length;
+    const sessionDate = dashboard.next_session_date
+      ? new Date(`${dashboard.next_session_date}T00:00:00`).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'Not scheduled yet';
+    const latestSummary = summary
+      ? `<div><strong>${escapeHtml(summary.session_number ? `Session ${summary.session_number}: ` : '')}${escapeHtml(summary.title || 'Untitled Session')}</strong>
+          ${summary.session_date ? `<div class="role-tag" style="margin-top:4px;">${escapeHtml(summary.session_date)}</div>` : ''}
+          ${summary.body ? `<p style="margin:8px 0 0; color:var(--text-dim);">${renderMarkdown(summary.body.slice(0, 320))}${summary.body.length > 320 ? '…' : ''}</p>` : ''}
+          <button class="btn btn-sm btn-secondary" style="margin-top:10px;" onclick="navigateTo('summaries')">Read session recaps</button>
+        </div>`
+      : '<p class="empty-note">No session recaps yet.</p>';
+
+    container.innerHTML = `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px;">
+        <div class="block-card">
+          <div class="eyebrow">Next Session</div>
+          <strong>${escapeHtml(sessionDate)}</strong>
+          ${dashboard.next_session_notes ? `<p style="margin:8px 0 0; color:var(--text-dim);">${renderMarkdown(dashboard.next_session_notes)}</p>` : '<p class="empty-note" style="margin:8px 0 0;">No session note yet.</p>'}
+        </div>
+        <div class="block-card">
+          <div class="eyebrow">Party Leads</div>
+          <p style="margin:0;"><strong>${activeQuests}</strong> active ${activeQuests === 1 ? 'quest' : 'quests'} · <strong>${unresolvedRumors}</strong> unverified ${unresolvedRumors === 1 ? 'rumor' : 'rumors'}</p>
+          <button class="btn btn-sm btn-secondary" style="margin-top:10px;" onclick="navigateTo('quest-board')">Open quest board</button>
+        </div>
+        <div class="block-card">
+          <div class="eyebrow">Latest Recap</div>
+          ${latestSummary}
+        </div>
+      </div>
+      ${isDM ? `
+        <form onsubmit="saveDashboardDetails(event)" style="margin-top:14px;">
+          <strong>Set next session details</strong>
+          <p class="empty-note" style="margin:4px 0 10px;">This date and note are visible to all players.</p>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:10px;">
+            <label>Session date
+              <input id="dashboard-session-date" class="input-field" type="date" value="${escapeHtml(dashboard.next_session_date || '')}">
+            </label>
+            <label>Player-visible note
+              <input id="dashboard-session-notes" class="input-field" maxlength="500" value="${escapeHtml(dashboard.next_session_notes || '')}" placeholder="Bring your character sheets...">
+            </label>
+          </div>
+          <button class="btn btn-sm" type="submit" style="margin-top:10px;">Save session details</button>
+        </form>` : ''}`;
+  }
+
+  async function saveDashboardDetails(event) {
+    event.preventDefault();
+    if (!isDM) return;
+    const nextSessionDate = document.getElementById('dashboard-session-date').value || null;
+    const nextSessionNotes = document.getElementById('dashboard-session-notes').value.trim();
+    const { error } = await sb.from('campaign_dashboard').upsert({
+      id: 1,
+      next_session_date: nextSessionDate,
+      next_session_notes: nextSessionNotes,
+      updated_by: currentUser.id
+    }, { onConflict: 'id' });
+
+    if (error) {
+      alert(`Failed to save session details: ${error.message}`);
+      return;
+    }
+    await loadDashboard();
+  }
+
         session_date,
         body,
         secret

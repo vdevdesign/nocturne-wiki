@@ -38,7 +38,8 @@ function AuthScreen() {
 const navigation = [
   ['home', 'Home', '⌂'], ['worldbook', 'Worldbook', '◇'], ['npcs', 'NPCs & Friendship Points', '♧'],
   ['characters', 'Character Directory', '♙'], ['session-zero', 'Session Zero & Rules', '◷'],
-  ['summaries', 'Session Summaries', '≡'], ['loot', 'Loot & Rewards', '◈'], ['primer', 'Player Primer', '✦']
+  ['summaries', 'Session Summaries', '≡'], ['quest-board', 'Quest & Rumor Board', '⚑'],
+  ['loot', 'Loot & Rewards', '◈'], ['primer', 'Player Primer', '✦']
 ];
 
 function navigateTo(target) {
@@ -50,6 +51,7 @@ function navigateTo(target) {
     section.classList.toggle('active', section.id === target);
   });
 }
+  if (target === 'home') window.loadDashboard();
 
 function Sidebar() {
   return h('nav', { className: 'sidebar', id: 'appSidebar', style: { display: 'none' } },
@@ -69,7 +71,7 @@ function Sidebar() {
 function ContentSections() {
   return h('main', { id: 'appMain', style: { display: 'none' } },
     h(HomePage), h(WorldbookPage), h(NpcsPage), h(CharactersPage), h(SessionZeroPage),
-    h(SummariesPage), h(LootPage), h(PrimerPage), h(RestrictedPage)
+    h(SummariesPage), h(QuestBoardPage), h(LootPage), h(PrimerPage), h(RestrictedPage)
   );
 }
 
@@ -94,7 +96,7 @@ function ChatModal() {
         )
       ),
       h('div', { id: 'chatMessages', className: 'chat-messages' }),
-      h('form', { id: 'chatForm', className: 'chat-form', onSubmit: event => window.handleChatSubmit(event) }, h('input', { id: 'chatInput', className: 'input-control', placeholder: 'Type /help for chat commands...', disabled: true }), h('button', { id: 'chatSendBtn', className: 'btn', type: 'submit', disabled: true }, 'Send'), h('span', { className: 'dice-menu-anchor' }, h('button', { id: 'diceRollBtn', className: 'btn dice-roll-button', type: 'button', title: 'Open dice roller', disabled: true }, 'Roll dice'), h('span', { id: 'diceRollMenu', className: 'dice-roll-menu', style: { display: 'none' } }, h('span', { className: 'dice-menu-title' }, 'Roll dice'), h('label', null, 'Number of dice', h('input', { id: 'diceCountInput', className: 'input-field', type: 'number', min: 1, max: 100, defaultValue: 1 })), h('label', null, 'Dice type', h('select', { id: 'diceTypeInput', className: 'input-field', defaultValue: '20' }, h('option', { value: '4' }, 'd4'), h('option', { value: '6' }, 'd6'), h('option', { value: '8' }, 'd8'), h('option', { value: '10' }, 'd10'), h('option', { value: '12' }, 'd12'), h('option', { value: '20' }, 'd20'), h('option', { value: '100' }, 'd100'))), h('label', null, 'Modifier', h('input', { id: 'diceModifierInput', className: 'input-field', type: 'number', defaultValue: 0 })), h('button', { id: 'rollConfiguredDiceBtn', className: 'btn', type: 'button' }, 'Roll')))),
+      h('form', { id: 'chatForm', className: 'chat-form', onSubmit: event => window.handleChatSubmit(event) }, h('input', { id: 'chatInput', className: 'input-control', placeholder: 'Type /help for chat commands...', disabled: true }), h('button', { id: 'chatSendBtn', className: 'btn', type: 'submit', disabled: true }, 'Send'), h('span', { className: 'death-saves-anchor' }, h('button', { id: 'deathSavesBtn', className: 'btn death-saves-button', type: 'button', title: 'Open death save tracker', disabled: true }, 'Death Saves'), h('span', { id: 'deathSavesMenu', className: 'dice-roll-menu death-saves-menu', style: { display: 'none' }, role: 'dialog', 'aria-label': 'Death save tracker' }, h('span', { className: 'dice-menu-title' }, 'Death Saves'), h('p', { className: 'death-saves-help' }, 'Roll a d20 while your character is at 0 hit points.'), h('div', { className: 'death-save-tracks' }, h('div', null, h('span', { className: 'death-save-track-label' }, 'Successes'), h('div', { id: 'deathSaveSuccesses', className: 'death-save-markers', 'aria-label': '0 of 3 successes' })), h('div', null, h('span', { className: 'death-save-track-label' }, 'Failures'), h('div', { id: 'deathSaveFailures', className: 'death-save-markers', 'aria-label': '0 of 3 failures' }))), h('p', { id: 'deathSaveStatus', className: 'death-save-status', 'aria-live': 'polite' }), h('button', { id: 'rollDeathSaveBtn', className: 'btn', type: 'button' }, 'Roll Death Save'), h('button', { id: 'resetDeathSavesBtn', className: 'btn btn-secondary', type: 'button' }, 'Reset Saves'))), h('span', { className: 'dice-menu-anchor' }, h('button', { id: 'diceRollBtn', className: 'btn dice-roll-button', type: 'button', title: 'Open dice roller', disabled: true }, 'Roll dice'), h('span', { id: 'diceRollMenu', className: 'dice-roll-menu', style: { display: 'none' } }, h('span', { className: 'dice-menu-title' }, 'Roll dice'), h('label', null, 'Number of dice', h('input', { id: 'diceCountInput', className: 'input-field', type: 'number', min: 1, max: 100, defaultValue: 1 })), h('label', null, 'Dice type', h('select', { id: 'diceTypeInput', className: 'input-field', defaultValue: '20' }, h('option', { value: '4' }, 'd4'), h('option', { value: '6' }, 'd6'), h('option', { value: '8' }, 'd8'), h('option', { value: '10' }, 'd10'), h('option', { value: '12' }, 'd12'), h('option', { value: '20' }, 'd20'), h('option', { value: '100' }, 'd100'))), h('label', null, 'Modifier', h('input', { id: 'diceModifierInput', className: 'input-field', type: 'number', defaultValue: 0 })), h('button', { id: 'rollConfiguredDiceBtn', className: 'btn', type: 'button' }, 'Roll')))),
       h('p', { className: 'chat-help' }, 'Type ', h('code', null, '/help'), ' for commands. Whispers show the sender and intended recipient.')
     )
   ));
@@ -105,3 +107,4 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('react-root')).render(h(App));
+          h('p', null, 'Use Death Saves when your character is at 0 hit points. Rolls follow the standard 5e rules and are posted to the current session chat.'),
