@@ -1,12 +1,25 @@
-# Goals
-- Restrict Player Character Backstory doc access to specified player
-- Player Homebrew Inventory
-- Inline Editing for ALL edits
+# Nocturne Campaign Hub
 
-# Achieved:
-- Player doc access
-- Password protected DM Notes
-- DM Moderated roleplay chat between characters
+## Implemented goals
+
+- **Player character backstories:** DMs assign a character to a player in the character's Tags field using `Player: username`. The username must match the player's sign-in username (the part before `@campaign.local`). Players can view and edit their assigned character's backstory; other players see the roster entry but not its backstory. DMs can view and edit all backstories. This is a UI-level restriction, not database-level security.
+- **Player homebrew inventory:** Players can add, edit, and remove items in their own inventory, including an item name, description, quantity, and value. DMs can view and manage every player's inventory. Run [supabase-player-homebrew-inventory.sql](supabase-player-homebrew-inventory.sql) once in the Supabase SQL editor to add the inventory fields and owner/DM access policies.
+- **Inline editing:** Character backstories, homebrew inventory items, NPC hit points, campaign loot, session summaries, and restricted archive entries are edited in place. NPC hit points can be entered directly or adjusted by 1, 5, or 10; DMs can also create session chats with an inline form.
+
+## Other features
+
+- Player document access
+- Password-protected DM notes
+- DM-moderated roleplay chat between characters
+- Session-chat dice roller and 5e death-save tracker
+- DM-managed quest and rumor board
+- Campaign dashboard with the latest recap, active leads, and next-session details
+
+Death-save counts are stored locally per signed-in user and session chat. Individual rolls and outcomes are posted to the current session chat.
+
+## Quest board and dashboard
+
+Run [supabase-quest-board.sql](supabase-quest-board.sql) in the Supabase SQL editor to create the quest/rumor board, access policies, and shared next-session settings. DMs can add, edit, hide, and delete board entries; players only see entries marked visible. Quest statuses are open, in progress, and completed; rumor statuses are unverified, confirmed, and false. The next-session date and note on the home dashboard are visible to all players.
 
 ## Password reset requests
 

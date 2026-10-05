@@ -27,18 +27,6 @@
   #react-root { display: flex; flex: 1; min-width: 0; min-height: 100vh; }
   body { margin: 0; background: radial-gradient(ellipse 900px 500px at 15% -10%, rgba(138,104,214,0.10), transparent 60%), radial-gradient(ellipse 700px 500px at 100% 10%, rgba(201,162,75,0.06), transparent 55%), var(--bg); color: var(--text); font-family: var(--font-body); display: flex; min-height: 100vh; }
   @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; } }
-  @media (max-width: 760px) {
-    nav.sidebar { width: 220px; min-width: 220px; }
-    main { padding: 40px 28px; }
-  }
-  @media (max-width: 560px) {
-    body { display: block; }
-    #react-root { display: block; }
-    nav.sidebar { width: 100%; min-width: 0; height: auto; max-height: none; position: relative; padding: 18px 0; }
-    .navlist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .nav-chat-btn { grid-column: 1 / -1; }
-    main { max-width: none; padding: 32px 20px 80px; }
-  }
 
   /* Auth */
   #authScreen { position: fixed; inset: 0; background: radial-gradient(ellipse 900px 600px at 50% 0%, rgba(138,104,214,0.14), transparent 60%), var(--bg); display: flex; align-items: center; justify-content: center; z-index: 200; }
@@ -182,18 +170,14 @@
   .btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
   .btn-spoiler { background: var(--rose-dim); border-color: var(--rose); }
   .btn-spoiler:hover { background: var(--rose); }
-  #spoilerToggleBtn, .btn-spoiler {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  #spoilerToggleBtn {
+    position: static;
   }
   .status-badge { font-size: 0.75rem; color: var(--gold); background: rgba(201,162,75,0.1); padding: 0.25rem 0.6rem; border-radius: 12px; border: 1px solid var(--gold-dim); }
   .error-msg { color: var(--rose); font-size: 0.85rem; margin-top: 0.5rem; }
   .empty-note { color: var(--text-faint); font-style: italic; }
 
-  .section-toolbar { display:flex; justify-content:flex-end; margin-bottom: -18px; position:relative; z-index:2; }
+  .section-toolbar { display:flex; justify-content:flex-end; margin: -18px 0 14px; position:relative; z-index:2; }
 
   /* Spoiler blackout */
   .spoiler, .spoiler-mask {
@@ -318,6 +302,22 @@
     border-radius: 4px;
     cursor: pointer;
     margin-bottom: 4px;
+    font-size: 13px;
+  }
+  .chat-item:hover, .chat-item.active { background: rgba(255,255,255,0.08); }
+  .chat-body { flex: 1; display: flex; flex-direction: column; padding: 16px; overflow: hidden; }
+  .chat-dm-controls { margin-bottom: 12px; }
+  .chat-control-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .chat-unlock-control { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 12px; }
+  .chat-clear-button { margin-left: auto; color: var(--rose); border-color: var(--rose-dim); }
+  .chat-messages { position: relative; flex: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .chat-help-panel { flex: 0 0 auto; max-height: 150px; margin-bottom: 12px; padding: 12px; overflow-y: auto; background: var(--surface); border: 1px solid var(--purple-dim); border-radius: 6px; }
+  .chat-help-panel-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text); }
+  .chat-command-list p { margin: 0 0 7px; color: var(--text-dim); font-size: 12px; line-height: 1.45; }
+  .chat-command-list p:last-child { margin-bottom: 0; }
+  .chat-form { display: flex; gap: 8px; align-items: center; }
+  .chat-form .input-control { min-width: 0; }
+  .dice-menu-anchor { position: relative; flex: 0 0 auto; }
   .death-saves-anchor { position: relative; flex: 0 0 auto; }
   .death-saves-button { min-width: 96px; color: var(--rose); border-color: var(--rose-dim); }
   .death-saves-button:hover { background: var(--rose-dim); color: var(--text); }
@@ -332,27 +332,6 @@
   .death-save-marker.filled.failure { background: var(--rose-dim); border-color: var(--rose); }
   .death-save-status { min-height: 18px; margin: 0 0 6px; color: var(--text-dim); font-size: 11px; line-height: 1.45; }
   .death-save-status.error { color: var(--rose); }
-    font-size: 13px;
-  }
-  .chat-item:hover, .chat-item.active { background: rgba(255,255,255,0.08); }
-  .chat-body { flex: 1; display: flex; flex-direction: column; padding: 16px; overflow: hidden; }
-  .chat-dm-controls { margin-bottom: 12px; }
-  .chat-control-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .chat-unlock-control { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 12px; }
-  .chat-clear-button { margin-left: auto; color: var(--rose); border-color: var(--rose-dim); }
-  @media (max-width: 560px) {
-    .chat-form { flex-wrap: wrap; }
-    .chat-form .input-control { flex: 1 1 100%; }
-    .death-saves-menu { right: auto; left: 0; }
-  }
-  .chat-messages { position: relative; flex: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
-  .chat-help-panel { flex: 0 0 auto; max-height: 150px; margin-bottom: 12px; padding: 12px; overflow-y: auto; background: var(--surface); border: 1px solid var(--purple-dim); border-radius: 6px; }
-  .chat-help-panel-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text); }
-  .chat-command-list p { margin: 0 0 7px; color: var(--text-dim); font-size: 12px; line-height: 1.45; }
-  .chat-command-list p:last-child { margin-bottom: 0; }
-  .chat-form { display: flex; gap: 8px; align-items: center; }
-  .chat-form .input-control { min-width: 0; }
-  .dice-menu-anchor { position: relative; flex: 0 0 auto; }
   .dice-roll-button { min-width: 92px; color: var(--gold); border-color: var(--gold-dim); }
   .dice-roll-button:hover { background: var(--gold-dim); color: var(--bg); }
   .dice-roll-menu { position: absolute; right: 0; bottom: calc(100% + 10px); z-index: 20; width: 220px; padding: 14px; background: var(--surface); border: 1px solid var(--gold-dim); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
@@ -361,6 +340,11 @@
   .dice-roll-menu label { display: block; margin-bottom: 9px; color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; }
   .dice-roll-menu .input-field { margin-top: 4px; padding: 7px 9px; font-size: 13px; }
   .dice-roll-menu > .btn { width: 100%; margin-top: 3px; }
+  @media (max-width: 560px) {
+    .chat-form { flex-wrap: wrap; }
+    .chat-form .input-control { flex: 1 1 100%; }
+    .death-saves-menu { right: auto; left: 0; }
+  }
   .dice-roll-animation { position: absolute; left: 10%; top: 50%; z-index: 4; pointer-events: none; animation: dice-cross-chat 0.9s ease-in-out forwards; }
   .dice-roll-frame { position: absolute; width: 58px; height: 58px; opacity: 0; animation: dice-frame 0.9s steps(1, end) forwards; }
   .dice-roll-frame:nth-child(1) { animation-delay: 0s; }
@@ -549,6 +533,21 @@
   font-size: 14px;
   outline: none;
 }
+
+.npc-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.npc-card-header h4 { min-width: 0; overflow-wrap: anywhere; }
+.npc-hp-widget { flex: 0 0 126px; display: grid; gap: 5px; }
+.npc-hp-value-row { display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--gold); font: 600 11px var(--font-mono); }
+.npc-hp-input { width: 64px; height: 28px; padding: 3px 6px; border: 1px solid var(--gold-dim); border-radius: 5px; background: var(--bg); color: var(--gold); font: 500 14px var(--font-mono); text-align: center; }
+.npc-hp-input:focus { outline: none; border-color: var(--gold); }
+.npc-hp-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
+.npc-hp-step { min-width: 0; height: 23px; padding: 0 2px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); color: var(--text-dim); font: 11px var(--font-mono); cursor: pointer; }
+.npc-hp-step:hover { border-color: var(--gold-dim); color: var(--gold); }
+.npc-hp-error { grid-column: 1 / -1; margin: 0; color: var(--rose); font-size: 11px; line-height: 1.4; }
+.npc-hp-widget[aria-busy="true"] { opacity: 0.65; }
+.npc-hp-widget[aria-busy="true"] button,
+.npc-hp-widget[aria-busy="true"] input { pointer-events: none; }
+.npc-hp-readonly { flex: 0 0 auto; padding: 4px 8px; border: 1px solid var(--gold-dim); border-radius: 5px; color: var(--gold); font: 12px var(--font-mono); white-space: nowrap; }
 .input-field:focus {
   border-color: var(--purple);
 }
@@ -611,6 +610,108 @@
 .md-textarea {
   border-radius: 0 0 6px 6px !important;
 }
+
+.mobile-nav-bar,
+.mobile-nav-backdrop,
+.mobile-nav-close {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  nav.sidebar { width: 220px; min-width: 220px; }
+  main { padding: 40px 28px; }
+}
+
+@media (max-width: 560px) {
+  body { display: block; }
+  #react-root { display: block; }
+  body.mobile-nav-open { overflow: hidden; }
+  .mobile-nav-bar {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 1050;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 8px 16px;
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--line);
+  }
+  .mobile-nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 21px;
+    cursor: pointer;
+  }
+  .mobile-nav-toggle:hover,
+  .mobile-nav-toggle:focus-visible { border-color: var(--gold); color: var(--gold); }
+  .mobile-nav-title { font-family: var(--font-title); font-size: 23px; font-weight: 600; }
+  .mobile-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1150;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.62);
+    cursor: default;
+  }
+  .mobile-nav-backdrop.open { display: block; }
+  nav.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1200;
+    width: min(320px, 86vw);
+    min-width: 0;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    padding: 28px 0;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.4);
+  }
+  nav.sidebar.open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.25s ease;
+  }
+  nav.sidebar .mobile-nav-close {
+    display: inline-flex;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+  }
+  nav.sidebar .mobile-nav-close:hover,
+  nav.sidebar .mobile-nav-close:focus-visible { border-color: var(--gold); color: var(--gold); }
+  .navlist { display: flex; flex-direction: column; }
+  main { max-width: none; padding: 32px 20px 80px; }
+}
 </style>
 </head>
 <body>
@@ -623,6 +724,7 @@
 <script type="text/babel" src="pages/CharactersPage.jsx"></script>
 <script type="text/babel" src="pages/SessionZeroPage.jsx"></script>
 <script type="text/babel" src="pages/SummariesPage.jsx"></script>
+<script type="text/babel" src="pages/QuestBoardPage.jsx"></script>
 <script type="text/babel" src="pages/LootPage.jsx"></script>
 <script type="text/babel" src="pages/PrimerPage.jsx"></script>
 <script type="text/babel" src="pages/RestrictedPage.jsx"></script>
@@ -724,7 +826,6 @@
     </div>
     <h2 class="title">NPCs &amp; Friendship Points</h2>
     <p class="subtitle">Faculty, allies, and notable figures across the realm.</p>
-<script type="text/babel" src="pages/QuestBoardPage.jsx"></script>
     <div id="npc-cards-container"><p class="empty-note">Loading…</p></div>
   </section>
 
@@ -904,6 +1005,11 @@
   let currentUser = null;
   let isDM = false;
   let spoilersOff = false;
+  let deathSaveState = { successes: 0, failures: 0 };
+  let deathSaveMessage = '';
+  let deathSaveStorageError = '';
+  let questBoardEntries = [];
+  let questBoardFilter = 'all';
   
   let currentSessionId = "session_1";
   let isSessionOpen = false;
@@ -921,6 +1027,9 @@
   document.addEventListener('click', function(e) {
     if (e.target.closest('#react-root #diceRollBtn')) toggleDiceMenu();
     if (e.target.closest('#react-root #rollConfiguredDiceBtn')) rollConfiguredDice();
+    if (e.target.closest('#react-root #deathSavesBtn')) toggleDeathSavesMenu();
+    if (e.target.closest('#react-root #rollDeathSaveBtn')) rollDeathSave();
+    if (e.target.closest('#react-root #resetDeathSavesBtn')) resetDeathSaves();
   });
 
   /* ===================== HELPER FUNCTIONS ===================== */
@@ -1005,11 +1114,6 @@
       return;
     }
     message.className = 'inline-status';
-  let deathSaveState = { successes: 0, failures: 0 };
-  let deathSaveMessage = '';
-  let deathSaveStorageError = '';
-  let questBoardEntries = [];
-  let questBoardFilter = 'all';
     message.textContent = 'Your reset request is now in the DM inbox.';
   }
 
@@ -1027,9 +1131,6 @@
 
     const { data, error } = await sb.from('password_reset_requests')
       .select('*').eq('status', 'pending').order('created_at', { ascending: false });
-    if (e.target.closest('#react-root #deathSavesBtn')) toggleDeathSavesMenu();
-    if (e.target.closest('#react-root #rollDeathSaveBtn')) rollDeathSave();
-    if (e.target.closest('#react-root #resetDeathSavesBtn')) resetDeathSaves();
     if (error) {
       inbox.innerHTML = '<div class="inline-status error">Create the password_reset_requests table to enable this inbox.</div>';
       count.style.display = 'none';
@@ -1120,6 +1221,8 @@
     loadNPCs();
     loadCharacters();
     loadSummaries();
+    loadQuestBoard();
+    loadDashboard();
     loadLoot();
     checkLiveSessionStatus();
     if (isDM) loadRestricted();
@@ -1186,7 +1289,7 @@
     const dmBtnContainer = document.getElementById('dmNewChatBtn');
     
     if (isDM) {
-      dmBtnContainer.innerHTML = `<button class="btn btn-sm" onclick="createNewSessionChat()">+ New</button>`;
+      dmBtnContainer.innerHTML = `<button class="btn btn-sm" onclick="showNewSessionChatForm()">+ New</button>`;
     }
 
     const { data, error } = await sb.from('session_messages').select('session_id').order('created_at', { ascending: false });
@@ -1209,6 +1312,21 @@
     `).join('');
   }
 
+  function showNewSessionChatForm() {
+    if (!isDM) return;
+    const container = document.getElementById('dmNewChatBtn');
+    if (!container) return;
+    container.innerHTML = `
+      <form onsubmit="createNewSessionChat(event)" style="display:flex; gap:6px; margin-top:8px;">
+        <input id="newSessionChatName" class="input-control" type="text" maxlength="60" placeholder="Session name" required style="min-width:0; padding:5px 8px;" />
+        <button class="btn btn-sm" type="submit">Create</button>
+        <button class="btn btn-sm btn-secondary" type="button" onclick="loadPreviousChatsMenu()">Cancel</button>
+      </form>
+      <p id="newSessionChatError" class="inline-status error" style="display:none;"></p>
+    `;
+    document.getElementById('newSessionChatName').focus();
+  }
+
   function switchSessionChat(sessionId) {
     currentSessionId = sessionId;
     document.getElementById('modalChatTitle').innerText = sessionId.replace('_', ' ').toUpperCase();
@@ -1221,8 +1339,6 @@
     event.stopPropagation();
     const input = prompt(`Are you sure you want to delete all logs for "${sessionId}"?\n\nType DELETE below to confirm:`);
     
-    loadQuestBoard();
-    loadDashboard();
     if (input === "DELETE") {
       const { error } = await sb.from('session_messages').delete().eq('session_id', sessionId);
       if (error) {
@@ -1237,12 +1353,37 @@
     }
   }
 
-  async function createNewSessionChat() {
-    const name = prompt("Enter new session name (e.g., Session 2):");
-    if (!name) return;
-    const newId = name.trim().toLowerCase().replace(/\s+/g, '_');
+  async function createNewSessionChat(event) {
+    event.preventDefault();
+    if (!isDM) return;
+    const nameInput = document.getElementById('newSessionChatName');
+    const errorElement = document.getElementById('newSessionChatError');
+    const name = nameInput?.value.trim();
+    const newId = (name || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+    const showError = message => {
+      if (!errorElement) return;
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+    };
 
-    switchSessionChat(newId);
+    if (!newId) {
+      showError('Enter a session name using letters or numbers.');
+      return;
+    }
+
+    const { data: existingMessages, error: lookupError } = await sb
+      .from('session_messages')
+      .select('id')
+      .eq('session_id', newId)
+      .limit(1);
+    if (lookupError) {
+      showError(`Could not check for an existing session: ${lookupError.message}`);
+      return;
+    }
+    if (existingMessages?.length) {
+      showError('A session with that name already exists.');
+      return;
+    }
 
     const { data, error } = await sb.from('session_messages').insert({
       session_id: newId,
@@ -1252,13 +1393,18 @@
       is_whisper: false
     }).select();
 
-    if (!error && data && data.length > 0) {
-      appendMessageUI(data[0]);
+    if (error) {
+      showError(`Could not create session chat: ${error.message}`);
+      return;
     }
+    switchSessionChat(newId);
+    if (data && data.length > 0) appendMessageUI(data[0]);
+    loadPreviousChatsMenu();
   }
 
   async function initSessionChat(sessionId) {
     currentSessionId = sessionId;
+    loadDeathSaveState();
     
     const { data: sessionState } = await sb.from('active_session').select('*').eq('id', 1).maybeSingle();
     isSessionOpen = sessionState?.is_open && (sessionState?.active_session_id === currentSessionId);
@@ -1295,6 +1441,7 @@
     const dmControls = document.getElementById('dmChatControls');
     const toggle = document.getElementById('sessionOpenToggle');
     const diceButton = document.getElementById('diceRollBtn');
+    const deathSavesButton = document.getElementById('deathSavesBtn');
 
     if (isDM) {
       dmControls.style.display = 'block';
@@ -1305,6 +1452,8 @@
     input.disabled = !canType;
     sendBtn.disabled = !canType;
     diceButton.disabled = !canType;
+    deathSavesButton.disabled = !canType;
+    renderDeathSaveTracker();
 
     if (isSessionOpen) {
       badge.innerText = "Live Session Active";
@@ -1357,155 +1506,6 @@
     menu.style.display = shouldOpen ? 'block' : 'none';
   }
 
-  async function rollD20(diceExp = '1d20') {
-    if (!isDM && !isSessionOpen) return;
-    playDiceAnimation();
-    await postChatMessage(createRollMessage(diceExp));
-  }
-
-  async function rollConfiguredDice() {
-    const count = Math.max(1, Math.min(100, parseInt(document.getElementById('diceCountInput').value, 10) || 1));
-    const faces = parseInt(document.getElementById('diceTypeInput').value, 10) || 20;
-    const modifier = parseInt(document.getElementById('diceModifierInput').value, 10) || 0;
-    const modifierText = modifier > 0 ? `+${modifier}` : modifier < 0 ? `${modifier}` : '';
-    toggleDiceMenu(false);
-    await rollD20(`${count}d${faces}${modifierText}`);
-  }
-
-  async function postChatMessage(messageText) {
-    const { data, error } = await sb.from('session_messages').insert({
-      session_id: currentSessionId,
-      sender_id: currentUser.id,
-      sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
-      content: messageText,
-      is_whisper: false
-    }).select();
-
-    if (error) {
-      document.getElementById('chatMessages').insertAdjacentHTML('beforeend', `<p class="error-msg">Could not send message: ${escapeHtml(error.message)}</p>`);
-    } else if (data && data.length > 0) {
-      appendMessageUI(data[0]);
-    }
-  }
-
-  function toggleChatHelp(forceOpen) {
-    const panel = document.getElementById('chatHelpPanel');
-    if (!panel) return;
-    const shouldOpen = typeof forceOpen === 'boolean'
-      ? forceOpen
-      : panel.style.display === 'none';
-    panel.style.display = shouldOpen ? 'block' : 'none';
-  }
-
-  async function toggleSessionChat(isOpen) {
-    const { error } = await sb.from('active_session').upsert({
-      id: 1,
-      active_session_id: currentSessionId,
-      is_open: isOpen
-    });
-    if (error) alert("Failed to change session status: " + error.message);
-    loadDeathSaveState();
-  }
-
-  async function handleChatSubmit(e) {
-    e.preventDefault();
-    const input = document.getElementById('chatInput');
-    const rawText = input.value.trim();
-    if (!rawText) return;
-
-    let recipientId = null;
-    let recipientName = null;
-    let isWhisper = false;
-    let messageText = rawText;
-
-    if (rawText.toLowerCase() === '/help') {
-      input.value = '';
-      toggleChatHelp();
-      return;
-    } else if (rawText.startsWith('/whisper ')) {
-      const parts = rawText.split(' ');
-      const targetName = parts[1];
-      messageText = parts.slice(2).join(' ');
-
-      const { data: targetProfile } = await sb.from('profiles').select('id, email').ilike('email', `%${targetName}%`).maybeSingle();
-      if (targetProfile) {
-        recipientId = targetProfile.id;
-        isWhisper = true;
-        const recNameRaw = targetProfile.email.split('@')[0];
-        recipientName = recNameRaw.charAt(0).toUpperCase() + recNameRaw.slice(1);
-      } else {
-        alert(`Could not find player "${targetName}" to whisper.`);
-        return;
-      }
-    } else if (rawText.startsWith('/roll ') || rawText.startsWith('/r ')) {
-      const diceExp = rawText.replace(/^\/(roll|r)\s+/i, '').replace(/\s+/g, '').toLowerCase();
-      messageText = createRollMessage(diceExp);
-    }
-    const deathSavesButton = document.getElementById('deathSavesBtn');
-
-    const { data, error } = await sb.from('session_messages').insert({
-      session_id: currentSessionId,
-      sender_id: currentUser.id,
-      sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
-      recipient_id: recipientId,
-      recipient_name: recipientName,
-      content: messageText,
-      is_whisper: isWhisper
-    }).select();
-    deathSavesButton.disabled = !canType;
-    renderDeathSaveTracker();
-
-    if (error) {
-      alert("Could not send message: " + error.message);
-    } else {
-      input.value = '';
-      if (data && data.length > 0) {
-        appendMessageUI(data[0]);
-      }
-    }
-  }
-
-  async function loadSessionMessages() {
-    const container = document.getElementById('chatMessages');
-    const { data: msgs, error } = await sb.from('session_messages')
-      .select('*')
-      .eq('session_id', currentSessionId)
-      .order('created_at', { ascending: true });
-
-    if (error) { container.innerHTML = `<p class="error-msg">Error loading messages.</p>`; return; }
-    
-    container.innerHTML = '';
-    if (!msgs || msgs.length === 0) {
-      container.innerHTML = `<p class="empty-note">No logs recorded for this session yet.</p>`;
-      return;
-    }
-    msgs.forEach(msg => appendMessageUI(msg));
-  }
-
-  function appendMessageUI(msg) {
-    const container = document.getElementById('chatMessages');
-    if (!container) return;
-
-    const existingMsg = document.getElementById(`msg-${msg.id}`);
-    if (existingMsg) return;
-
-    const emptyNote = container.querySelector('.empty-note');
-    if (emptyNote) emptyNote.remove();
-
-    const isWhisper = msg.is_whisper;
-    const msgDiv = document.createElement('div');
-    msgDiv.id = `msg-${msg.id}`;
-    msgDiv.className = 'chat-msg-row';
-    msgDiv.style.background = isWhisper ? 'rgba(138, 104, 214, 0.15)' : 'var(--surface)';
-    msgDiv.style.borderLeft = isWhisper ? '3px solid var(--purple)' : '1px solid var(--line)';
-
-    const deleteBtn = isDM ? `<button class="chat-msg-del-btn" onclick="deleteSessionMessage('${msg.id}')" title="Delete message">🗑</button>` : '';
-
-    let senderDisplay = `<strong style="color:${msg.sender_name === 'DM' ? 'var(--rose)' : 'var(--gold)'}">${escapeHtml(msg.sender_name)}</strong>`;
-    
-    if (isWhisper) {
-      const toName = msg.recipient_name ? escapeHtml(msg.recipient_name) : "Player";
-      senderDisplay = `<span style="color:var(--purple); font-size:11px; font-weight:600;">[WHISPER]</span> <strong style="color:var(--purple)">Whisper from ${escapeHtml(msg.sender_name)} to ${toName}</strong>`;
   function deathSaveStorageKey() {
     return `nocturne-death-saves:${currentUser.id}:${currentSessionId}`;
   }
@@ -1620,6 +1620,151 @@
     renderDeathSaveTracker();
   }
 
+  async function rollD20(diceExp = '1d20') {
+    if (!isDM && !isSessionOpen) return;
+    playDiceAnimation();
+    await postChatMessage(createRollMessage(diceExp));
+  }
+
+  async function rollConfiguredDice() {
+    const count = Math.max(1, Math.min(100, parseInt(document.getElementById('diceCountInput').value, 10) || 1));
+    const faces = parseInt(document.getElementById('diceTypeInput').value, 10) || 20;
+    const modifier = parseInt(document.getElementById('diceModifierInput').value, 10) || 0;
+    const modifierText = modifier > 0 ? `+${modifier}` : modifier < 0 ? `${modifier}` : '';
+    toggleDiceMenu(false);
+    await rollD20(`${count}d${faces}${modifierText}`);
+  }
+
+  async function postChatMessage(messageText) {
+    const { data, error } = await sb.from('session_messages').insert({
+      session_id: currentSessionId,
+      sender_id: currentUser.id,
+      sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
+      content: messageText,
+      is_whisper: false
+    }).select();
+
+    if (error) {
+      document.getElementById('chatMessages').insertAdjacentHTML('beforeend', `<p class="error-msg">Could not send message: ${escapeHtml(error.message)}</p>`);
+    } else if (data && data.length > 0) {
+      appendMessageUI(data[0]);
+    }
+  }
+
+  function toggleChatHelp(forceOpen) {
+    const panel = document.getElementById('chatHelpPanel');
+    if (!panel) return;
+    const shouldOpen = typeof forceOpen === 'boolean'
+      ? forceOpen
+      : panel.style.display === 'none';
+    panel.style.display = shouldOpen ? 'block' : 'none';
+  }
+
+  async function toggleSessionChat(isOpen) {
+    const { error } = await sb.from('active_session').upsert({
+      id: 1,
+      active_session_id: currentSessionId,
+      is_open: isOpen
+    });
+    if (error) alert("Failed to change session status: " + error.message);
+  }
+
+  async function handleChatSubmit(e) {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    const rawText = input.value.trim();
+    if (!rawText) return;
+
+    let recipientId = null;
+    let recipientName = null;
+    let isWhisper = false;
+    let messageText = rawText;
+
+    if (rawText.toLowerCase() === '/help') {
+      input.value = '';
+      toggleChatHelp();
+      return;
+    } else if (rawText.startsWith('/whisper ')) {
+      const parts = rawText.split(' ');
+      const targetName = parts[1];
+      messageText = parts.slice(2).join(' ');
+
+      const { data: targetProfile } = await sb.from('profiles').select('id, email').ilike('email', `%${targetName}%`).maybeSingle();
+      if (targetProfile) {
+        recipientId = targetProfile.id;
+        isWhisper = true;
+        const recNameRaw = targetProfile.email.split('@')[0];
+        recipientName = recNameRaw.charAt(0).toUpperCase() + recNameRaw.slice(1);
+      } else {
+        alert(`Could not find player "${targetName}" to whisper.`);
+        return;
+      }
+    } else if (rawText.startsWith('/roll ') || rawText.startsWith('/r ')) {
+      const diceExp = rawText.replace(/^\/(roll|r)\s+/i, '').replace(/\s+/g, '').toLowerCase();
+      messageText = createRollMessage(diceExp);
+    }
+
+    const { data, error } = await sb.from('session_messages').insert({
+      session_id: currentSessionId,
+      sender_id: currentUser.id,
+      sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
+      recipient_id: recipientId,
+      recipient_name: recipientName,
+      content: messageText,
+      is_whisper: isWhisper
+    }).select();
+
+    if (error) {
+      alert("Could not send message: " + error.message);
+    } else {
+      input.value = '';
+      if (data && data.length > 0) {
+        appendMessageUI(data[0]);
+      }
+    }
+  }
+
+  async function loadSessionMessages() {
+    const container = document.getElementById('chatMessages');
+    const { data: msgs, error } = await sb.from('session_messages')
+      .select('*')
+      .eq('session_id', currentSessionId)
+      .order('created_at', { ascending: true });
+
+    if (error) { container.innerHTML = `<p class="error-msg">Error loading messages.</p>`; return; }
+    
+    container.innerHTML = '';
+    if (!msgs || msgs.length === 0) {
+      container.innerHTML = `<p class="empty-note">No logs recorded for this session yet.</p>`;
+      return;
+    }
+    msgs.forEach(msg => appendMessageUI(msg));
+  }
+
+  function appendMessageUI(msg) {
+    const container = document.getElementById('chatMessages');
+    if (!container) return;
+
+    const existingMsg = document.getElementById(`msg-${msg.id}`);
+    if (existingMsg) return;
+
+    const emptyNote = container.querySelector('.empty-note');
+    if (emptyNote) emptyNote.remove();
+
+    const isWhisper = msg.is_whisper;
+    const msgDiv = document.createElement('div');
+    msgDiv.id = `msg-${msg.id}`;
+    msgDiv.className = 'chat-msg-row';
+    msgDiv.style.background = isWhisper ? 'rgba(138, 104, 214, 0.15)' : 'var(--surface)';
+    msgDiv.style.borderLeft = isWhisper ? '3px solid var(--purple)' : '1px solid var(--line)';
+
+    const deleteBtn = isDM ? `<button class="chat-msg-del-btn" onclick="deleteSessionMessage('${msg.id}')" title="Delete message">🗑</button>` : '';
+
+    let senderDisplay = `<strong style="color:${msg.sender_name === 'DM' ? 'var(--rose)' : 'var(--gold)'}">${escapeHtml(msg.sender_name)}</strong>`;
+    
+    if (isWhisper) {
+      const toName = msg.recipient_name ? escapeHtml(msg.recipient_name) : "Player";
+      senderDisplay = `<span style="color:var(--purple); font-size:11px; font-weight:600;">[WHISPER]</span> <strong style="color:var(--purple)">Whisper from ${escapeHtml(msg.sender_name)} to ${toName}</strong>`;
     }
 
     // Bold the final dice roll total nicely for easy reading
@@ -1701,151 +1846,6 @@
     container.innerHTML = data.map(summary => renderSummaryCard(summary)).join('');
   }
 
-  async function addNewSessionSummary() {
-    if (!isDM) return;
-
-    const { data, error } = await sb.from('session_summaries').insert({
-      session_number: '',
-      title: 'New Session Summary',
-      body: '',
-      session_date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      visible_to_players: true
-    }).select();
-
-    if (error) {
-      alert("Error adding summary: " + error.message);
-    } else {
-      await loadSummaries();
-      if (data && data.length > 0) {
-        setTimeout(() => toggleInlineSummaryEdit(data[0].id), 50);
-      }
-    }
-  }
-
-  function renderSummaryCard(summary) {
-    const isVisible = summary.visible_to_players ?? true;
-
-    if (!isDM && !isVisible) return '';
-
-    let dmControls = '';
-    let secretSection = '';
-
-    if (isDM) {
-      if (summary.secret || summary.dm_secret) {
-        const secretText = summary.secret || summary.dm_secret;
-        secretSection = `
-          <div style="margin-top:12px;">
-            <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
-            <div class="spoiler-mask" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
-              ${renderMarkdown(secretText, 'No secret text.')}
-            </div>
-          </div>`;
-      }
-
-      dmControls = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
-            <label class="switch">
-              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_summaries', 'summaries-container', this.checked)">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Edit Summary</button>
-            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${summary.id}', 'session_summaries', 'summaries-container')">Delete</button>
-          </div>
-        </div>`;
-    }
-
-    const sessionNum = summary.session_number ? `Session ${escapeHtml(summary.session_number)}: ` : '';
-    const dateStr = summary.session_date ? escapeHtml(summary.session_date) : '';
-
-    return `
-      <div class="block-card" id="summary-card-${summary.id}">
-        <!-- Display View Mode -->
-        <div class="summary-view-mode">
-          <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-              <h3 style="margin:0; color:var(--gold,#c9a050);">${sessionNum}${escapeHtml(summary.title || 'Untitled Session')}</h3>
-              ${dateStr ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${dateStr}</p>` : ''}
-            </div>
-          </div>
-
-          <div class="block-body" style="margin-top:10px;">${renderMarkdown(summary.body || summary.content || summary.description, 'No summary text.')}</div>
-          ${secretSection}
-          ${dmControls}
-        </div>
-
-        <!-- Inline Edit View Mode -->
-        <div class="summary-edit-mode" style="display:none; margin-top:8px;">
-          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit Session Summary</h4>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <div style="display:flex; gap:8px;">
-              <div style="flex:1;">
-                <label style="font-size:0.8rem; color:var(--text-faint);">Session #</label>
-                <input type="text" id="edit-summary-num-${summary.id}" value="${escapeHtml(summary.session_number || '')}" class="input-field" placeholder="e.g. 12" />
-              </div>
-              <div style="flex:2;">
-                <label style="font-size:0.8rem; color:var(--text-faint);">Session Title</label>
-                <input type="text" id="edit-summary-title-${summary.id}" value="${escapeHtml(summary.title || '')}" class="input-field" placeholder="Title" />
-              </div>
-            </div>
-
-            <label style="font-size:0.8rem; color:var(--text-faint);">Date Played</label>
-            <input type="text" id="edit-summary-date-${summary.id}" value="${escapeHtml(summary.session_date || '')}" class="input-field" placeholder="e.g. Oct 12, 2024" />
-
-            <label style="font-size:0.8rem; color:var(--text-faint);">Public Summary / Notes</label>
-            ${markdownEditor(`edit-summary-body-${summary.id}`, summary.body || summary.content || summary.description || '', 5)}
-
-            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Blacked out for players)</label>
-            ${markdownEditor(`edit-summary-secret-${summary.id}`, summary.secret || summary.dm_secret || '', 2, 'input-field-secret')}
-
-            <div style="display:flex; gap:8px; margin-top:8px;">
-              <button class="btn btn-sm" onclick="saveInlineSummaryEdit('${summary.id}')">Save Changes</button>
-              <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Cancel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  function toggleInlineSummaryEdit(summaryId) {
-    const card = document.getElementById(`summary-card-${summaryId}`);
-    if (!card) return;
-    const viewMode = card.querySelector('.summary-view-mode');
-    const editMode = card.querySelector('.summary-edit-mode');
-
-    const isEditing = editMode.style.display !== 'none';
-    viewMode.style.display = isEditing ? 'block' : 'none';
-    editMode.style.display = isEditing ? 'none' : 'block';
-  }
-
-  async function saveInlineSummaryEdit(summaryId) {
-    if (!isDM) return;
-
-    const numEl = document.getElementById(`edit-summary-num-${summaryId}`);
-    const titleEl = document.getElementById(`edit-summary-title-${summaryId}`);
-    const dateEl = document.getElementById(`edit-summary-date-${summaryId}`);
-    const bodyEl = document.getElementById(`edit-summary-body-${summaryId}`);
-    const secretEl = document.getElementById(`edit-summary-secret-${summaryId}`);
-
-    if (!numEl || !titleEl || !dateEl || !bodyEl || !secretEl) {
-      alert("Error: Unable to find form inputs in DOM.");
-      return;
-    }
-
-    const session_number = numEl.value.trim();
-    const title = titleEl.value.trim();
-    const session_date = dateEl.value.trim();
-    const body = bodyEl.value.trim();
-    const secret = secretEl.value.trim();
-
-    const { error } = await sb.from('session_summaries')
-      .update({
-        session_number,
-        title,
   /* ===================== QUEST & RUMOR BOARD ===================== */
   async function loadQuestBoard() {
     const container = document.getElementById('quest-board-container');
@@ -2151,6 +2151,151 @@
     await loadDashboard();
   }
 
+  async function addNewSessionSummary() {
+    if (!isDM) return;
+
+    const { data, error } = await sb.from('session_summaries').insert({
+      session_number: '',
+      title: 'New Session Summary',
+      body: '',
+      session_date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      visible_to_players: true
+    }).select();
+
+    if (error) {
+      alert("Error adding summary: " + error.message);
+    } else {
+      await loadSummaries();
+      if (data && data.length > 0) {
+        setTimeout(() => toggleInlineSummaryEdit(data[0].id), 50);
+      }
+    }
+  }
+
+  function renderSummaryCard(summary) {
+    const isVisible = summary.visible_to_players ?? true;
+
+    if (!isDM && !isVisible) return '';
+
+    let dmControls = '';
+    let secretSection = '';
+
+    if (isDM) {
+      if (summary.secret || summary.dm_secret) {
+        const secretText = summary.secret || summary.dm_secret;
+        secretSection = `
+          <div style="margin-top:12px;">
+            <strong style="color:var(--rose, #ff6b6b); font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">🔒 DM Secret:</strong>
+            <div class="spoiler-mask" title="Click to reveal spoiler" style="margin-top:4px; font-size:0.9rem;">
+              ${renderMarkdown(secretText, 'No secret text.')}
+            </div>
+          </div>`;
+      }
+
+      dmControls = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.8rem; color:${isVisible ? 'var(--gold)' : 'var(--text-faint)'};">${isVisible ? 'Public' : 'Hidden'}</span>
+            <label class="switch">
+              <input type="checkbox" ${isVisible ? 'checked' : ''} onchange="toggleBlockVisibility('${summary.id}', 'session_summaries', 'summaries-container', this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Edit Summary</button>
+            <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${summary.id}', 'session_summaries', 'summaries-container')">Delete</button>
+          </div>
+        </div>`;
+    }
+
+    const sessionNum = summary.session_number ? `Session ${escapeHtml(summary.session_number)}: ` : '';
+    const dateStr = summary.session_date ? escapeHtml(summary.session_date) : '';
+
+    return `
+      <div class="block-card" id="summary-card-${summary.id}">
+        <!-- Display View Mode -->
+        <div class="summary-view-mode">
+          <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <h3 style="margin:0; color:var(--gold,#c9a050);">${sessionNum}${escapeHtml(summary.title || 'Untitled Session')}</h3>
+              ${dateStr ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${dateStr}</p>` : ''}
+            </div>
+          </div>
+
+          <div class="block-body" style="margin-top:10px;">${renderMarkdown(summary.body || summary.content || summary.description, 'No summary text.')}</div>
+          ${secretSection}
+          ${dmControls}
+        </div>
+
+        <!-- Inline Edit View Mode -->
+        <div class="summary-edit-mode" style="display:none; margin-top:8px;">
+          <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit Session Summary</h4>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">Session #</label>
+                <input type="text" id="edit-summary-num-${summary.id}" value="${escapeHtml(summary.session_number || '')}" class="input-field" placeholder="e.g. 12" />
+              </div>
+              <div style="flex:2;">
+                <label style="font-size:0.8rem; color:var(--text-faint);">Session Title</label>
+                <input type="text" id="edit-summary-title-${summary.id}" value="${escapeHtml(summary.title || '')}" class="input-field" placeholder="Title" />
+              </div>
+            </div>
+
+            <label style="font-size:0.8rem; color:var(--text-faint);">Date Played</label>
+            <input type="text" id="edit-summary-date-${summary.id}" value="${escapeHtml(summary.session_date || '')}" class="input-field" placeholder="e.g. Oct 12, 2024" />
+
+            <label style="font-size:0.8rem; color:var(--text-faint);">Public Summary / Notes</label>
+            ${markdownEditor(`edit-summary-body-${summary.id}`, summary.body || summary.content || summary.description || '', 5)}
+
+            <label style="font-size:0.8rem; color:var(--rose);">🔒 DM Secret (Blacked out for players)</label>
+            ${markdownEditor(`edit-summary-secret-${summary.id}`, summary.secret || summary.dm_secret || '', 2, 'input-field-secret')}
+
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn btn-sm" onclick="saveInlineSummaryEdit('${summary.id}')">Save Changes</button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleInlineSummaryEdit('${summary.id}')">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function toggleInlineSummaryEdit(summaryId) {
+    const card = document.getElementById(`summary-card-${summaryId}`);
+    if (!card) return;
+    const viewMode = card.querySelector('.summary-view-mode');
+    const editMode = card.querySelector('.summary-edit-mode');
+
+    const isEditing = editMode.style.display !== 'none';
+    viewMode.style.display = isEditing ? 'block' : 'none';
+    editMode.style.display = isEditing ? 'none' : 'block';
+  }
+
+  async function saveInlineSummaryEdit(summaryId) {
+    if (!isDM) return;
+
+    const numEl = document.getElementById(`edit-summary-num-${summaryId}`);
+    const titleEl = document.getElementById(`edit-summary-title-${summaryId}`);
+    const dateEl = document.getElementById(`edit-summary-date-${summaryId}`);
+    const bodyEl = document.getElementById(`edit-summary-body-${summaryId}`);
+    const secretEl = document.getElementById(`edit-summary-secret-${summaryId}`);
+
+    if (!numEl || !titleEl || !dateEl || !bodyEl || !secretEl) {
+      alert("Error: Unable to find form inputs in DOM.");
+      return;
+    }
+
+    const session_number = numEl.value.trim();
+    const title = titleEl.value.trim();
+    const session_date = dateEl.value.trim();
+    const body = bodyEl.value.trim();
+    const secret = secretEl.value.trim();
+
+    const { error } = await sb.from('session_summaries')
+      .update({
+        session_number,
+        title,
         session_date,
         body,
         secret
@@ -2219,36 +2364,48 @@ async function populatePlayerSelector() {
   const selector = document.getElementById('playerInventorySelector');
   if (!selector) return;
 
-  const { data: profiles, error } = await sb
-    .from('profiles')
-    .select('id, email, role');
-
   selector.innerHTML = '';
-
-  if (error || !profiles || profiles.length === 0) {
+  if (!isDM) {
     const opt = document.createElement('option');
     opt.value = currentUser?.id || '';
-    opt.textContent = 'Dungeon Master (You)';
+    opt.textContent = `${formatPlayerName(currentUser?.email)} (You)`;
     selector.appendChild(opt);
-  } else {
-    profiles.forEach(p => {
-      const isSelf = p.id === currentUser?.id;
-      const parsedName = formatPlayerName(p.email);
-
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = isSelf ? `${parsedName} (You)` : parsedName;
-
-      if (isDM || isSelf) {
-        selector.appendChild(opt);
-      }
-    });
+    selector.disabled = true;
+    await loadPlayerPrivateInventory();
+    return;
   }
 
-  if (selector.options.length > 0) {
-    if (!selector.value) selector.selectedIndex = 0;
-    loadPlayerPrivateInventory();
+  selector.disabled = true;
+  const { data: profiles, error } = await sb
+    .from('profiles')
+    .select('id, email, role')
+    .order('email');
+
+  if (error) {
+    selector.innerHTML = '<option value="">Unable to load players</option>';
+    document.getElementById('player-private-inventory-list').innerHTML =
+      `<p class="error-msg">Failed to load player list: ${escapeHtml(error.message)}</p>`;
+    return;
   }
+
+  if (!profiles || profiles.length === 0) {
+    selector.innerHTML = '<option value="">No player accounts found</option>';
+    document.getElementById('player-private-inventory-list').innerHTML =
+      '<p class="empty-note">No player accounts found.</p>';
+    return;
+  }
+
+  profiles.forEach(profile => {
+    const opt = document.createElement('option');
+    opt.value = profile.id;
+    opt.textContent = profile.id === currentUser?.id
+      ? `${formatPlayerName(profile.email)} (You)`
+      : formatPlayerName(profile.email);
+    selector.appendChild(opt);
+  });
+  selector.disabled = false;
+  if (!selector.value) selector.selectedIndex = 0;
+  await loadPlayerPrivateInventory();
 }
 
 async function loadPlayerPrivateInventory() {
@@ -2259,6 +2416,10 @@ async function loadPlayerPrivateInventory() {
   const targetUserId = selector.value;
   if (!targetUserId) {
     container.innerHTML = '<p class="empty-note">No player selected.</p>';
+    return;
+  }
+  if (!isDM && targetUserId !== currentUser?.id) {
+    container.innerHTML = '<p class="error-msg">You can only view your own inventory.</p>';
     return;
   }
 
@@ -2272,43 +2433,199 @@ async function loadPlayerPrivateInventory() {
     return;
   }
 
-  if (!data || data.length === 0) {
-    container.innerHTML = '<p class="empty-note">Inventory is currently empty for this player.</p>';
+  const inventoryItems = (data || []).map(inv => {
+    const item = inv.loot || {};
+    const itemName = inv.item_name || item.name || 'Item';
+    const itemDesc = inv.item_description ?? item.description ?? item.body ?? '';
+    const itemValue = inv.item_value ?? item.value ?? '';
+    const qty = inv.quantity ?? item.quantity ?? 1;
+    const canManage = isDM || inv.user_id === currentUser?.id;
+    const editControls = canManage ? `
+      <div style="display:flex; gap:6px; flex-shrink:0;">
+        <button class="btn btn-sm btn-secondary" onclick="toggleInventoryItemEdit('${inv.id}')">Edit</button>
+        <button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>
+      </div>
+    ` : '';
+
+    return `
+      <article id="inventory-item-${inv.id}" class="block-card" style="padding:12px 14px;">
+        <div class="inventory-item-view" style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+          <div>
+            <strong style="color:var(--gold);">${escapeHtml(itemName)}</strong>
+            <span style="font-size:0.85rem; color:var(--text-faint); font-family:var(--font-mono);"> (Qty: ${escapeHtml(String(qty))}${itemValue ? ` | Value: ${escapeHtml(itemValue)}` : ''})</span>
+            ${itemDesc ? `<div class="block-body" style="margin-top:4px; font-size:0.85rem;">${renderMarkdown(itemDesc)}</div>` : ''}
+          </div>
+          ${editControls}
+        </div>
+        ${canManage ? `
+          <div class="inventory-item-edit" style="display:none;">
+            <div class="form-group">
+              <label>Item Name</label>
+              <input type="text" id="edit-inventory-name-${inv.id}" value="${escapeHtml(itemName)}" class="input-field" />
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex:1;">
+                <label>Quantity</label>
+                <input type="number" id="edit-inventory-quantity-${inv.id}" value="${escapeHtml(String(qty))}" min="0" step="1" class="input-field" />
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>Value</label>
+                <input type="text" id="edit-inventory-value-${inv.id}" value="${escapeHtml(itemValue)}" class="input-field" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              ${markdownEditor(`edit-inventory-description-${inv.id}`, itemDesc, 3)}
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-sm" onclick="saveInventoryItem('${inv.id}')">Save Changes</button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleInventoryItemEdit('${inv.id}')">Cancel</button>
+            </div>
+          </div>
+        ` : ''}
+      </article>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="margin-bottom:12px;">
+      <button class="btn btn-secondary btn-sm" onclick="showNewInventoryItemForm()">+ Add Homebrew Item</button>
+    </div>
+    <div id="new-inventory-item-form"></div>
+    ${inventoryItems || '<p class="empty-note">Inventory is currently empty for this player.</p>'}
+  `;
+}
+
+function showNewInventoryItemForm() {
+  const formContainer = document.getElementById('new-inventory-item-form');
+  if (!formContainer) return;
+  formContainer.innerHTML = `
+    <div class="block-card">
+      <h4 style="margin:0 0 10px; color:var(--gold);">Add Homebrew Item</h4>
+      <div class="form-group">
+        <label>Item Name</label>
+        <input type="text" id="new-inventory-name" class="input-field" required />
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1;">
+          <label>Quantity</label>
+          <input type="number" id="new-inventory-quantity" value="1" min="0" step="1" class="input-field" />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Value</label>
+          <input type="text" id="new-inventory-value" class="input-field" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        ${markdownEditor('new-inventory-description', '', 3)}
+      </div>
+      <div id="new-inventory-error" class="inline-status error" style="display:none;"></div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-sm" onclick="addHomebrewInventoryItem()">Add Item</button>
+        <button class="btn btn-sm btn-secondary" onclick="document.getElementById('new-inventory-item-form').innerHTML = ''">Cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+function toggleInventoryItemEdit(invId) {
+  const card = document.getElementById(`inventory-item-${invId}`);
+  if (!card) return;
+  const view = card.querySelector('.inventory-item-view');
+  const edit = card.querySelector('.inventory-item-edit');
+  const isEditing = edit.style.display !== 'none';
+  view.style.display = isEditing ? 'flex' : 'none';
+  edit.style.display = isEditing ? 'none' : 'block';
+}
+
+async function addHomebrewInventoryItem() {
+  const selector = document.getElementById('playerInventorySelector');
+  const name = document.getElementById('new-inventory-name')?.value.trim();
+  const quantityInput = document.getElementById('new-inventory-quantity');
+  const value = document.getElementById('new-inventory-value')?.value.trim();
+  const description = document.getElementById('new-inventory-description')?.value.trim();
+  const errorEl = document.getElementById('new-inventory-error');
+  const userId = selector?.value;
+  const quantity = Number(quantityInput?.value);
+
+  if (!isDM && userId !== currentUser?.id) {
+    if (errorEl) {
+      errorEl.textContent = 'You can only add items to your own inventory.';
+      errorEl.style.display = 'block';
+    }
+    return;
+  }
+  if (!name || !Number.isInteger(quantity) || quantity < 0) {
+    if (errorEl) {
+      errorEl.textContent = 'Enter an item name and a whole-number quantity of zero or more.';
+      errorEl.style.display = 'block';
+    }
     return;
   }
 
-  container.innerHTML = data.map(inv => {
-    const item = inv.loot || {};
-    const itemName = item.name || inv.item_name || 'Item';
-    const itemDesc = item.description || item.body || 'No description provided.';
-    
-    // Determine quantity and value
-    const qty = inv.quantity || item.quantity || 1;
-    const valueStr = item.value ? ` | Value: ${escapeHtml(item.value)} GP` : '';
-    
-    const removeBtn = isDM ? `<button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>` : '';
+  const { error } = await sb.from('player_inventories').insert({
+    user_id: userId,
+    loot_id: null,
+    item_name: name,
+    item_description: description,
+    item_value: value,
+    quantity
+  });
+  if (error) {
+    if (errorEl) {
+      errorEl.textContent = `Failed to add item: ${error.message}`;
+      errorEl.style.display = 'block';
+    }
+    return;
+  }
+  await loadPlayerPrivateInventory();
+}
 
-    return `
-      <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 14px; border:1px solid var(--line); border-radius:6px; margin-bottom:8px;">
-        <div>
-          <strong style="color:var(--gold);">${escapeHtml(itemName)}</strong>
-          <span style="font-size:0.85rem; color:var(--text-faint); font-family:var(--font-mono);"> (Qty: ${qty}${valueStr})</span>
-          <p style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-dim);">${escapeHtml(itemDesc)}</p>
-        </div>
-        ${removeBtn}
-      </div>
-    `;
-  }).join('');
+async function saveInventoryItem(invId) {
+  const card = document.getElementById(`inventory-item-${invId}`);
+  if (!card) return;
+  const name = document.getElementById(`edit-inventory-name-${invId}`)?.value.trim();
+  const quantity = Number(document.getElementById(`edit-inventory-quantity-${invId}`)?.value);
+  const value = document.getElementById(`edit-inventory-value-${invId}`)?.value.trim();
+  const description = document.getElementById(`edit-inventory-description-${invId}`)?.value.trim();
+  if (!name || !Number.isInteger(quantity) || quantity < 0) {
+    alert('Enter an item name and a whole-number quantity of zero or more.');
+    return;
+  }
+
+  const { error } = await sb.from('player_inventories')
+    .update({
+      item_name: name,
+      item_description: description,
+      item_value: value,
+      quantity
+    })
+    .eq('id', invId);
+  if (error) {
+    alert(`Failed to save inventory item: ${error.message}`);
+    return;
+  }
+  await loadPlayerPrivateInventory();
 }
 
 async function giveItemToSelectedPlayer(lootId) {
+  if (!isDM) return;
   const selector = document.getElementById('playerInventorySelector');
   if (!selector) return;
   const targetUserId = selector.value;
+  const item = activeLootItems.find(lootItem => String(lootItem.id) === String(lootId));
+  if (!item) {
+    alert('Could not find that campaign loot item. Refresh the loot pool and try again.');
+    return;
+  }
 
   const { error } = await sb.from('player_inventories').insert({
     user_id: targetUserId,
     loot_id: lootId,
+    item_name: item.name,
+    item_description: item.description || item.body || '',
+    item_value: item.value || '',
     quantity: 1
   });
 
@@ -2320,6 +2637,11 @@ async function giveItemToSelectedPlayer(lootId) {
 }
 
 async function removeInventoryItem(invId) {
+  const selector = document.getElementById('playerInventorySelector');
+  if (!isDM && selector?.value !== currentUser?.id) {
+    alert('You can only remove items from your own inventory.');
+    return;
+  }
   const { error } = await sb.from('player_inventories').delete().eq('id', invId);
   if (error) {
     alert("Failed to remove item: " + error.message);
@@ -2915,6 +3237,9 @@ function renderCharacterCard(char) {
   }
 
   const bioRaw = char.bio || char.description || '';
+  const backstoryContent = canEdit
+    ? renderMarkdown(bioRaw)
+    : (bioRaw ? '<p class="empty-note">This backstory is only visible to its assigned player and the DM.</p>' : '');
 
   return `
     <div class="block-card" id="character-card-${char.id}">
@@ -2927,44 +3252,47 @@ function renderCharacterCard(char) {
           </div>
         </div>
 
-        <div class="block-body" style="margin-top:10px;">${renderMarkdown(bioRaw)}</div>
+        <div class="block-body" style="margin-top:10px;">${backstoryContent}</div>
         ${secretSection}
         ${dmControls}
       </div>
 
-      <!-- Edit Mode -->
-      <div class="character-edit-mode" style="display:none;">
-        <div class="card-edit-form">
-          <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character</h4>
+      ${canEdit || isDM ? `
+        <!-- Edit Mode -->
+        <div class="character-edit-mode" style="display:none;">
+          <div class="card-edit-form">
+            <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character</h4>
 
-          <div class="form-group">
-            <label>Character Name</label>
-            <input type="text" id="edit-char-name-${char.id}" value="${escapeHtml(char.name || '')}" class="input-field" />
-          </div>
+            ${isDM ? `
+            <div class="form-group">
+              <label>Character Name</label>
+              <input type="text" id="edit-char-name-${char.id}" value="${escapeHtml(char.name || '')}" class="input-field" />
+            </div>` : ''}
 
-          ${isDM ? `
-          <div class="form-group">
-            <label>Tags (e.g. "Player: Name | Lvl 1 | Elf | Wizard")</label>
-            <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
-          </div>` : ''}
+            ${isDM ? `
+            <div class="form-group">
+              <label>Tags (e.g. "Player: Name | Lvl 1 | Elf | Wizard")</label>
+              <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
+            </div>` : ''}
 
-          <div class="form-group">
-            <label>Bio / Backstory (Markdown Enabled)</label>
-            ${markdownEditor(`edit-char-bio-${char.id}`, bioRaw, 6)}
-          </div>
+            <div class="form-group">
+              <label>Bio / Backstory (Markdown Enabled)</label>
+              ${markdownEditor(`edit-char-bio-${char.id}`, bioRaw, 6)}
+            </div>
 
-          ${isDM ? `
-          <div class="form-group">
-            <label class="secret-label">🔒 DM Secret</label>
-            ${markdownEditor(`edit-char-secret-${char.id}`, char.secret || char.dm_secret || '', 2, 'input-field-secret')}
-          </div>` : ''}
+            ${isDM ? `
+            <div class="form-group">
+              <label class="secret-label">🔒 DM Secret</label>
+              ${markdownEditor(`edit-char-secret-${char.id}`, char.secret || char.dm_secret || '', 2, 'input-field-secret')}
+            </div>` : ''}
 
-          <div style="display:flex; gap:8px; margin-top:4px;">
-            <button class="btn btn-sm" onclick="saveInlineCharacterEdit('${char.id}')">Save Changes</button>
-            <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Cancel</button>
+            <div style="display:flex; gap:8px; margin-top:4px;">
+              <button class="btn btn-sm" onclick="saveInlineCharacterEdit('${char.id}')">Save Changes</button>
+              <button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Cancel</button>
+            </div>
           </div>
         </div>
-      </div>
+      ` : ''}
     </div>
   `;
 }
@@ -2975,15 +3303,15 @@ async function saveInlineCharacterEdit(charId) {
   const tagsEl = document.getElementById(`edit-char-tags-${charId}`);
   const secretEl = document.getElementById(`edit-char-secret-${charId}`);
 
-  if (!nameEl || !bioEl) return;
+  if (!bioEl || (isDM && !nameEl)) return;
 
-  const name = nameEl.value.trim();
   const bio = bioEl.value; // Retains raw linebreaks and Markdown formatting
 
-  const updateData = { name, bio };
+  const updateData = { bio };
 
   // Only update tags and secrets if the DM is editing
   if (isDM) {
+    updateData.name = nameEl.value.trim();
     if (tagsEl) {
       const rawTags = tagsEl.value.trim();
       updateData.tags = rawTags.split('|').map(t => t.trim()).filter(Boolean);
@@ -3005,6 +3333,9 @@ async function saveInlineCharacterEdit(charId) {
 }
 
   /* ===================== NPCS & GROUPED FACTIONS ===================== */
+  const npcRowsById = new Map();
+  const npcHpSaveTimers = new Map();
+
   async function loadNPCs() {
     const container = document.getElementById('npc-cards-container');
     if (!container) return;
@@ -3015,6 +3346,257 @@ async function saveInlineCharacterEdit(charId) {
       container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(npcErr.message)}</p>`;
       return;
     }
+
+    npcRowsById.clear();
+    if (!npcs || npcs.length === 0) {
+      container.innerHTML = '<p class="empty-note">No NPCs recorded yet.</p>';
+      return;
+    }
+
+    const groupedNPCs = new Map();
+    npcs.forEach(npc => {
+      npcRowsById.set(String(npc.id), npc);
+      const faction = npc.faction || npc.group || npc.organization || 'Other';
+      if (!groupedNPCs.has(faction)) groupedNPCs.set(faction, []);
+      groupedNPCs.get(faction).push(npc);
+    });
+
+    container.innerHTML = Array.from(groupedNPCs, ([faction, factionNPCs]) => `
+      <div class="faction-group">
+        <h3 class="faction-title">${escapeHtml(faction)}</h3>
+        ${factionNPCs.map(npc => {
+          const name = npc.name || npc.npc_name || npc.title || 'Unnamed NPC';
+          const hpKey = Object.keys(npc).find(key => /^(hp|hit_points|current_hp)$/i.test(key));
+          const descriptionKey = ['description', 'bio', 'details', 'summary', 'body']
+            .find(key => npc[key] !== null && npc[key] !== undefined && npc[key] !== '');
+          const pointEntries = [];
+          const detailEntries = [];
+
+          Object.entries(npc).forEach(([key, value]) => {
+            if (value === null || value === undefined || value === '') return;
+            if (/^(id|created_at|updated_at|order_index)$/i.test(key)) return;
+            if (/secret|private|dm_only|visible_to_players/i.test(key)) return;
+            if (/^(name|npc_name|title|faction|group|organization)$/i.test(key)) return;
+            if (/^(hp|hit_points|current_hp)$/i.test(key)) return;
+            if (['description', 'bio', 'details', 'summary', 'body'].includes(key)) return;
+            if (/friendship|relationship|affection|points?/i.test(key)) {
+              pointEntries.push([key, value]);
+              return;
+            }
+            detailEntries.push([key, value]);
+          });
+
+          const formatValue = value => Array.isArray(value)
+            ? value.map(item => escapeHtml(item)).join(', ')
+            : typeof value === 'object'
+              ? escapeHtml(JSON.stringify(value))
+              : escapeHtml(value);
+          const detailsHtml = detailEntries.map(([key, value]) => `
+            <p style="margin:6px 0;"><strong>${escapeHtml(key.replace(/_/g, ' '))}:</strong> ${formatValue(value)}</p>
+          `).join('');
+          const pointsHtml = pointEntries.length ? `
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin:10px 0;">
+              ${pointEntries.map(([key, value]) => `
+                <span style="background:var(--bg); border:1px solid var(--gold-dim); border-radius:6px; padding:4px 8px; color:var(--gold);">
+                  ${escapeHtml(key.replace(/_/g, ' '))}: ${formatValue(value)}
+                </span>
+              `).join('')}
+            </div>
+          ` : '';
+          const npcCardId = encodeURIComponent(String(npc.id));
+          const hpWidget = hpKey ? (isDM ? `
+            <div class="npc-hp-widget" data-hp-key="${escapeHtml(hpKey)}">
+              <label class="npc-hp-value-row" for="npc-hp-${npcCardId}">HP
+                <input class="npc-hp-input" id="npc-hp-${npcCardId}" type="number" min="0" step="1" value="${escapeHtml(npc[hpKey] ?? '')}" aria-label="${escapeHtml(name)} hit points" onchange="scheduleNpcHPSave('${npcCardId}', this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">
+              </label>
+              <div class="npc-hp-steps">
+                ${[-10, -5, -1, 1, 5, 10].map(delta => `
+                  <button type="button" class="npc-hp-step" aria-label="${delta < 0 ? 'Decrease' : 'Increase'} ${escapeHtml(name)} HP by ${Math.abs(delta)}" title="${delta < 0 ? 'Decrease' : 'Increase'} HP by ${Math.abs(delta)}" onclick="adjustNpcHP('${npcCardId}', ${delta}, this.closest('.npc-hp-widget').querySelector('.npc-hp-input'))">${delta > 0 ? '+' : ''}${delta}</button>
+                `).join('')}
+              </div>
+              <p class="npc-hp-error" id="npc-hp-error-${npcCardId}" role="alert" style="display:none;"></p>
+            </div>
+          ` : `<span class="npc-hp-readonly">HP: ${escapeHtml(npc[hpKey] ?? '—')}</span>`) : '';
+          const editControls = isDM ? `
+            <div style="display:flex; justify-content:flex-end; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+              <button class="btn btn-sm btn-secondary" onclick="toggleNpcEdit('${npcCardId}')">Edit NPC</button>
+            </div>
+          ` : '';
+
+          return `
+            <article class="card" id="npc-card-${npcCardId}">
+              <div class="npc-view-mode">
+                <div class="npc-card-header">
+                  <h4>${escapeHtml(name)}</h4>
+                  ${hpWidget}
+                </div>
+                ${pointsHtml}
+                ${descriptionKey ? renderMarkdown(npc[descriptionKey]) : ''}
+                ${detailsHtml}
+                ${editControls}
+              </div>
+              ${isDM ? renderNpcEditForm(npc, npcCardId) : ''}
+            </article>
+          `;
+        }).join('')}
+      </div>
+    `).join('');
+  }
+
+  function setNpcHPError(card, message) {
+    const errorEl = card.querySelector('.npc-hp-error');
+    if (!errorEl) return;
+    errorEl.textContent = message;
+    errorEl.style.display = message ? 'block' : 'none';
+  }
+
+  function scheduleNpcHPSave(encodedId, rawValue) {
+    clearTimeout(npcHpSaveTimers.get(encodedId));
+    const timer = setTimeout(() => {
+      npcHpSaveTimers.delete(encodedId);
+      saveNpcHP(encodedId, rawValue);
+    }, 180);
+    npcHpSaveTimers.set(encodedId, timer);
+  }
+
+  async function saveNpcHP(encodedId, rawValue) {
+    if (!isDM) return;
+    clearTimeout(npcHpSaveTimers.get(encodedId));
+    npcHpSaveTimers.delete(encodedId);
+    const id = decodeURIComponent(encodedId);
+    const original = npcRowsById.get(id);
+    const card = document.getElementById(`npc-card-${encodedId}`);
+    const widget = card?.querySelector('.npc-hp-widget');
+    if (!original || !card || !widget) return;
+
+    const hpKey = widget.dataset.hpKey;
+    const rawHP = String(rawValue).trim();
+    const hp = Number(rawHP);
+    if (!rawHP || !Number.isSafeInteger(hp) || hp < 0) {
+      setNpcHPError(card, 'Enter a whole number of 0 or more.');
+      return;
+    }
+
+    setNpcHPError(card, '');
+    widget.setAttribute('aria-busy', 'true');
+    widget.querySelectorAll('button, input').forEach(control => { control.disabled = true; });
+    const { error } = await sb.from('npcs').update({ [hpKey]: hp }).eq('id', original.id);
+    if (error) {
+      widget.removeAttribute('aria-busy');
+      widget.querySelectorAll('button, input').forEach(control => { control.disabled = false; });
+      setNpcHPError(card, `Failed to save HP: ${error.message}`);
+      return;
+    }
+    await loadNPCs();
+  }
+
+  function adjustNpcHP(encodedId, delta, input) {
+    if (!isDM || !input) return;
+    const card = document.getElementById(`npc-card-${encodedId}`);
+    if (!card) return;
+    clearTimeout(npcHpSaveTimers.get(encodedId));
+    npcHpSaveTimers.delete(encodedId);
+    const rawHP = input.value.trim();
+    const hp = Number(rawHP);
+    if (!rawHP || !Number.isSafeInteger(hp) || hp < 0) {
+      setNpcHPError(card, 'Enter a whole number of 0 or more before adjusting HP.');
+      input.focus();
+      return;
+    }
+    input.value = String(Math.max(0, hp + delta));
+    saveNpcHP(encodedId, input.value);
+  }
+
+  function renderNpcEditForm(npc, cardId) {
+    const editableFields = Object.entries(npc)
+      .filter(([key]) => !/^(id|created_at|updated_at)$/i.test(key));
+    const fieldsHtml = editableFields.map(([key, value], index) => {
+      const displayValue = value === null || value === undefined
+        ? ''
+        : typeof value === 'object'
+          ? JSON.stringify(value, null, 2)
+          : String(value);
+      const fieldId = `edit-npc-${cardId}-${index}`;
+      return `
+        <div class="form-group">
+          <label for="${fieldId}">${escapeHtml(key.replace(/_/g, ' '))}${value !== null && typeof value === 'object' ? ' (JSON)' : ''}</label>
+          <textarea id="${fieldId}" data-npc-field="${escapeHtml(key)}" data-npc-type="${value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value}" rows="${typeof value === 'string' && value.length > 100 ? 4 : 2}" class="input-field">${escapeHtml(displayValue)}</textarea>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="npc-edit-mode" style="display:none; margin-top:12px;">
+        <div class="card-edit-form">
+          <h4 style="margin:0 0 10px; color:var(--gold);">Edit NPC</h4>
+          ${fieldsHtml}
+          <div id="npc-edit-error-${cardId}" class="inline-status error" style="display:none;"></div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-sm" onclick="saveNpcEdit('${cardId}')">Save Changes</button>
+            <button class="btn btn-sm btn-secondary" onclick="toggleNpcEdit('${cardId}')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function toggleNpcEdit(encodedId) {
+    if (!isDM) return;
+    const card = document.getElementById(`npc-card-${encodedId}`);
+    if (!card) return;
+    const view = card.querySelector('.npc-view-mode');
+    const edit = card.querySelector('.npc-edit-mode');
+    const isEditing = edit.style.display !== 'none';
+    view.style.display = isEditing ? 'block' : 'none';
+    edit.style.display = isEditing ? 'none' : 'block';
+  }
+
+  async function saveNpcEdit(encodedId) {
+    if (!isDM) return;
+    const id = decodeURIComponent(encodedId);
+    const original = npcRowsById.get(id);
+    const card = document.getElementById(`npc-card-${encodedId}`);
+    const errorEl = document.getElementById(`npc-edit-error-${encodedId}`);
+    if (!original || !card) return;
+
+    const updatedNpc = {};
+    try {
+      card.querySelectorAll('[data-npc-field]').forEach(field => {
+        const key = field.dataset.npcField;
+        const rawValue = field.value;
+        const originalValue = original[key];
+        if (originalValue === null || originalValue === undefined) {
+          updatedNpc[key] = rawValue === '' ? null : rawValue;
+        } else if (typeof originalValue === 'number') {
+          if (rawValue.trim() === '') {
+            updatedNpc[key] = null;
+          } else {
+            const numberValue = Number(rawValue);
+            if (!Number.isFinite(numberValue)) throw new Error(`${key.replace(/_/g, ' ')} must be a valid number.`);
+            updatedNpc[key] = numberValue;
+          }
+        } else if (typeof originalValue === 'boolean') {
+          if (!/^(true|false)$/i.test(rawValue.trim())) throw new Error(`${key.replace(/_/g, ' ')} must be true or false.`);
+          updatedNpc[key] = rawValue.trim().toLowerCase() === 'true';
+        } else if (Array.isArray(originalValue) || (typeof originalValue === 'object' && originalValue !== null)) {
+          updatedNpc[key] = rawValue.trim() === '' ? null : JSON.parse(rawValue);
+        } else {
+          updatedNpc[key] = rawValue;
+        }
+      });
+    } catch (error) {
+      errorEl.textContent = `Check the edited values: ${error.message}`;
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const { error } = await sb.from('npcs').update(updatedNpc).eq('id', original.id);
+    if (error) {
+      errorEl.textContent = `Failed to save NPC: ${error.message}`;
+      errorEl.style.display = 'block';
+      return;
+    }
+    await loadNPCs();
   }
 
   checkSession();

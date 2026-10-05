@@ -43,6 +43,7 @@ const navigation = [
 ];
 
 function navigateTo(target) {
+  window.setMobileNavOpen(false);
   window.localStorage.setItem('nocturne-active-page', target);
   document.querySelectorAll('#react-root .navlist button[data-target]').forEach(button => {
     button.classList.toggle('active', button.dataset.target === target);
@@ -50,14 +51,45 @@ function navigateTo(target) {
   document.querySelectorAll('#react-root main section').forEach(section => {
     section.classList.toggle('active', section.id === target);
   });
-}
   if (target === 'home') window.loadDashboard();
+}
+
+function setMobileNavOpen(open) {
+  const sidebar = document.getElementById('appSidebar');
+  const backdrop = document.getElementById('mobileNavBackdrop');
+  const toggle = document.getElementById('mobileNavToggle');
+  if (!sidebar || !backdrop || !toggle) return;
+
+  const wasOpen = sidebar.classList.contains('open');
+  const isOpen = open && window.matchMedia('(max-width: 560px)').matches;
+  sidebar.classList.toggle('open', isOpen);
+  backdrop.classList.toggle('open', isOpen);
+  toggle.setAttribute('aria-expanded', String(isOpen));
+  toggle.setAttribute('aria-label', isOpen ? 'Close navigation menu' : 'Open navigation menu');
+  document.body.classList.toggle('mobile-nav-open', isOpen);
+
+  if (isOpen) {
+    const closeButton = sidebar.querySelector('.mobile-nav-close');
+    if (closeButton) closeButton.focus();
+  } else if (wasOpen && window.matchMedia('(max-width: 560px)').matches) {
+    toggle.focus();
+  }
+}
+
+window.setMobileNavOpen = setMobileNavOpen;
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') setMobileNavOpen(false);
+});
+window.addEventListener('resize', () => {
+  if (!window.matchMedia('(max-width: 560px)').matches) setMobileNavOpen(false);
+});
 
 function Sidebar() {
   return h('nav', { className: 'sidebar', id: 'appSidebar', style: { display: 'none' } },
+    h('button', { type: 'button', className: 'mobile-nav-close', 'aria-label': 'Close navigation menu', onClick: () => window.setMobileNavOpen(false) }, '×'),
     h('div', { className: 'brand' }, h('div', { className: 'brand-title-row' }, h(Sigil), h('div', null, h('h1', null, 'Nocturne'), h('p', null, 'Campaign Hub'))), h('div', { className: 'brand-meta-row' }, h('span', { className: 'role-pill', id: 'rolePill' }, 'player'), h('button', { className: 'inbox-button', id: 'inboxButton', title: 'Password requests', onClick: () => window.togglePasswordInbox() }, h('span', { className: 'email-icon', 'aria-hidden': true }, '✉'), h('span', { className: 'notification-bubble', id: 'inboxCount', style: { display: 'none' } }, '0'))), h('div', { className: 'password-inbox', id: 'passwordInbox', style: { display: 'none' } })),
     h('ul', { className: 'navlist', id: 'navlist' },
-      h('li', { style: { padding: '0 4px' } }, h('button', { className: 'nav-chat-btn', onClick: () => window.openChatModal() },
+      h('li', { style: { padding: '0 4px' } }, h('button', { className: 'nav-chat-btn', onClick: () => { window.setMobileNavOpen(false); window.openChatModal(); } },
         h('span', { className: 'nav-chat-label' }, h('span', { className: 'nav-icon', 'aria-hidden': true }, '◈'), h('span', null, 'Session Chats')),
         h('span', { id: 'navLiveBadge', className: 'nav-live-badge', style: { display: 'none' } }, 'LIVE')
       )),
@@ -92,6 +124,7 @@ function ChatModal() {
           h('p', null, h('code', null, '/help'), ' Open or close this command panel.'),
           h('p', null, h('code', null, '/whisper PlayerName message'), ' Send a private message to a player.'),
           h('p', null, h('code', null, '/roll 1d20+5'), ' Roll dice and post the result to chat.'),
+          h('p', null, 'Use Death Saves when your character is at 0 hit points. Rolls follow the standard 5e rules and are posted to the current session chat.'),
           h('p', null, 'The D20 button rolls a visual d20. Only the person who rolls it sees the animation; everyone sees the result in chat.')
         )
       ),
@@ -103,8 +136,19 @@ function ChatModal() {
 }
 
 function App() {
-  return h(React.Fragment, null, h(AuthScreen), h(Sidebar), h(ContentSections), h(ChatModal));
+  return h(React.Fragment, null,
+    h(AuthScreen),
+    h('div', { className: 'mobile-nav-bar' },
+      h('button', { type: 'button', className: 'mobile-nav-toggle', id: 'mobileNavToggle', 'aria-label': 'Open navigation menu', 'aria-controls': 'appSidebar', 'aria-expanded': 'false', onClick: () => window.setMobileNavOpen(true) },
+        h('span', { 'aria-hidden': true }, '☰')
+      ),
+      h('span', { className: 'mobile-nav-title' }, 'Nocturne')
+    ),
+    h('button', { type: 'button', className: 'mobile-nav-backdrop', id: 'mobileNavBackdrop', 'aria-label': 'Close navigation menu', onClick: () => window.setMobileNavOpen(false) }),
+    h(Sidebar),
+    h(ContentSections),
+    h(ChatModal)
+  );
 }
 
 ReactDOM.createRoot(document.getElementById('react-root')).render(h(App));
-          h('p', null, 'Use Death Saves when your character is at 0 hit points. Rolls follow the standard 5e rules and are posted to the current session chat.'),
