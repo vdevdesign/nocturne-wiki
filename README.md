@@ -11,11 +11,14 @@
 - Player document access
 - Password-protected DM notes
 - DM-moderated roleplay chat between characters
-- Session-chat dice roller and 5e death-save tracker
+- Session-chat dice roller; NPC death-save tracker appears at 0 HP
 - DM-managed quest and rumor board
 - Campaign dashboard with the latest recap, active leads, and next-session details
+- Back navigation on every page, including browser and mouse back-button support
 
-Death-save counts are stored locally per signed-in user and session chat. Individual rolls and outcomes are posted to the current session chat.
+NPC death-save counts are stored on each NPC record. DMs can roll or reset saves from the NPC card when its HP reaches 0; death-save rolls are no longer posted in Session Chat. Run [supabase-npc-death-saves.sql](supabase-npc-death-saves.sql) in the Supabase SQL editor to add the tracking columns to NPCs.
+
+NPC cards read class and race from their respective `npcs` columns. DM-only secrets and friendship milestones are loaded from `npc_secrets`, keyed by the matching NPC ID; DMs can edit them inline and reveal spoilers individually or use the global blackout control.
 
 ## Quest board and dashboard
 

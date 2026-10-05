@@ -87,6 +87,9 @@
   main { flex: 1 1 900px; min-width: 0; width: 100%; padding: 56px 64px; max-width: 900px; overflow-x: hidden; }
   section { display: none; animation: fade-in 0.25s ease; }
   section.active { display: block; }
+  .page-back-button { margin-bottom: 24px; }
+  .page-back-button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .page-back-button:not(:disabled):focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
   .eyebrow { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--purple); margin-bottom: 8px; font-weight: 500; }
@@ -159,6 +162,22 @@
   .input-control { width: 100%; padding: 0.65rem 0.9rem; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: 0.9rem; outline: none; }
   .input-control:focus { border-color: var(--purple); }
   .block-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+  #campaign-dashboard-content { container: campaign-dashboard / inline-size; }
+  .campaign-dashboard-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+  .campaign-dashboard-card { min-width: 0; margin: 0; }
+  .campaign-dashboard-session { display: grid; gap: 4px; }
+  .campaign-dashboard-session-content { display: grid; gap: 4px; }
+  .campaign-dashboard-session-content p { margin: 0 !important; }
+  @container campaign-dashboard (min-width: 620px) {
+    .campaign-dashboard-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.8fr); grid-template-areas: "session session" "leads recap"; }
+    .campaign-dashboard-session { grid-area: session; grid-template-columns: minmax(130px, 0.8fr) minmax(0, 2fr); align-items: center; gap: 12px; padding: 14px 18px; }
+    .campaign-dashboard-leads { grid-area: leads; }
+    .campaign-dashboard-recap { grid-area: recap; }
+    .campaign-dashboard-session-content { grid-template-columns: minmax(150px, 0.8fr) minmax(0, 2fr); align-items: center; gap: 12px; }
+  }
+  @container campaign-dashboard (min-width: 920px) {
+    .campaign-dashboard-grid { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.7fr); gap: 16px; }
+  }
   .block-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 8px; }
   .block-actions { display:flex; gap:6px; flex-shrink:0; }
   .add-block-btn { margin: 4px 0 28px 0; }
@@ -170,14 +189,12 @@
   .btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
   .btn-spoiler { background: var(--rose-dim); border-color: var(--rose); }
   .btn-spoiler:hover { background: var(--rose); }
-  #spoilerToggleBtn {
-    position: static;
-  }
   .status-badge { font-size: 0.75rem; color: var(--gold); background: rgba(201,162,75,0.1); padding: 0.25rem 0.6rem; border-radius: 12px; border: 1px solid var(--gold-dim); }
   .error-msg { color: var(--rose); font-size: 0.85rem; margin-top: 0.5rem; }
   .empty-note { color: var(--text-faint); font-style: italic; }
 
   .section-toolbar { display:flex; justify-content:flex-end; margin: -18px 0 14px; position:relative; z-index:2; }
+  #spoilerToolbar { position: fixed; top: 12px; right: 18px; margin: 0; z-index: 1040; }
 
   /* Spoiler blackout */
   .spoiler, .spoiler-mask {
@@ -318,20 +335,43 @@
   .chat-form { display: flex; gap: 8px; align-items: center; }
   .chat-form .input-control { min-width: 0; }
   .dice-menu-anchor { position: relative; flex: 0 0 auto; }
-  .death-saves-anchor { position: relative; flex: 0 0 auto; }
-  .death-saves-button { min-width: 96px; color: var(--rose); border-color: var(--rose-dim); }
-  .death-saves-button:hover { background: var(--rose-dim); color: var(--text); }
-  .death-saves-menu { width: 260px; }
-  .death-saves-menu > .btn { width: 100%; margin-top: 7px; }
-  .death-saves-help { margin: -4px 0 12px; color: var(--text-faint); font-size: 11px; line-height: 1.45; }
-  .death-save-tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-  .death-save-track-label { color: var(--text-faint); font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase; }
-  .death-save-markers { display: flex; gap: 6px; margin-top: 6px; }
-  .death-save-marker { width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; background: var(--bg); }
-  .death-save-marker.filled.success { background: var(--gold-dim); border-color: var(--gold); }
-  .death-save-marker.filled.failure { background: var(--rose-dim); border-color: var(--rose); }
-  .death-save-status { min-height: 18px; margin: 0 0 6px; color: var(--text-dim); font-size: 11px; line-height: 1.45; }
-  .death-save-status.error { color: var(--rose); }
+  .npc-death-saves { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; min-width: 0; padding: 7px 9px; border: 1px solid var(--rose-dim); border-radius: 6px; background: rgba(177,82,107,0.08); }
+  .npc-death-saves-header { display: flex; align-items: center; gap: 6px; color: var(--rose); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+  .npc-death-save-tracks { display: flex; gap: 10px; flex-wrap: wrap; }
+  .npc-death-save-track { display: flex; align-items: center; gap: 6px; color: var(--text-faint); font-size: 10px; }
+  .npc-death-save-markers { display: flex; gap: 3px; }
+  .npc-death-save-marker { width: 11px; height: 11px; border: 1px solid var(--line); border-radius: 50%; background: var(--bg); }
+  .npc-death-save-marker.filled.success { border-color: var(--gold); background: var(--gold-dim); }
+  .npc-death-save-marker.filled.failure { border-color: var(--rose); background: var(--rose-dim); }
+  .npc-death-save-controls { display: flex; gap: 5px; }
+  .npc-death-save-controls .btn { padding: 3px 7px; font-size: 10px; }
+  .npc-death-save-status { flex-basis: 100%; margin: 0; color: var(--text-dim); font-size: 10px; line-height: 1.4; }
+  .npc-death-save-status.error { color: var(--rose); }
+  .npc-death-save-flash { margin: 8px 0 0; color: var(--gold); font-size: 11px; }
+  .npc-card-identity { min-width: 0; }
+  .npc-card-class-race { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 0; color: var(--text-faint); font-size: 11px; }
+  .npc-card-class-race strong { color: var(--text-dim); font-weight: 500; }
+  .npc-secrets { display: grid; gap: 10px; margin-top: 4px; padding: 14px; border: 1px solid var(--rose-dim); border-radius: 8px; background: rgba(177,82,107,0.06); }
+  .npc-secrets-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .npc-secrets-header h5 { margin: 0; color: var(--rose); font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase; }
+  .npc-secrets-header .btn { flex: 0 0 auto; }
+  .npc-secrets-content { display: grid; gap: 10px; color: var(--text-dim); font-size: 0.9rem; line-height: 1.55; }
+  .npc-secret-text.spoiler-mask { display: block; }
+  .npc-secrets .spoiler-mask:not(.revealed):hover { background-color: var(--text-main, #1a1a1a); color: transparent !important; border-color: transparent; }
+  .npc-secret-text > :first-child { margin-top: 0; }
+  .npc-secret-text > :last-child { margin-bottom: 0; }
+  .npc-secret-milestones > strong { display: block; margin-bottom: 4px; color: var(--text-faint); font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .npc-secret-milestones ol { display: grid; gap: 5px; margin: 0; padding-left: 22px; }
+  .npc-secret-milestones li { padding-left: 2px; }
+  .npc-secret-milestones .spoiler-mask { line-height: 1.5; }
+  .npc-secrets-edit { gap: 6px; }
+  .npc-secrets-edit label { margin-top: 4px; color: var(--text-faint); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .npc-secrets-edit .input-field { resize: vertical; }
+  .npc-secret-error { margin: 0; color: var(--rose); font-size: 11px; }
+  .npc-secret-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .npc-secrets[aria-busy="true"] { opacity: 0.65; }
+  .npc-secrets[aria-busy="true"] button,
+  .npc-secrets[aria-busy="true"] textarea { pointer-events: none; }
   .dice-roll-button { min-width: 92px; color: var(--gold); border-color: var(--gold-dim); }
   .dice-roll-button:hover { background: var(--gold-dim); color: var(--bg); }
   .dice-roll-menu { position: absolute; right: 0; bottom: calc(100% + 10px); z-index: 20; width: 220px; padding: 14px; background: var(--surface); border: 1px solid var(--gold-dim); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
@@ -343,7 +383,6 @@
   @media (max-width: 560px) {
     .chat-form { flex-wrap: wrap; }
     .chat-form .input-control { flex: 1 1 100%; }
-    .death-saves-menu { right: auto; left: 0; }
   }
   .dice-roll-animation { position: absolute; left: 10%; top: 50%; z-index: 4; pointer-events: none; animation: dice-cross-chat 0.9s ease-in-out forwards; }
   .dice-roll-frame { position: absolute; width: 58px; height: 58px; opacity: 0; animation: dice-frame 0.9s steps(1, end) forwards; }
@@ -534,8 +573,12 @@
   outline: none;
 }
 
-.npc-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.npc-card-header h4 { min-width: 0; overflow-wrap: anywhere; }
+.npc-card { padding: 18px 20px; }
+.npc-view-mode { display: flex; flex-direction: column; gap: 12px; }
+.npc-card-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 14px; min-width: 0; }
+.npc-card-header:not(.has-death-saves) { grid-template-columns: minmax(126px, auto) minmax(0, 1fr); }
+.npc-card-header.has-death-saves { grid-template-columns: auto minmax(0, 1fr) auto; }
+.npc-card-header h4 { min-width: 0; margin: 0; overflow-wrap: anywhere; line-height: 1.2; }
 .npc-hp-widget { flex: 0 0 126px; display: grid; gap: 5px; }
 .npc-hp-value-row { display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--gold); font: 600 11px var(--font-mono); }
 .npc-hp-input { width: 64px; height: 28px; padding: 3px 6px; border: 1px solid var(--gold-dim); border-radius: 5px; background: var(--bg); color: var(--gold); font: 500 14px var(--font-mono); text-align: center; }
@@ -548,6 +591,9 @@
 .npc-hp-widget[aria-busy="true"] button,
 .npc-hp-widget[aria-busy="true"] input { pointer-events: none; }
 .npc-hp-readonly { flex: 0 0 auto; padding: 4px 8px; border: 1px solid var(--gold-dim); border-radius: 5px; color: var(--gold); font: 12px var(--font-mono); white-space: nowrap; }
+@media (max-width: 760px) {
+  .npc-card-header.has-death-saves { grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 8px; }
+}
 .input-field:focus {
   border-color: var(--purple);
 }
@@ -626,6 +672,7 @@
   body { display: block; }
   #react-root { display: block; }
   body.mobile-nav-open { overflow: hidden; }
+  #spoilerToolbar { top: 68px; right: 12px; }
   .mobile-nav-bar {
     display: flex;
     position: sticky;
@@ -728,7 +775,7 @@
 <script type="text/babel" src="pages/LootPage.jsx"></script>
 <script type="text/babel" src="pages/PrimerPage.jsx"></script>
 <script type="text/babel" src="pages/RestrictedPage.jsx"></script>
-<script type="text/babel" src="App.jsx?v=20261002-death-saves"></script>
+<script type="text/babel" src="App.jsx?v=20261005-npc-death-saves"></script>
 <div id="legacy-app" style="display:none;">
 
 <!-- ================= AUTH SCREEN ================= -->
@@ -1005,9 +1052,6 @@
   let currentUser = null;
   let isDM = false;
   let spoilersOff = false;
-  let deathSaveState = { successes: 0, failures: 0 };
-  let deathSaveMessage = '';
-  let deathSaveStorageError = '';
   let questBoardEntries = [];
   let questBoardFilter = 'all';
   
@@ -1027,9 +1071,6 @@
   document.addEventListener('click', function(e) {
     if (e.target.closest('#react-root #diceRollBtn')) toggleDiceMenu();
     if (e.target.closest('#react-root #rollConfiguredDiceBtn')) rollConfiguredDice();
-    if (e.target.closest('#react-root #deathSavesBtn')) toggleDeathSavesMenu();
-    if (e.target.closest('#react-root #rollDeathSaveBtn')) rollDeathSave();
-    if (e.target.closest('#react-root #resetDeathSavesBtn')) resetDeathSaves();
   });
 
   /* ===================== HELPER FUNCTIONS ===================== */
@@ -1404,7 +1445,6 @@
 
   async function initSessionChat(sessionId) {
     currentSessionId = sessionId;
-    loadDeathSaveState();
     
     const { data: sessionState } = await sb.from('active_session').select('*').eq('id', 1).maybeSingle();
     isSessionOpen = sessionState?.is_open && (sessionState?.active_session_id === currentSessionId);
@@ -1441,7 +1481,6 @@
     const dmControls = document.getElementById('dmChatControls');
     const toggle = document.getElementById('sessionOpenToggle');
     const diceButton = document.getElementById('diceRollBtn');
-    const deathSavesButton = document.getElementById('deathSavesBtn');
 
     if (isDM) {
       dmControls.style.display = 'block';
@@ -1452,8 +1491,6 @@
     input.disabled = !canType;
     sendBtn.disabled = !canType;
     diceButton.disabled = !canType;
-    deathSavesButton.disabled = !canType;
-    renderDeathSaveTracker();
 
     if (isSessionOpen) {
       badge.innerText = "Live Session Active";
@@ -1504,120 +1541,6 @@
     if (!menu) return;
     const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : menu.style.display === 'none';
     menu.style.display = shouldOpen ? 'block' : 'none';
-  }
-
-  function deathSaveStorageKey() {
-    return `nocturne-death-saves:${currentUser.id}:${currentSessionId}`;
-  }
-
-  function loadDeathSaveState() {
-    deathSaveState = { successes: 0, failures: 0 };
-    deathSaveMessage = '';
-    deathSaveStorageError = '';
-    try {
-      const saved = window.localStorage.getItem(deathSaveStorageKey());
-      if (saved) {
-        const state = JSON.parse(saved);
-        if (!Number.isInteger(state.successes) || !Number.isInteger(state.failures)
-          || state.successes < 0 || state.successes > 3
-          || state.failures < 0 || state.failures > 3) {
-          throw new Error('Saved death save tracker data is invalid.');
-        }
-        deathSaveState = { successes: state.successes, failures: state.failures };
-      }
-    } catch (error) {
-      deathSaveStorageError = `Could not load saved death saves: ${error.message}`;
-    }
-    renderDeathSaveTracker();
-  }
-
-  function saveDeathSaveState() {
-    try {
-      window.localStorage.setItem(deathSaveStorageKey(), JSON.stringify(deathSaveState));
-      deathSaveStorageError = '';
-      return true;
-    } catch (error) {
-      deathSaveStorageError = `Could not save death saves: ${error.message}`;
-      return false;
-    }
-  }
-
-  function renderDeathSaveTracker() {
-    const successMarkers = document.getElementById('deathSaveSuccesses');
-    const failureMarkers = document.getElementById('deathSaveFailures');
-    const status = document.getElementById('deathSaveStatus');
-    const rollButton = document.getElementById('rollDeathSaveBtn');
-    const resetButton = document.getElementById('resetDeathSavesBtn');
-    if (!successMarkers || !failureMarkers || !status || !rollButton || !resetButton) return;
-
-    const terminal = deathSaveState.successes >= 3 || deathSaveState.failures >= 3;
-    successMarkers.innerHTML = Array.from({ length: 3 }, (_, index) =>
-      `<span class="death-save-marker ${index < deathSaveState.successes ? 'filled success' : ''}" aria-hidden="true"></span>`
-    ).join('');
-    failureMarkers.innerHTML = Array.from({ length: 3 }, (_, index) =>
-      `<span class="death-save-marker ${index < deathSaveState.failures ? 'filled failure' : ''}" aria-hidden="true"></span>`
-    ).join('');
-    successMarkers.setAttribute('aria-label', `${deathSaveState.successes} of 3 successes`);
-    failureMarkers.setAttribute('aria-label', `${deathSaveState.failures} of 3 failures`);
-    const outcome = deathSaveState.successes >= 3
-      ? 'Stable — your character is unconscious but no longer making death saves.'
-      : deathSaveState.failures >= 3
-        ? 'Three failures — your character has died.'
-        : deathSaveMessage;
-    status.textContent = [outcome, deathSaveStorageError].filter(Boolean).join(' ');
-    status.classList.toggle('error', Boolean(deathSaveStorageError));
-    rollButton.disabled = terminal;
-    resetButton.disabled = deathSaveState.successes === 0 && deathSaveState.failures === 0 && !deathSaveMessage;
-  }
-
-  function toggleDeathSavesMenu(forceOpen) {
-    const menu = document.getElementById('deathSavesMenu');
-    if (!menu) return;
-    const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : menu.style.display === 'none';
-    if (shouldOpen) {
-      toggleDiceMenu(false);
-      loadDeathSaveState();
-    }
-    menu.style.display = shouldOpen ? 'block' : 'none';
-  }
-
-  async function rollDeathSave() {
-    if (!isDM && !isSessionOpen) return;
-    if (deathSaveState.successes >= 3 || deathSaveState.failures >= 3) return;
-
-    const roll = Math.floor(Math.random() * 20) + 1;
-    let result;
-    if (roll === 20) {
-      deathSaveState = { successes: 0, failures: 0 };
-      result = 'Natural 20 — regain 1 hit point and reset all death saves.';
-    } else if (roll === 1) {
-      deathSaveState.failures = Math.min(3, deathSaveState.failures + 2);
-      result = 'Natural 1 — mark two failures.';
-    } else if (roll >= 10) {
-      deathSaveState.successes = Math.min(3, deathSaveState.successes + 1);
-      result = 'Success — mark one success.';
-    } else {
-      deathSaveState.failures = Math.min(3, deathSaveState.failures + 1);
-      result = 'Failure — mark one failure.';
-    }
-
-    if (deathSaveState.successes >= 3) {
-      result += ' Three successes — stabilized.';
-    } else if (deathSaveState.failures >= 3) {
-      result += ' Three failures — character dies.';
-    }
-    deathSaveMessage = `${result} (${deathSaveState.successes}/3 successes, ${deathSaveState.failures}/3 failures)`;
-    saveDeathSaveState();
-    renderDeathSaveTracker();
-    playDiceAnimation();
-    await postChatMessage(`🎲 Death save: d20 = ${roll}. ${deathSaveMessage}`);
-  }
-
-  function resetDeathSaves() {
-    deathSaveState = { successes: 0, failures: 0 };
-    deathSaveMessage = 'Death save tracker reset.';
-    saveDeathSaveState();
-    renderDeathSaveTracker();
   }
 
   async function rollD20(diceExp = '1d20') {
@@ -2095,23 +2018,25 @@
       ? `<div><strong>${escapeHtml(summary.session_number ? `Session ${summary.session_number}: ` : '')}${escapeHtml(summary.title || 'Untitled Session')}</strong>
           ${summary.session_date ? `<div class="role-tag" style="margin-top:4px;">${escapeHtml(summary.session_date)}</div>` : ''}
           ${summary.body ? `<p style="margin:8px 0 0; color:var(--text-dim);">${renderMarkdown(summary.body.slice(0, 320))}${summary.body.length > 320 ? '…' : ''}</p>` : ''}
-          <button class="btn btn-sm btn-secondary" style="margin-top:10px;" onclick="navigateTo('summaries')">Read session recaps</button>
+          <button class="btn btn-sm btn-secondary" style="margin-top:10px;" onclick="navigateTo('summaries', true)">Read session recaps</button>
         </div>`
       : '<p class="empty-note">No session recaps yet.</p>';
 
     container.innerHTML = `
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px;">
-        <div class="block-card">
+      <div class="campaign-dashboard-grid">
+        <div class="block-card campaign-dashboard-card campaign-dashboard-session">
           <div class="eyebrow">Next Session</div>
-          <strong>${escapeHtml(sessionDate)}</strong>
-          ${dashboard.next_session_notes ? `<p style="margin:8px 0 0; color:var(--text-dim);">${renderMarkdown(dashboard.next_session_notes)}</p>` : '<p class="empty-note" style="margin:8px 0 0;">No session note yet.</p>'}
+          <div class="campaign-dashboard-session-content">
+            <strong>${escapeHtml(sessionDate)}</strong>
+            ${dashboard.next_session_notes ? `<div style="color:var(--text-dim);">${renderMarkdown(dashboard.next_session_notes)}</div>` : '<p class="empty-note">No session note yet.</p>'}
+          </div>
         </div>
-        <div class="block-card">
+        <div class="block-card campaign-dashboard-card campaign-dashboard-leads">
           <div class="eyebrow">Party Leads</div>
           <p style="margin:0;"><strong>${activeQuests}</strong> active ${activeQuests === 1 ? 'quest' : 'quests'} · <strong>${unresolvedRumors}</strong> unverified ${unresolvedRumors === 1 ? 'rumor' : 'rumors'}</p>
-          <button class="btn btn-sm btn-secondary" style="margin-top:10px;" onclick="navigateTo('quest-board')">Open quest board</button>
+          <button class="btn btn-sm btn-secondary" style="margin-top:10px;" onclick="navigateTo('quest-board', true)">Open quest board</button>
         </div>
-        <div class="block-card">
+        <div class="block-card campaign-dashboard-card campaign-dashboard-recap">
           <div class="eyebrow">Latest Recap</div>
           ${latestSummary}
         </div>
@@ -3334,7 +3259,9 @@ async function saveInlineCharacterEdit(charId) {
 
   /* ===================== NPCS & GROUPED FACTIONS ===================== */
   const npcRowsById = new Map();
+  const npcSecretsById = new Map();
   const npcHpSaveTimers = new Map();
+  let npcSecretLoadError = '';
 
   async function loadNPCs() {
     const container = document.getElementById('npc-cards-container');
@@ -3348,9 +3275,22 @@ async function saveInlineCharacterEdit(charId) {
     }
 
     npcRowsById.clear();
+    npcSecretsById.clear();
+    npcSecretLoadError = '';
     if (!npcs || npcs.length === 0) {
       container.innerHTML = '<p class="empty-note">No NPCs recorded yet.</p>';
       return;
+    }
+
+    if (isDM) {
+      const { data: secrets, error: secretsError } = await sb.from('npc_secrets')
+        .select('npc_id, secret, milestones')
+        .in('npc_id', npcs.map(npc => String(npc.id)));
+      if (secretsError) {
+        npcSecretLoadError = `Failed to load NPC secrets: ${secretsError.message}`;
+      } else {
+        (secrets || []).forEach(secret => npcSecretsById.set(String(secret.npc_id), secret));
+      }
     }
 
     const groupedNPCs = new Map();
@@ -3361,11 +3301,15 @@ async function saveInlineCharacterEdit(charId) {
       groupedNPCs.get(faction).push(npc);
     });
 
-    container.innerHTML = Array.from(groupedNPCs, ([faction, factionNPCs]) => `
+    container.innerHTML = `${npcSecretLoadError ? `<p class="error-msg">${escapeHtml(npcSecretLoadError)}</p>` : ''}
+      ${Array.from(groupedNPCs, ([faction, factionNPCs]) => `
       <div class="faction-group">
         <h3 class="faction-title">${escapeHtml(faction)}</h3>
         ${factionNPCs.map(npc => {
           const name = npc.name || npc.npc_name || npc.title || 'Unnamed NPC';
+          const raceValue = String(npc.race || '').trim();
+          const characterClass = String(npc.class || '').trim();
+          const race = !characterClass && /\s+[—–-]\s+/.test(raceValue) ? '' : raceValue;
           const hpKey = Object.keys(npc).find(key => /^(hp|hit_points|current_hp)$/i.test(key));
           const descriptionKey = ['description', 'bio', 'details', 'summary', 'body']
             .find(key => npc[key] !== null && npc[key] !== undefined && npc[key] !== '');
@@ -3376,6 +3320,8 @@ async function saveInlineCharacterEdit(charId) {
             if (value === null || value === undefined || value === '') return;
             if (/^(id|created_at|updated_at|order_index)$/i.test(key)) return;
             if (/secret|private|dm_only|visible_to_players/i.test(key)) return;
+            if (/^death_save_(successes|failures)$/i.test(key)) return;
+            if (/^tags?$/i.test(key) || /^(class|race)$/i.test(key)) return;
             if (/^(name|npc_name|title|faction|group|organization)$/i.test(key)) return;
             if (/^(hp|hit_points|current_hp)$/i.test(key)) return;
             if (['description', 'bio', 'details', 'summary', 'body'].includes(key)) return;
@@ -3404,6 +3350,16 @@ async function saveInlineCharacterEdit(charId) {
             </div>
           ` : '';
           const npcCardId = encodeURIComponent(String(npc.id));
+          const hpValue = hpKey && npc[hpKey] !== null && npc[hpKey] !== ''
+            ? Number(npc[hpKey])
+            : NaN;
+          const deathSaveWidget = hpKey && Number.isFinite(hpValue) && hpValue <= 0
+            ? renderNpcDeathSaveWidget(npc, npcCardId)
+            : '';
+          const npcSecrets = isDM ? npcSecretsById.get(String(npc.id)) : null;
+          const secretBlock = isDM
+            ? renderNpcSecretBlock(npcSecrets, npcCardId)
+            : '';
           const hpWidget = hpKey ? (isDM ? `
             <div class="npc-hp-widget" data-hp-key="${escapeHtml(hpKey)}">
               <label class="npc-hp-value-row" for="npc-hp-${npcCardId}">HP
@@ -3426,13 +3382,18 @@ async function saveInlineCharacterEdit(charId) {
           return `
             <article class="card" id="npc-card-${npcCardId}">
               <div class="npc-view-mode">
-                <div class="npc-card-header">
-                  <h4>${escapeHtml(name)}</h4>
+                <div class="npc-card-header${deathSaveWidget ? ' has-death-saves' : ''}">
                   ${hpWidget}
+                  ${deathSaveWidget}
+                  <div class="npc-card-identity">
+                    <h4>${escapeHtml(name)}</h4>
+                    ${characterClass || race ? `<div class="npc-card-class-race">${characterClass ? `<span><strong>Class</strong> ${escapeHtml(characterClass)}</span>` : ''}${race ? `<span><strong>Race</strong> ${escapeHtml(race)}</span>` : ''}</div>` : ''}
+                  </div>
                 </div>
                 ${pointsHtml}
                 ${descriptionKey ? renderMarkdown(npc[descriptionKey]) : ''}
                 ${detailsHtml}
+                ${secretBlock}
                 ${editControls}
               </div>
               ${isDM ? renderNpcEditForm(npc, npcCardId) : ''}
@@ -3440,7 +3401,207 @@ async function saveInlineCharacterEdit(charId) {
           `;
         }).join('')}
       </div>
-    `).join('');
+    `).join('')}`;
+  }
+
+  function renderNpcSecretBlock(secretEntry, encodedId) {
+    const secret = secretEntry?.secret || '';
+    let milestones = secretEntry?.milestones || [];
+    if (typeof milestones === 'string') {
+      try {
+        milestones = JSON.parse(milestones);
+      } catch {
+        milestones = [milestones];
+      }
+    }
+    if (!Array.isArray(milestones)) milestones = [];
+    const milestoneValues = milestones.map(milestone => String(milestone));
+    const content = secret || milestoneValues.length
+      ? `<div class="npc-secrets-content">
+          ${secret ? `<div class="npc-secret-text spoiler-mask" title="Click to reveal spoiler">${renderMarkdown(secret)}</div>` : ''}
+          ${milestoneValues.length ? `<div class="npc-secret-milestones"><strong>Friendship milestones</strong><ol>${milestoneValues.map(milestone => `<li><span class="spoiler-mask" title="Click to reveal spoiler">${escapeHtml(milestone)}</span></li>`).join('')}</ol></div>` : ''}
+        </div>`
+      : '<p class="empty-note">No secret or friendship milestones recorded.</p>';
+    const editForm = isDM ? `
+      <div class="npc-secrets-edit" id="npc-secrets-edit-${encodedId}" style="display:none;">
+        <label for="npc-secret-input-${encodedId}">Secret</label>
+        <textarea id="npc-secret-input-${encodedId}" class="input-field" rows="4" maxlength="10000">${escapeHtml(secret)}</textarea>
+        <label for="npc-milestones-input-${encodedId}">Friendship milestones (one per line)</label>
+        <textarea id="npc-milestones-input-${encodedId}" class="input-field" rows="4" maxlength="5000">${escapeHtml(milestoneValues.join('\n'))}</textarea>
+        <p class="npc-secret-error" id="npc-secret-error-${encodedId}" role="alert" style="display:none;"></p>
+        <div class="npc-secret-actions">
+          <button type="button" class="btn btn-sm" onclick="saveNpcSecrets('${encodedId}')">Save secrets</button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="toggleNpcSecretsEdit('${encodedId}')">Cancel</button>
+        </div>
+      </div>` : '';
+    return `
+      <section class="npc-secrets" aria-label="DM-only secrets">
+        <div class="npc-secrets-header">
+          <h5>DM Secrets</h5>
+          ${isDM ? `<button type="button" class="btn btn-sm btn-secondary" onclick="toggleNpcSecretsEdit('${encodedId}')">Edit secrets</button>` : ''}
+        </div>
+        <div class="npc-secrets-view" id="npc-secrets-view-${encodedId}">${content}</div>
+        ${editForm}
+      </section>`;
+  }
+
+  function toggleNpcSecretsEdit(encodedId) {
+    if (!isDM) return;
+    const view = document.getElementById(`npc-secrets-view-${encodedId}`);
+    const edit = document.getElementById(`npc-secrets-edit-${encodedId}`);
+    if (!view || !edit) return;
+    const isEditing = edit.style.display !== 'none';
+    view.style.display = isEditing ? 'block' : 'none';
+    edit.style.display = isEditing ? 'none' : 'grid';
+  }
+
+  async function saveNpcSecrets(encodedId) {
+    if (!isDM) return;
+    const npcId = decodeURIComponent(encodedId);
+    const npc = npcRowsById.get(npcId);
+    const errorEl = document.getElementById(`npc-secret-error-${encodedId}`);
+    const secretInput = document.getElementById(`npc-secret-input-${encodedId}`);
+    const milestonesInput = document.getElementById(`npc-milestones-input-${encodedId}`);
+    if (!npc || !errorEl || !secretInput || !milestonesInput) return;
+
+    const milestones = milestonesInput.value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+    const editor = document.getElementById(`npc-secrets-edit-${encodedId}`);
+    const secretsBlock = editor?.closest('.npc-secrets');
+    secretsBlock?.setAttribute('aria-busy', 'true');
+    editor?.querySelectorAll('button, textarea').forEach(control => { control.disabled = true; });
+    const { data, error } = await sb.from('npc_secrets').upsert({
+      npc_id: String(npc.id),
+      secret: secretInput.value.trim(),
+      milestones
+    }, { onConflict: 'npc_id' }).select('npc_id, secret, milestones').single();
+
+    if (error) {
+      secretsBlock?.removeAttribute('aria-busy');
+      editor?.querySelectorAll('button, textarea').forEach(control => { control.disabled = false; });
+      errorEl.textContent = `Failed to save NPC secrets: ${error.message}`;
+      errorEl.style.display = 'block';
+      return;
+    }
+    npcSecretsById.set(String(data.npc_id), data);
+    await loadNPCs();
+  }
+
+  function renderNpcDeathSaveWidget(npc, encodedId) {
+    const successes = Math.max(0, Math.min(3, Number(npc.death_save_successes) || 0));
+    const failures = Math.max(0, Math.min(3, Number(npc.death_save_failures) || 0));
+    const outcome = successes >= 3
+      ? 'Stable — no further death saves.'
+      : failures >= 3
+        ? 'Dead — three failed death saves.'
+        : 'At 0 HP — roll a d20 on each turn.';
+    const markers = (count, type) => Array.from({ length: 3 }, (_, index) =>
+      `<span class="npc-death-save-marker ${index < count ? `filled ${type}` : ''}" aria-hidden="true"></span>`
+    ).join('');
+    return `
+      <div class="npc-death-saves" id="npc-death-saves-${encodedId}">
+        <div class="npc-death-saves-header"><span>Death Saves</span><span>${successes}/3 successes · ${failures}/3 failures</span></div>
+        <div class="npc-death-save-tracks">
+          <div class="npc-death-save-track">Success <span class="npc-death-save-markers" aria-label="${successes} of 3 successes">${markers(successes, 'success')}</span></div>
+          <div class="npc-death-save-track">Failure <span class="npc-death-save-markers" aria-label="${failures} of 3 failures">${markers(failures, 'failure')}</span></div>
+        </div>
+        <p class="npc-death-save-status" id="npc-death-save-status-${encodedId}" aria-live="polite">${outcome}</p>
+        ${isDM ? `<div class="npc-death-save-controls">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="rollNpcDeathSave('${encodedId}')" ${successes >= 3 || failures >= 3 ? 'disabled' : ''}>Roll d20</button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="resetNpcDeathSaves('${encodedId}')">Reset saves</button>
+        </div>` : ''}
+      </div>`;
+  }
+
+  function setNpcDeathSaveError(encodedId, message) {
+    const status = document.getElementById(`npc-death-save-status-${encodedId}`);
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle('error', Boolean(message));
+  }
+
+  function showNpcDeathSaveOutcome(encodedId, message) {
+    const card = document.getElementById(`npc-card-${encodedId}`);
+    if (!card) return;
+    const status = document.getElementById(`npc-death-save-status-${encodedId}`);
+    if (status) {
+      status.textContent = message;
+      status.classList.remove('error');
+      return;
+    }
+    const flash = document.createElement('p');
+    flash.className = 'npc-death-save-flash';
+    flash.textContent = message;
+    card.querySelector('.npc-card-header')?.after(flash);
+    setTimeout(() => flash.remove(), 8000);
+  }
+
+  async function rollNpcDeathSave(encodedId) {
+    if (!isDM) return;
+    const id = decodeURIComponent(encodedId);
+    const npc = npcRowsById.get(id);
+    const card = document.getElementById(`npc-card-${encodedId}`);
+    const widget = document.getElementById(`npc-death-saves-${encodedId}`);
+    if (!npc || !card || !widget) return;
+    const hpKey = Object.keys(npc).find(key => /^(hp|hit_points|current_hp)$/i.test(key));
+    const currentHP = hpKey ? Number(npc[hpKey]) : NaN;
+    if (!hpKey || !Number.isFinite(currentHP) || currentHP > 0) return;
+
+    const controls = widget.querySelectorAll('button');
+    controls.forEach(button => { button.disabled = true; });
+    widget.setAttribute('aria-busy', 'true');
+
+    const roll = Math.floor(Math.random() * 20) + 1;
+    let successes = Math.max(0, Math.min(3, Number(npc.death_save_successes) || 0));
+    let failures = Math.max(0, Math.min(3, Number(npc.death_save_failures) || 0));
+    let outcome;
+    const update = { death_save_successes: successes, death_save_failures: failures };
+    if (roll === 20) {
+      update[hpKey] = 1;
+      update.death_save_successes = 0;
+      update.death_save_failures = 0;
+      outcome = 'Natural 20 — regained 1 HP; death saves reset.';
+    } else if (roll === 1) {
+      update.death_save_failures = Math.min(3, failures + 2);
+      outcome = 'Natural 1 — two failures.';
+    } else if (roll >= 10) {
+      update.death_save_successes = Math.min(3, successes + 1);
+      outcome = 'Success — one success.';
+    } else {
+      update.death_save_failures = Math.min(3, failures + 1);
+      outcome = 'Failure — one failure.';
+    }
+
+    if (update.death_save_successes >= 3) outcome += ' Stabilized.';
+    else if (update.death_save_failures >= 3) outcome += ' Three failures — dead.';
+
+    const { error } = await sb.from('npcs').update(update).eq('id', npc.id);
+    if (error) {
+      widget.removeAttribute('aria-busy');
+      controls.forEach(button => { button.disabled = false; });
+      setNpcDeathSaveError(encodedId, `Failed to save death save: ${error.message}`);
+      return;
+    }
+    await loadNPCs();
+    showNpcDeathSaveOutcome(encodedId, `d20 = ${roll}. ${outcome}`);
+  }
+
+  async function resetNpcDeathSaves(encodedId) {
+    if (!isDM) return;
+    const npc = npcRowsById.get(decodeURIComponent(encodedId));
+    const widget = document.getElementById(`npc-death-saves-${encodedId}`);
+    if (!npc || !widget) return;
+    widget.setAttribute('aria-busy', 'true');
+    widget.querySelectorAll('button').forEach(button => { button.disabled = true; });
+    const { error } = await sb.from('npcs')
+      .update({ death_save_successes: 0, death_save_failures: 0 })
+      .eq('id', npc.id);
+    if (error) {
+      widget.removeAttribute('aria-busy');
+      widget.querySelectorAll('button').forEach(button => { button.disabled = false; });
+      setNpcDeathSaveError(encodedId, `Failed to reset death saves: ${error.message}`);
+      return;
+    }
+    await loadNPCs();
   }
 
   function setNpcHPError(card, message) {
@@ -3480,7 +3641,12 @@ async function saveInlineCharacterEdit(charId) {
     setNpcHPError(card, '');
     widget.setAttribute('aria-busy', 'true');
     widget.querySelectorAll('button, input').forEach(control => { control.disabled = true; });
-    const { error } = await sb.from('npcs').update({ [hpKey]: hp }).eq('id', original.id);
+    const update = { [hpKey]: hp };
+    if (hp > 0 && ('death_save_successes' in original || 'death_save_failures' in original)) {
+      update.death_save_successes = 0;
+      update.death_save_failures = 0;
+    }
+    const { error } = await sb.from('npcs').update(update).eq('id', original.id);
     if (error) {
       widget.removeAttribute('aria-busy');
       widget.querySelectorAll('button, input').forEach(control => { control.disabled = false; });
@@ -3509,7 +3675,7 @@ async function saveInlineCharacterEdit(charId) {
 
   function renderNpcEditForm(npc, cardId) {
     const editableFields = Object.entries(npc)
-      .filter(([key]) => !/^(id|created_at|updated_at)$/i.test(key));
+      .filter(([key]) => !/^(id|created_at|updated_at|tags|death_save_successes|death_save_failures)$/i.test(key));
     const fieldsHtml = editableFields.map(([key, value], index) => {
       const displayValue = value === null || value === undefined
         ? ''
@@ -3590,6 +3756,12 @@ async function saveInlineCharacterEdit(charId) {
       return;
     }
 
+    const hpKey = Object.keys(original).find(key => /^(hp|hit_points|current_hp)$/i.test(key));
+    if (hpKey && Number(updatedNpc[hpKey]) > 0
+      && ('death_save_successes' in original || 'death_save_failures' in original)) {
+      updatedNpc.death_save_successes = 0;
+      updatedNpc.death_save_failures = 0;
+    }
     const { error } = await sb.from('npcs').update(updatedNpc).eq('id', original.id);
     if (error) {
       errorEl.textContent = `Failed to save NPC: ${error.message}`;

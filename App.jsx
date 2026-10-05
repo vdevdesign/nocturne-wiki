@@ -42,8 +42,20 @@ const navigation = [
   ['loot', 'Loot & Rewards', '◈'], ['primer', 'Player Primer', '✦']
 ];
 
-function navigateTo(target) {
+let currentPage = window.history.state?.nocturnePage || null;
+let navigationIndex = Number.isInteger(window.history.state?.nocturneIndex)
+  ? window.history.state.nocturneIndex
+  : 0;
+
+function updateBackButtons(showBack) {
+  document.querySelectorAll('#react-root .page-back-button').forEach(button => {
+    button.hidden = !showBack || navigationIndex <= 0;
+  });
+}
+
+function renderPage(target, showBack = false) {
   window.setMobileNavOpen(false);
+  currentPage = target;
   window.localStorage.setItem('nocturne-active-page', target);
   document.querySelectorAll('#react-root .navlist button[data-target]').forEach(button => {
     button.classList.toggle('active', button.dataset.target === target);
@@ -51,8 +63,44 @@ function navigateTo(target) {
   document.querySelectorAll('#react-root main section').forEach(section => {
     section.classList.toggle('active', section.id === target);
   });
+  updateBackButtons(showBack);
   if (target === 'home') window.loadDashboard();
 }
+
+function navigateTo(target, showBack = false) {
+  if (target === currentPage) {
+    renderPage(target, showBack);
+    return;
+  }
+
+  navigationIndex = currentPage === null ? 0 : navigationIndex + 1;
+  const state = {
+    ...(window.history.state || {}),
+    nocturnePage: target,
+    nocturneIndex: navigationIndex,
+    nocturneShowBack: showBack
+  };
+  if (currentPage === null) {
+    window.history.replaceState(state, '', window.location.href);
+  } else {
+    window.history.pushState(state, '', window.location.href);
+  }
+  renderPage(target, showBack);
+}
+
+function navigateBack() {
+  if (navigationIndex > 0) window.history.back();
+}
+
+window.navigateBack = navigateBack;
+window.navigateTo = navigateTo;
+
+window.addEventListener('popstate', event => {
+  const { nocturnePage, nocturneIndex, nocturneShowBack } = event.state || {};
+  if (typeof nocturnePage !== 'string' || !document.getElementById(nocturnePage)) return;
+  navigationIndex = Number.isInteger(nocturneIndex) ? nocturneIndex : 0;
+  renderPage(nocturnePage, nocturneShowBack === true);
+});
 
 function setMobileNavOpen(open) {
   const sidebar = document.getElementById('appSidebar');
@@ -124,12 +172,11 @@ function ChatModal() {
           h('p', null, h('code', null, '/help'), ' Open or close this command panel.'),
           h('p', null, h('code', null, '/whisper PlayerName message'), ' Send a private message to a player.'),
           h('p', null, h('code', null, '/roll 1d20+5'), ' Roll dice and post the result to chat.'),
-          h('p', null, 'Use Death Saves when your character is at 0 hit points. Rolls follow the standard 5e rules and are posted to the current session chat.'),
           h('p', null, 'The D20 button rolls a visual d20. Only the person who rolls it sees the animation; everyone sees the result in chat.')
         )
       ),
       h('div', { id: 'chatMessages', className: 'chat-messages' }),
-      h('form', { id: 'chatForm', className: 'chat-form', onSubmit: event => window.handleChatSubmit(event) }, h('input', { id: 'chatInput', className: 'input-control', placeholder: 'Type /help for chat commands...', disabled: true }), h('button', { id: 'chatSendBtn', className: 'btn', type: 'submit', disabled: true }, 'Send'), h('span', { className: 'death-saves-anchor' }, h('button', { id: 'deathSavesBtn', className: 'btn death-saves-button', type: 'button', title: 'Open death save tracker', disabled: true }, 'Death Saves'), h('span', { id: 'deathSavesMenu', className: 'dice-roll-menu death-saves-menu', style: { display: 'none' }, role: 'dialog', 'aria-label': 'Death save tracker' }, h('span', { className: 'dice-menu-title' }, 'Death Saves'), h('p', { className: 'death-saves-help' }, 'Roll a d20 while your character is at 0 hit points.'), h('div', { className: 'death-save-tracks' }, h('div', null, h('span', { className: 'death-save-track-label' }, 'Successes'), h('div', { id: 'deathSaveSuccesses', className: 'death-save-markers', 'aria-label': '0 of 3 successes' })), h('div', null, h('span', { className: 'death-save-track-label' }, 'Failures'), h('div', { id: 'deathSaveFailures', className: 'death-save-markers', 'aria-label': '0 of 3 failures' }))), h('p', { id: 'deathSaveStatus', className: 'death-save-status', 'aria-live': 'polite' }), h('button', { id: 'rollDeathSaveBtn', className: 'btn', type: 'button' }, 'Roll Death Save'), h('button', { id: 'resetDeathSavesBtn', className: 'btn btn-secondary', type: 'button' }, 'Reset Saves'))), h('span', { className: 'dice-menu-anchor' }, h('button', { id: 'diceRollBtn', className: 'btn dice-roll-button', type: 'button', title: 'Open dice roller', disabled: true }, 'Roll dice'), h('span', { id: 'diceRollMenu', className: 'dice-roll-menu', style: { display: 'none' } }, h('span', { className: 'dice-menu-title' }, 'Roll dice'), h('label', null, 'Number of dice', h('input', { id: 'diceCountInput', className: 'input-field', type: 'number', min: 1, max: 100, defaultValue: 1 })), h('label', null, 'Dice type', h('select', { id: 'diceTypeInput', className: 'input-field', defaultValue: '20' }, h('option', { value: '4' }, 'd4'), h('option', { value: '6' }, 'd6'), h('option', { value: '8' }, 'd8'), h('option', { value: '10' }, 'd10'), h('option', { value: '12' }, 'd12'), h('option', { value: '20' }, 'd20'), h('option', { value: '100' }, 'd100'))), h('label', null, 'Modifier', h('input', { id: 'diceModifierInput', className: 'input-field', type: 'number', defaultValue: 0 })), h('button', { id: 'rollConfiguredDiceBtn', className: 'btn', type: 'button' }, 'Roll')))),
+      h('form', { id: 'chatForm', className: 'chat-form', onSubmit: event => window.handleChatSubmit(event) }, h('input', { id: 'chatInput', className: 'input-control', placeholder: 'Type /help for chat commands...', disabled: true }), h('button', { id: 'chatSendBtn', className: 'btn', type: 'submit', disabled: true }, 'Send'), h('span', { className: 'dice-menu-anchor' }, h('button', { id: 'diceRollBtn', className: 'btn dice-roll-button', type: 'button', title: 'Open dice roller', disabled: true }, 'Roll dice'), h('span', { id: 'diceRollMenu', className: 'dice-roll-menu', style: { display: 'none' } }, h('span', { className: 'dice-menu-title' }, 'Roll dice'), h('label', null, 'Number of dice', h('input', { id: 'diceCountInput', className: 'input-field', type: 'number', min: 1, max: 100, defaultValue: 1 })), h('label', null, 'Dice type', h('select', { id: 'diceTypeInput', className: 'input-field', defaultValue: '20' }, h('option', { value: '4' }, 'd4'), h('option', { value: '6' }, 'd6'), h('option', { value: '8' }, 'd8'), h('option', { value: '10' }, 'd10'), h('option', { value: '12' }, 'd12'), h('option', { value: '20' }, 'd20'), h('option', { value: '100' }, 'd100'))), h('label', null, 'Modifier', h('input', { id: 'diceModifierInput', className: 'input-field', type: 'number', defaultValue: 0 })), h('button', { id: 'rollConfiguredDiceBtn', className: 'btn', type: 'button' }, 'Roll')))),
       h('p', { className: 'chat-help' }, 'Type ', h('code', null, '/help'), ' for commands. Whispers show the sender and intended recipient.')
     )
   ));
