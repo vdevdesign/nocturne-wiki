@@ -2,9 +2,12 @@
 
 ## Implemented goals
 
-- **Player character backstories:** DMs assign a character to a player in the character's Tags field using `Player: username`. The username must match the player's sign-in username (the part before `@campaign.local`). Players can view and edit their assigned character's backstory; other players see the roster entry but not its backstory. DMs can view and edit all backstories. This is a UI-level restriction, not database-level security.
+- **Player character bios:** DMs assign a character to a player in the character's Tags field using `Player: username`. The username must match the player's sign-in username (the part before `@campaign.local`). Players can edit a public character bio visible to everyone and a private bio visible in the UI only to the assigned player and DMs. DMs can edit both bios. The private-bio restriction is UI-level, not database-level security. Run [supabase-character-public-bio.sql](supabase-character-public-bio.sql) once in the Supabase SQL editor to add the public bio field; existing `bio` and `description` content remains private.
 - **Player homebrew inventory:** Players can add, edit, and remove items in their own inventory, including an item name, description, quantity, and value. DMs can view and manage every player's inventory. Run [supabase-player-homebrew-inventory.sql](supabase-player-homebrew-inventory.sql) once in the Supabase SQL editor to add the inventory fields and owner/DM access policies.
 - **Inline editing:** Character backstories, homebrew inventory items, NPC hit points, campaign loot, session summaries, and restricted archive entries are edited in place. NPC hit points can be entered directly or adjusted by 1, 5, or 10; DMs can also create session chats with an inline form.
+- **Markdown live previews:** Markdown editors show a live rendered preview while editing.
+- **House common rooms:** Set each player's assigned character `house` field to `Phoenix`, `Fox`, or `Selkie`. The room lookup also recognizes `House: Phoenix`, `House: Fox`, or `House: Selkie` in the character Tags field. Players see their own house room and its minigame; DMs can preview all three rooms.
+- **Player attendance:** DMs can mark assigned characters active or inactive from the Players page. The DM-only house totals count distinct active and inactive players by house. Blank `activity` values are treated as active until changed.
 
 ## Other features
 

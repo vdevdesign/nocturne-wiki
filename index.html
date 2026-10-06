@@ -199,23 +199,21 @@
   /* Spoiler blackout */
   .spoiler, .spoiler-mask {
     background-color: var(--text-main, #1a1a1a);
-    color: transparent !important;
     border-radius: 4px;
     padding: 2px 6px;
     cursor: pointer;
     user-select: none;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    filter: blur(7px);
+    transition: background-color 0.2s ease, filter 0.2s ease;
     display: inline-block;
   }
-  .spoiler:hover, .spoiler.revealed,
-  .spoiler-mask:hover, .spoiler-mask.revealed {
+  .spoiler.revealed,
+  .spoiler-mask.revealed {
     background-color: rgba(220, 50, 50, 0.15);
-    color: var(--rose, #ffb3b3) !important;
+    filter: none;
     border: 1px solid rgba(220, 50, 50, 0.3);
   }
-
-  body.spoilers-off .spoiler,
-  body.spoilers-off .spoiler-mask { filter: blur(7px); user-select: none; pointer-events: none; position: relative; }
+  .spoiler:not(.revealed), .spoiler-mask:not(.revealed) { filter: blur(7px); }
 
   ::-webkit-scrollbar { width: 9px; }
   ::-webkit-scrollbar-track { background: var(--bg-alt); }
@@ -519,6 +517,27 @@
   gap: 12px;
 }
 
+.character-house-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--surface-2);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.character-house-badge.house-phoenix { border-color: rgba(232,131,86,0.5); color: #e9a17d; }
+.character-house-badge.house-fox { border-color: rgba(214,165,80,0.5); color: #e0bb73; }
+.character-house-badge.house-selkie { border-color: rgba(114,185,189,0.5); color: #8bc9cc; }
+.character-card-badges { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.character-activity-badge { display: inline-flex; align-items: center; padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; color: #8bc99a; background: var(--surface-2); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.character-activity-badge.inactive { border-color: rgba(177,82,107,0.5); color: #e28ca0; }
+
 .card-title {
   margin: 0;
   color: var(--gold, #c9a050);
@@ -531,6 +550,21 @@
   font-size: 0.85rem;
   color: var(--text-faint, #a0a0a0);
 }
+
+.character-bios { display: grid; gap: 12px; margin-top: 16px; }
+.character-bio-section { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: rgba(0,0,0,0.12); }
+.character-bio-section h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--gold); font-family: var(--font-title); font-size: 19px; }
+.character-bio-section.private { border-color: rgba(138,104,214,0.4); background: rgba(138,104,214,0.06); }
+.character-bio-section.private h4 { color: #b49be8; }
+.character-bio-visibility { color: var(--text-faint); font: 10px var(--font-body); }
+.character-bio-section .block-body > :last-child { margin-bottom: 0; }
+.character-details { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.character-detail { padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-dim); background: var(--surface-2); font-size: 11px; }
+.character-edit-section { padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.character-edit-section.private { border-color: rgba(138,104,214,0.4); }
+.character-edit-section h5 { margin: 0 0 8px; color: var(--gold); font-family: var(--font-title); font-size: 18px; }
+.character-edit-section.private h5 { color: #b49be8; }
+.character-edit-section > p { margin: 0 0 10px; color: var(--text-faint); font-size: 12px; }
 
 .card-footer-controls {
   display: flex;
@@ -575,10 +609,11 @@
 
 .npc-card { padding: 18px 20px; }
 .npc-view-mode { display: flex; flex-direction: column; gap: 12px; }
-.npc-card-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 14px; min-width: 0; }
-.npc-card-header:not(.has-death-saves) { grid-template-columns: minmax(126px, auto) minmax(0, 1fr); }
-.npc-card-header.has-death-saves { grid-template-columns: auto minmax(0, 1fr) auto; }
-.npc-card-header h4 { min-width: 0; margin: 0; overflow-wrap: anywhere; line-height: 1.2; }
+.npc-card-header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; min-width: 0; }
+.npc-card-header h4 { min-width: 0; margin: 0; overflow-wrap: anywhere; line-height: 1.2; text-align: left; }
+.npc-card-identity { order: 1; flex: 1 1 180px; text-align: left; }
+.npc-hp-widget, .npc-hp-readonly { order: 2; margin-left: auto; }
+.npc-death-saves { order: 3; flex: 1 0 100%; }
 .npc-hp-widget { flex: 0 0 126px; display: grid; gap: 5px; }
 .npc-hp-value-row { display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--gold); font: 600 11px var(--font-mono); }
 .npc-hp-input { width: 64px; height: 28px; padding: 3px 6px; border: 1px solid var(--gold-dim); border-radius: 5px; background: var(--bg); color: var(--gold); font: 500 14px var(--font-mono); text-align: center; }
@@ -591,9 +626,6 @@
 .npc-hp-widget[aria-busy="true"] button,
 .npc-hp-widget[aria-busy="true"] input { pointer-events: none; }
 .npc-hp-readonly { flex: 0 0 auto; padding: 4px 8px; border: 1px solid var(--gold-dim); border-radius: 5px; color: var(--gold); font: 12px var(--font-mono); white-space: nowrap; }
-@media (max-width: 760px) {
-  .npc-card-header.has-death-saves { grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 8px; }
-}
 .input-field:focus {
   border-color: var(--purple);
 }
@@ -653,9 +685,15 @@
   background: var(--purple-dim);
   color: #fff;
 }
-.md-textarea {
-  border-radius: 0 0 6px 6px !important;
-}
+.md-source { display: none !important; }
+.md-live-preview { border: 1px solid var(--line); border-radius: 0 0 6px 6px; background: var(--surface); }
+.md-live-preview-label { display: block; padding: 7px 10px 0; color: var(--text-faint); font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; }
+.md-live-preview-content { min-height: 7.5em; padding: 10px; color: var(--text-dim); outline: none; }
+.md-live-preview-content[contenteditable="true"] { cursor: text; }
+.md-live-preview-content:focus { box-shadow: inset 0 0 0 1px var(--purple-dim); }
+.md-live-preview-content > :first-child { margin-top: 0; }
+.md-live-preview-content > :last-child { margin-bottom: 0; }
+.md-toolbar button { user-select: none; }
 
 .mobile-nav-bar,
 .mobile-nav-backdrop,
@@ -759,6 +797,111 @@
   .navlist { display: flex; flex-direction: column; }
   main { max-width: none; padding: 32px 20px 80px; }
 }
+
+/* House common rooms */
+.house-room-preview { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 20px; }
+.house-room-preview label, .house-room-preview span { color: var(--text-faint); font-size: 12px; }
+.house-room-preview .input-field { width: auto; min-width: 150px; }
+.house-player-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.house-player-count { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.house-player-count span { display: block; color: var(--text-faint); font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase; }
+.house-player-count strong { display: block; margin-top: 4px; color: var(--house-count-color, var(--gold)); font-family: var(--font-title); font-size: 25px; line-height: 1; }
+.house-player-count small { display: block; margin-top: 5px; color: var(--text-faint); font-size: 11px; }
+.house-player-count.house-phoenix { --house-count-color: #e9a17d; }
+.house-player-count.house-fox { --house-count-color: #e0bb73; }
+.house-player-count.house-selkie { --house-count-color: #8bc9cc; }
+.worldbook-map { margin: 0 0 24px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 12px 36px rgba(0,0,0,0.24); }
+.worldbook-map img { display: block; width: 100%; max-height: min(68vh, 760px); object-fit: contain; border-radius: 7px; background: #182e3b; }
+.worldbook-map figcaption { padding: 9px 4px 1px; color: var(--text-faint); font-family: var(--font-title); font-size: 17px; font-style: italic; text-align: center; }
+.house-room-card { --house-accent: var(--gold); --house-glow: rgba(201,162,75,0.12); display: grid; grid-template-columns: minmax(110px, 0.32fr) 1fr; align-items: center; gap: 22px; padding: 28px; margin: 0 0 20px; border: 1px solid var(--line); border-radius: 12px; background: radial-gradient(ellipse at 12% 50%, var(--house-glow), transparent 55%), var(--surface); }
+.house-room-card.house-phoenix { --house-accent: #e88356; --house-glow: rgba(232,131,86,0.16); }
+.house-room-card.house-fox { --house-accent: #d6a550; --house-glow: rgba(214,165,80,0.15); }
+.house-room-card.house-selkie { --house-accent: #72b9bd; --house-glow: rgba(114,185,189,0.15); }
+.house-room-art { display: grid; place-items: center; width: 104px; height: 104px; border: 1px solid color-mix(in srgb, var(--house-accent), transparent 55%); border-radius: 50%; background: var(--house-glow); font-size: 48px; }
+.house-room-label, .house-game-kicker { color: var(--house-accent); font-size: 11px; letter-spacing: 1.3px; text-transform: uppercase; }
+.house-room-copy h3 { margin: 4px 0 0; color: var(--house-accent); border: 0; font-size: 32px; }
+.house-room-copy p { margin: 4px 0 0; }
+.house-room-copy .house-motto { color: var(--text); font-family: var(--font-title); font-size: 21px; font-style: italic; }
+.house-room-copy .house-translation { color: var(--house-accent); font-family: var(--font-title); font-size: 17px; font-style: italic; }
+.house-choice-heading { margin: 0 0 8px; color: var(--gold); font-family: var(--font-title); font-size: 40px; line-height: 1.05; }
+.house-picker-trigger { margin-top: 8px; padding: 11px 18px; }
+.house-picker-vignette { position: fixed; z-index: 500; inset: 0; display: grid; place-items: center; overflow-y: auto; padding: 24px; background: radial-gradient(ellipse at center, rgba(14,13,22,0.72) 0%, rgba(8,7,14,0.94) 72%), rgba(5,4,10,0.86); backdrop-filter: blur(5px); }
+.house-picker-dialog { position: relative; width: min(900px, 100%); max-height: calc(100vh - 48px); overflow-y: auto; padding: 30px; border: 1px solid rgba(201,162,75,0.32); border-radius: 14px; background: radial-gradient(ellipse at 50% 0%, rgba(138,104,214,0.12), transparent 55%), var(--bg-alt); box-shadow: 0 24px 90px rgba(0,0,0,0.7), 0 0 45px rgba(138,104,214,0.1); }
+.house-picker-dialog > .house-room-label { display: block; margin-bottom: 5px; color: var(--gold); text-align: center; }
+.house-picker-dialog .house-choice-heading, .house-picker-intro { text-align: center; }
+.house-picker-intro { margin: 0 0 20px; color: var(--text-faint); font-size: 13px; }
+.house-picker-close { position: absolute; top: 12px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; color: var(--text-dim); background: var(--surface); font-size: 24px; line-height: 1; cursor: pointer; }
+.house-picker-close:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.house-choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.house-choice-card { --house-accent: var(--gold); --house-glow: rgba(201,162,75,0.1); position: relative; isolation: isolate; display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 18px; overflow: visible; border: 1px solid color-mix(in srgb, var(--house-accent), transparent 65%); border-radius: 10px; color: inherit; text-align: left; background: radial-gradient(ellipse at 8% 0%, var(--house-glow), transparent 60%), var(--surface); cursor: pointer; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+.house-choice-card::before, .house-choice-card::after { position: absolute; z-index: -1; inset: -2px; border: 1px solid var(--house-accent); border-radius: 11px; content: ""; opacity: 0; pointer-events: none; }
+.house-choice-card::after { inset: -5px; border: 0; background: radial-gradient(circle at 7% 14%, var(--house-accent) 0 1px, transparent 3px), radial-gradient(circle at 93% 20%, #fff3cf 0 1px, transparent 3px), radial-gradient(circle at 96% 78%, var(--house-accent) 0 1px, transparent 3px), radial-gradient(circle at 12% 92%, #fff3cf 0 1px, transparent 3px), radial-gradient(circle at 50% 0%, var(--house-accent) 0 1px, transparent 3px); filter: drop-shadow(0 0 5px var(--house-accent)); }
+.house-choice-card:hover, .house-choice-card:focus-visible { z-index: 1; transform: translateY(-3px); border-color: var(--house-accent); box-shadow: 0 0 18px var(--house-glow), 0 8px 25px rgba(0,0,0,0.22); outline: none; }
+.house-choice-card:hover::before, .house-choice-card:focus-visible::before { animation: house-edge-glow 1.4s ease-in-out infinite; }
+.house-choice-card:hover::after, .house-choice-card:focus-visible::after { animation: house-edge-sparkle 1.1s ease-in-out infinite alternate; }
+.house-choice-card:disabled { cursor: wait; opacity: 0.7; }
+.house-choice-card.house-phoenix { --house-accent: #e88356; --house-glow: rgba(232,131,86,0.13); }
+.house-choice-card.house-fox { --house-accent: #d6a550; --house-glow: rgba(214,165,80,0.12); }
+.house-choice-card.house-selkie { --house-accent: #72b9bd; --house-glow: rgba(114,185,189,0.12); }
+.house-choice-crest { align-self: center; display: block; width: 100%; height: 190px; margin: -4px 0 10px; object-fit: contain; filter: drop-shadow(0 5px 12px rgba(0,0,0,0.28)); }
+.house-choice-name { margin: 8px 0 2px; color: var(--house-accent); font-family: var(--font-title); font-size: 25px; }
+.house-choice-card .house-choice-motto { margin: 8px 0 0; color: var(--text); font-family: var(--font-title); font-size: 18px; font-style: italic; }
+.house-choice-card .house-choice-translation { margin: 0; color: var(--house-accent); font-family: var(--font-title); font-size: 16px; font-style: italic; }
+.house-choice-card .house-choice-virtue { flex: 1; margin: 9px 0 16px; color: var(--text-dim); font-size: 12px; line-height: 1.55; }
+.house-choice-action { position: relative; isolation: isolate; align-self: stretch; min-height: 46px; padding: 12px 14px; overflow: hidden; border: 1px solid var(--house-accent); border-radius: 6px; color: #171019; background: var(--house-accent); box-shadow: 0 3px 10px var(--house-glow); font-size: 14px; font-weight: 700; text-align: center; transition: filter 0.2s ease, box-shadow 0.2s ease; }
+.house-choice-action::before { position: absolute; z-index: -1; inset: -40% -60%; content: ""; opacity: 0; background: linear-gradient(110deg, transparent 42%, rgba(255,255,255,0.78) 50%, transparent 58%); transform: translateX(-70%) rotate(8deg); pointer-events: none; }
+.house-choice-card:hover .house-choice-action, .house-choice-card:focus-visible .house-choice-action { filter: brightness(1.12); box-shadow: 0 0 16px var(--house-glow); animation: house-join-pulse 1.5s ease-in-out infinite; }
+.house-choice-card:hover .house-choice-action::before, .house-choice-card:focus-visible .house-choice-action::before { opacity: 0.8; animation: house-join-sparkle 1.35s ease-in-out infinite; }
+@keyframes house-edge-glow { 0%, 100% { opacity: 0.3; box-shadow: 0 0 5px var(--house-accent); } 50% { opacity: 1; box-shadow: 0 0 14px var(--house-accent); } }
+@keyframes house-edge-sparkle { from { opacity: 0.35; } to { opacity: 1; filter: drop-shadow(0 0 8px var(--house-accent)); } }
+@keyframes house-join-sparkle { 0% { transform: translateX(-70%) rotate(8deg); } 70%, 100% { transform: translateX(70%) rotate(8deg); } }
+@keyframes house-join-pulse { 0%, 100% { box-shadow: 0 0 8px var(--house-glow); } 50% { box-shadow: 0 0 20px var(--house-accent); } }
+.house-game { padding: 22px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-alt); }
+.house-game-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.house-game-heading h3 { margin: 2px 0 10px; padding: 0; border: 0; }
+.house-game-score { flex: 0 0 auto; color: var(--gold); font: 11px var(--font-mono); }
+.house-game-status { min-height: 26px; }
+.house-game-error, .house-room-error { padding: 12px 14px; border: 1px solid var(--rose-dim); border-radius: 8px; color: #f182a0; background: rgba(177,82,107,0.1); }
+.house-room-unassigned { margin: 0; }
+.house-room-unassigned h3 { margin-top: 0; }
+.ember-sequence { display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 78px; margin: 14px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.ember-preview, .ember-hidden { color: #f5a36a; font-size: 30px; text-shadow: 0 0 16px rgba(245,163,106,0.6); }
+.ember-hidden { color: var(--gold-dim); }
+.ember-buttons, .fox-answers { display: flex; flex-wrap: wrap; gap: 10px; }
+.ember-button { width: 52px; height: 52px; border: 1px solid var(--line); border-radius: 50%; color: var(--gold); background: var(--surface); font-size: 22px; cursor: pointer; }
+.ember-button:hover:not(:disabled), .ember-button:focus-visible { border-color: #e88356; box-shadow: 0 0 14px rgba(232,131,86,0.25); }
+.ember-button:disabled { opacity: 0.45; cursor: wait; }
+.fox-question { padding: 16px; margin: 12px 0; border-left: 2px solid #d6a550; background: var(--surface); font-family: var(--font-title); font-size: 20px; }
+.fox-answer.selected { border-color: #d6a550; color: var(--text); }
+.house-game-feedback { margin-top: 14px; }
+.house-game-feedback p, .house-game-finish p { margin-bottom: 10px; }
+.house-game-finish { padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.tidepool-difficulty { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.tidepool-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+.tidepool-card { display: grid; place-items: center; align-content: center; gap: 4px; min-height: 88px; padding: 8px; border: 1px solid #456a70; border-radius: 8px; color: #b8e0df; background: linear-gradient(145deg, #1b3035, #17232d); cursor: pointer; }
+.tidepool-card:hover:not(:disabled) { border-color: #72b9bd; transform: translateY(-1px); }
+.tidepool-card.revealed { border-color: #72b9bd; background: rgba(114,185,189,0.13); }
+.tidepool-card span { font-size: 25px; }
+.tidepool-card small { font-size: 10px; }
+.tidepool-card:disabled { cursor: default; opacity: 0.85; }
+@media (max-width: 560px) {
+  .house-picker-vignette { padding: 12px; }
+  .house-picker-dialog { max-height: calc(100vh - 24px); padding: 26px 16px 18px; }
+  .house-choice-grid { grid-template-columns: 1fr; }
+  .house-choice-crest { height: 210px; }
+  .house-room-card { grid-template-columns: 1fr; gap: 14px; padding: 20px; }
+  .house-room-art { width: 76px; height: 76px; font-size: 36px; }
+  .house-game { padding: 16px; }
+  .house-game-heading { align-items: flex-start; }
+  .tidepool-grid { gap: 7px; }
+  .tidepool-card { min-height: 74px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .house-choice-card { transition: none; }
+  .house-choice-card:hover::before, .house-choice-card:hover::after, .house-choice-card:focus-visible::before, .house-choice-card:focus-visible::after { animation: none; opacity: 0.8; }
+  .house-choice-card:hover .house-choice-action, .house-choice-card:focus-visible .house-choice-action,
+  .house-choice-card:hover .house-choice-action::before, .house-choice-card:focus-visible .house-choice-action::before { animation: none; }
+}
 </style>
 </head>
 <body>
@@ -775,6 +918,7 @@
 <script type="text/babel" src="pages/LootPage.jsx"></script>
 <script type="text/babel" src="pages/PrimerPage.jsx"></script>
 <script type="text/babel" src="pages/RestrictedPage.jsx"></script>
+<script type="text/babel" src="pages/CommonRoomsPage.jsx"></script>
 <script type="text/babel" src="App.jsx?v=20261005-npc-death-saves"></script>
 <div id="legacy-app" style="display:none;">
 
@@ -835,7 +979,7 @@
     <li><button data-target="home" class="active"><span class="dot"></span>Home</button></li>
     <li><button data-target="worldbook"><span class="dot"></span>Worldbook</button></li>
     <li><button data-target="npcs"><span class="dot"></span>NPCs &amp; Friendship Points</button></li>
-    <li><button data-target="characters"><span class="dot"></span>Character Directory</button></li>
+    <li><button data-target="characters"><span class="dot"></span>Players</button></li>
     <li><button data-target="session-zero"><span class="dot"></span>Session Zero &amp; Rules</button></li>
     <li><button data-target="summaries"><span class="dot"></span>Session Summaries</button></li>
     <li><button data-target="loot"><span class="dot"></span>Loot &amp; Rewards</button></li>
@@ -869,7 +1013,7 @@
     <div class="eyebrow">Dramatis Personae</div>
     <br>
     <div class="section-toolbar" id="spoilerToolbar" style="display:none;">
-      <button class="btn btn-spoiler btn-sm" id="spoilerToggleBtn" onclick="toggleSpoilers()">Black Out Spoilers</button>
+      <button class="btn btn-spoiler btn-sm" id="spoilerToggleBtn" onclick="toggleSpoilers()">Blur All Spoilers</button>
     </div>
     <h2 class="title">NPCs &amp; Friendship Points</h2>
     <p class="subtitle">Faculty, allies, and notable figures across the realm.</p>
@@ -878,7 +1022,7 @@
 
   <section id="characters">
     <div class="eyebrow">Roster &amp; Lore</div>
-    <h2 class="title">Character Directory</h2>
+    <h2 class="title">Players</h2>
     <p class="subtitle">Party roster and player character backstories.</p>
 
     <div id="character-cards-container"><p class="empty-note">Loading…</p></div>
@@ -940,38 +1084,46 @@
     <h2 class="title">Player Primer</h2>
     <p class="subtitle">What you need to know before making a character.</p>
     <h3>The Basics</h3>
-    <p>D&amp;D 5th Edition, 2024 rules. Sheets on D&amp;D Beyond. Dark fantasy with a cheerful surface, mystery and magic with something a little unsettling underneath.</p>
+    <p><strong>System:</strong> D&amp;D 5th Edition, 2024 rules. <strong>Character sheets:</strong> D&amp;D Beyond. <strong>Tone:</strong> Dark fantasy with a cheerful surface. Expect mystery, magic, and something unsettling underneath the charm.</p>
+    <div class="card">
+      <h4>How to Play D&amp;D</h4>
+      <p>The DM describes the world and what happens around you; you describe what your character tries to do.</p>
+      <p>When an outcome is uncertain, the DM may ask you to roll a die and add a skill or ability bonus. In combat, take turns choosing actions, movement, and spells.</p>
+      <p>There is no single right way to solve a problem—ask questions, work together, and make choices that feel true to your character.</p>
+    </div>
     <h3>The World</h3>
-    <p><strong>Elthizar Adventurer Academy</strong> — founded by Euduneus, deep roots in magic and monster fighting. Groups travel by dragon, solo/paired by pegasus. Curfew enforced, chimeras banned.</p>
-    <p>Other places: <strong>Kirael</strong> (fae kingdom), <strong>Vardok</strong> (dragonkin city), <strong>Evron</strong> (human settlement, tense with Vardok).</p>
-    <h3>Tone and Content, Honestly</h3>
-    <p>Loss and grief as backstory &middot; political corruption and class injustice &middot; psychological horror over gore. If this doesn't sound fun, session zero is the time to say so.</p>
-    <h3>Safety Tools</h3>
-    <p>Our safe word is <strong>COCONUT</strong>. Say it and we pause, change, or skip whatever's happening, no explanation needed. Messaging the DM after session works too.</p>
-    <h3>Rumours & Mysteries</h3>
-    <ul class="mystery-list">
-      <li>Something lurks in the forest near the academy.</li>
-      <li>The paintings below the Herbology classroom cry, for reasons no one's explained.</li>
-      <li>The river near the academy is making people sick.</li>
-      <li>There's a locked door in the headmaster's office, and nobody knows what opens it.</li>
+    <p>Nocturne is a world of mysteries and magic, held together by a fragile peace. Your characters attend <strong>Elthizar Adventurer Academy</strong>, founded by <strong>Euduneus Exius Elthizar</strong>. The academy has deep roots in magic and monster fighting, in a setting inspired by Zhangjiajie’s towering stone spires and mist.</p>
+    <div class="card">
+      <h4>Life at the Academy</h4>
+      <ul>
+        <li>Curfew is enforced, and chimeras are banned.</li>
+        <li>Large groups travel by dragon; solo or paired travelers ride pegasus.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Beyond the Academy</h4>
+      <ul>
+        <li><strong>Kirael:</strong> A nearby fae kingdom ruled by Queen Titania.</li>
+        <li><strong>Vardok:</strong> A bustling dragonkin city, home to dragonborn, couatl, kobolds, and drakes.</li>
+        <li><strong>Evron:</strong> A human settlement with a tense relationship with Vardok.</li>
+      </ul>
+    </div>
+    <p>There is room for a dragonborn from Vardok, a fae-blooded student from Kirael, a human from Evron, or an academy-raised character with no clear roots at all.</p>
+    <h3>Content Notes &amp; Safety</h3>
+    <p>So you know what you’re signing up for:</p>
+    <ul>
+      <li><strong>Body horror:</strong> Low-key but present. Chimera transformation is real and recurring, and it is not always reversible.</li>
+      <li><strong>Loss and grief:</strong> Several NPCs carry real grief or guilt as part of their backstories.</li>
+      <li><strong>Political corruption and class injustice:</strong> Especially around Evron and Vardok.</li>
+      <li><strong>Psychological horror over gore:</strong> Themes include mind control, memory loss, and identity.</li>
     </ul>
-    <h3>Friendship Points</h3>
-    <p>Build real relationships with major NPCs through genuine roleplay. Reaching new milestones with them unlocks a deeper scene. Happens naturally through play.</p>
-    <hr style="border:none; border-top:1px solid var(--line); margin:30px 0;">
-    <div class="eyebrow">Quick Reference</div>
-    <h2 class="title" style="font-size:30px;">How to Play D&amp;D</h2>
-    <h3>What it is</h3>
-    <p>A collaborative story. The DM describes the world and plays every character who isn't yours. You decide what your character does. Dice decide uncertain outcomes.</p>
-    <h3>The basic loop</h3>
-    <p>DM describes the scene &rarr; you say what you do &rarr; roll if uncertain &rarr; DM narrates the result.</p>
-    <h3>The dice</h3>
-    <p><code>d20 + modifier</code> vs. a DC (target number) set by the DM. Meet or beat it, you succeed.</p>
-    <h3>Character sheet, in short</h3>
-    <p>Six ability scores (Str/Dex/Con/Int/Wis/Cha) &middot; skills tied to those abilities &middot; HP (damage you can take) &middot; AC (how hard you are to hit).</p>
-    <h3>In combat</h3>
-    <p>Roll initiative &rarr; on your turn take an action and usually a move &rarr; repeat until it ends.</p>
-    <h3>Roleplay is just talking</h3>
-    <p>Speak as your character, make choices as your character would, ask questions when curious.</p>
+    <p>If any of that does not sound fun, session zero is the time to say so.</p>
+    <div class="card">
+      <h4>Safety Tools</h4>
+      <p>Our safe word is <strong>“Coconut.”</strong> It means “pause, change, or skip this,” with no explanation needed. You can also message or talk to the DM privately after the session if something makes you uncomfortable. This is not a formality—nobody has to be the first to speak up.</p>
+    </div>
+    <h3>Friendship Points (FP)</h3>
+    <p>Build genuine relationships with NPCs through roleplay. Each NPC has three Friendship Levels; reaching a new level unlocks a deeper scene. It happens naturally through play—no quest log needed.</p>
   </section>
 
   <section id="restricted">
@@ -1051,7 +1203,6 @@
 
   let currentUser = null;
   let isDM = false;
-  let spoilersOff = false;
   let questBoardEntries = [];
   let questBoardFilter = 'all';
   
@@ -1065,6 +1216,7 @@
     const target = e.target.closest('.spoiler, .spoiler-mask');
     if (target) {
       target.classList.toggle('revealed');
+      updateSpoilerButtons();
     }
   });
 
@@ -1302,12 +1454,19 @@
     });
   });
 
-  function toggleSpoilers() {
-    spoilersOff = !spoilersOff;
-    document.body.classList.toggle('spoilers-off', spoilersOff);
-    document.querySelectorAll('.btn-spoiler').forEach(b => {
-      b.textContent = spoilersOff ? 'Show Spoilers' : 'Black Out Spoilers';
+  function updateSpoilerButtons() {
+    const spoilers = [...document.querySelectorAll('.spoiler, .spoiler-mask')];
+    const allBlurred = spoilers.every(spoiler => !spoiler.classList.contains('revealed'));
+    document.querySelectorAll('.btn-spoiler').forEach(button => {
+      button.textContent = allBlurred ? 'Unblur All Spoilers' : 'Blur All Spoilers';
     });
+  }
+
+  function toggleSpoilers() {
+    const spoilers = [...document.querySelectorAll('.spoiler, .spoiler-mask')];
+    const blurAll = spoilers.some(spoiler => spoiler.classList.contains('revealed'));
+    spoilers.forEach(spoiler => spoiler.classList.toggle('revealed', !blurAll));
+    updateSpoilerButtons();
   }
 
   /* ===================== SESSION CHAT SYSTEM ===================== */
@@ -1747,14 +1906,16 @@
     if (!container) return;
 
     if (isDM) {
-      toolbar.innerHTML = `<button class="btn btn-sm" onclick="addNewSessionSummary()">+ Add Session Summary</button>`;
+      toolbar.innerHTML = `
+        <button class="btn btn-spoiler btn-sm" onclick="toggleSpoilers()">Blur All Spoilers</button>
+        <button class="btn btn-sm" onclick="addNewSessionSummary()">+ Add Session Summary</button>`;
     } else {
       toolbar.innerHTML = '';
     }
 
     const { data, error } = await sb.from('session_summaries')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('session_date', { ascending: false, nullsFirst: false });
 
     if (error) {
       container.innerHTML = `<p class="error-msg">Failed to load summaries: ${escapeHtml(error.message)}</p>`;
@@ -1763,10 +1924,12 @@
 
     if (!data || data.length === 0) {
       container.innerHTML = '<p class="empty-note">No session summaries recorded yet.</p>';
+      updateSpoilerButtons();
       return;
     }
 
     container.innerHTML = data.map(summary => renderSummaryCard(summary)).join('');
+    updateSpoilerButtons();
   }
 
   /* ===================== QUEST & RUMOR BOARD ===================== */
@@ -1890,7 +2053,7 @@
           </label>
         </div>
         <label for="quest-description-${entry.id}" style="display:block; margin-top:10px;">Details</label>
-        <textarea id="quest-description-${entry.id}" class="input-field" rows="4" maxlength="10000">${escapeHtml(entry.description || '')}</textarea>
+        ${markdownEditor(`quest-description-${entry.id}`, entry.description || '', 4, '', 'maxlength="10000"')}
         <label for="quest-reward-${entry.id}" style="display:block; margin-top:10px;">Reward / Lead</label>
         <input id="quest-reward-${entry.id}" class="input-field" maxlength="500" value="${escapeHtml(entry.reward || '')}">
         <div style="display:flex; gap:6px; margin-top:12px;">
@@ -1991,7 +2154,7 @@
 
     let summaryQuery = sb.from('session_summaries')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('session_date', { ascending: false, nullsFirst: false })
       .limit(1);
     if (!isDM) summaryQuery = summaryQuery.eq('visible_to_players', true);
 
@@ -2747,7 +2910,10 @@ function toggleInlineEdit(type, id) {
   }
 
   async function loadTableSection(tableName, containerId, addLabel) {
-    let query = sb.from(tableName).select('*').order('order_index', { ascending: true, nullsFirst: false });
+    let query = sb.from(tableName).select('*');
+    if (tableName === 'session_summaries') {
+      query = query.order('session_date', { ascending: false, nullsFirst: false });
+    }
     
     if (!isDM) {
       query = query.eq('visible_to_players', true);
@@ -2931,8 +3097,7 @@ function toggleInlineEdit(type, id) {
       id, 
       title: `New ${addLabel}`, 
       body: '', 
-      visible_to_players: true,
-      order_index: 99
+      visible_to_players: true
     }).select();
 
     if (error) {
@@ -2970,46 +3135,94 @@ function renderMarkdown(str, emptyLabel = 'No content available.') {
   return window.marked ? marked.parse(str) : escapeHtml(str);
 }
 
-function markdownEditor(id, value, rows = 6, className = '') {
+function markdownEditor(id, value, rows = 6, className = '', sourceAttributes = '') {
   return `
     <div class="markdown-editor">
-      <div class="md-toolbar" aria-label="Markdown formatting">
-        <button type="button" onclick="insertMdFormat('${id}', 'h1')">H1</button>
-        <button type="button" onclick="insertMdFormat('${id}', 'h2')">H2</button>
-        <button type="button" onclick="insertMdFormat('${id}', 'h3')">H3</button>
-        <button type="button" onclick="insertMdFormat('${id}', 'bold')">B</button>
-        <button type="button" onclick="insertMdFormat('${id}', 'italic')">I</button>
-        <button type="button" onclick="insertMdFormat('${id}', 'list')">• List</button>
+      <div class="md-toolbar" role="toolbar" aria-label="Text formatting">
+        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'h1')">H1</button>
+        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'h2')">H2</button>
+        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'h3')">H3</button>
+        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'bold')"><strong>B</strong></button>
+        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'italic')"><em>I</em></button>
+        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'list')">• List</button>
       </div>
-      <textarea id="${id}" rows="${rows}" class="input-field md-textarea ${className}">${escapeHtml(value)}</textarea>
+      <textarea id="${id}" rows="${rows}" class="md-source ${className}" ${sourceAttributes}>${escapeHtml(value)}</textarea>
+      <div class="md-live-preview">
+        <span class="md-live-preview-label">Edit formatted text</span>
+        <div id="${id}-editor" class="md-live-preview-content ${className}" data-markdown-editor-for="${escapeHtml(id)}" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Formatted text editor" spellcheck="true" style="min-height:${Math.max(rows, 3) * 1.5}em;" oninput="syncMarkdownSource(this)">${value ? renderMarkdown(value, '') : '<p><br></p>'}</div>
+      </div>
     </div>`;
 }
 
-// Helper to insert formatting at current cursor selection
-function insertMdFormat(id, type) {
-  const textarea = document.getElementById(id);
-  if (!textarea) return;
+function syncMarkdownSource(editor) {
+  const sourceId = editor.dataset.markdownEditorFor;
+  const source = document.getElementById(sourceId);
+  if (source) source.value = markdownFromHtml(editor);
+}
 
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  const selectedText = textarea.value.substring(start, end);
-
-  let prefix = '';
-  let suffix = '';
-
-  switch (type) {
-    case 'h1': prefix = '# '; break;
-    case 'h2': prefix = '## '; break;
-    case 'h3': prefix = '### '; break;
-    case 'bold': prefix = '**'; suffix = '**'; break;
-    case 'italic': prefix = '*'; suffix = '*'; break;
-    case 'list': prefix = '- '; break;
+function markdownFromHtml(root) {
+  function inline(node) {
+    if (node.nodeType === Node.TEXT_NODE) return node.nodeValue || '';
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    const tag = node.tagName.toLowerCase();
+    const content = Array.from(node.childNodes).map(inline).join('');
+    if (tag === 'br') return '\n';
+    if (tag === 'strong' || tag === 'b') return `**${content}**`;
+    if (tag === 'em' || tag === 'i') return `*${content}*`;
+    if (tag === 'del' || tag === 's' || tag === 'strike') return `~~${content}~~`;
+    if (tag === 'code') return `\`${content}\``;
+    if (tag === 'a') return `[${content}](${node.getAttribute('href') || ''})`;
+    if (tag === 'img') return `![${node.getAttribute('alt') || ''}](${node.getAttribute('src') || ''})`;
+    return content;
   }
 
-  const replacement = prefix + (selectedText || 'Text') + suffix;
-  textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
-  textarea.focus();
-  textarea.setSelectionRange(start + prefix.length, start + prefix.length + (selectedText.length || 4));
+  function listMarkdown(list, depth) {
+    return Array.from(list.children).filter(item => item.tagName === 'LI').map((item, index) => {
+      const nestedLists = Array.from(item.children).filter(child => child.tagName === 'UL' || child.tagName === 'OL');
+      const itemText = Array.from(item.childNodes)
+        .filter(child => !(child.nodeType === Node.ELEMENT_NODE && ['UL', 'OL'].includes(child.tagName)))
+        .map(inline).join('').trim();
+      const marker = list.tagName === 'OL' ? `${index + 1}.` : '-';
+      const nested = nestedLists.map(child => listMarkdown(child, depth + 1)).join('');
+      return `${'  '.repeat(depth)}${marker} ${itemText}\n${nested}`;
+    }).join('');
+  }
+
+  function block(node) {
+    if (node.nodeType === Node.TEXT_NODE) return node.nodeValue || '';
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    const tag = node.tagName.toLowerCase();
+    if (node.classList.contains('empty-note')) return '';
+    if (tag === 'ul' || tag === 'ol') return `${listMarkdown(node, 0)}\n`;
+    if (/^h[1-6]$/.test(tag)) return `${'#'.repeat(Number(tag[1]))} ${Array.from(node.childNodes).map(inline).join('').trim()}\n\n`;
+    if (tag === 'blockquote') return `${Array.from(node.childNodes).map(block).join('').trim().split('\n').map(line => `> ${line}`).join('\n')}\n\n`;
+    if (tag === 'pre') return `\`\`\`\n${node.textContent || ''}\n\`\`\`\n\n`;
+    if (tag === 'p' || tag === 'div') {
+      const content = Array.from(node.childNodes).map(child =>
+        child.nodeType === Node.ELEMENT_NODE && ['UL', 'OL'].includes(child.tagName) ? `\n${block(child)}` : inline(child)
+      ).join('').trim();
+      return content ? `${content}\n\n` : '';
+    }
+    return Array.from(node.childNodes).map(block).join('');
+  }
+
+  return Array.from(root.childNodes).map(block).join('').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function insertMdFormat(id, type) {
+  const editor = document.getElementById(`${id}-editor`);
+  if (!editor) return;
+  editor.focus();
+  if (type === 'h1' || type === 'h2' || type === 'h3') {
+    document.execCommand('formatBlock', false, type.toUpperCase());
+  } else if (type === 'bold') {
+    document.execCommand('bold');
+  } else if (type === 'italic') {
+    document.execCommand('italic');
+  } else if (type === 'list') {
+    document.execCommand('insertUnorderedList');
+  }
+  syncMarkdownSource(editor);
 }
 
 /* ===================== CHARACTER DIRECTORY ===================== */
@@ -3020,33 +3233,8 @@ function getCurrentPlayerId() {
   return currentUser.email.split('@')[0].toLowerCase().trim();
 }
 
-function cleanPlayerName(str) {
-  if (!str) return '';
-  return str
-    .replace(/^["'\s]+|["'\s]+$/g, '')
-    .replace(/[|].*$/, '')
-    .trim()
-    .toLowerCase();
-}
-
-function parsePlayerName(char) {
-  if (!char) return '';
-  if (char.player_name) return cleanPlayerName(char.player_name);
-
-  let searchPool = [];
-  if (Array.isArray(char.tags)) {
-    searchPool = searchPool.concat(char.tags);
-  } else if (typeof char.tags === 'string') {
-    searchPool.push(char.tags);
-  }
-
-  if (typeof char.role === 'string') searchPool.push(char.role);
-  if (typeof char.role_tag === 'string') searchPool.push(char.role_tag);
-
-  const fullText = searchPool.join(' | ');
-
-  const match = fullText.match(/Player:\s*([^|\n,]+)/i);
-  return match ? cleanPlayerName(match[1]) : '';
+function getCharacterPlayerId(char) {
+  return char?.id == null ? '' : String(char.id).trim().toLowerCase();
 }
 
 function canEditCharacter(char) {
@@ -3057,14 +3245,91 @@ function canEditCharacter(char) {
   const activeUser = getCurrentPlayerId();
   if (!activeUser) return false;
 
-  // Check 1: Match directly on characters.id (e.g., char.id === 'test')
-  if (char?.id && char.id.toString().toLowerCase().trim() === activeUser) {
-    return true;
+  return getCharacterPlayerId(char) === activeUser;
+}
+
+const houseNames = ['Phoenix', 'Fox', 'Selkie'];
+const houseEmblems = { Phoenix: '🔥', Fox: '🦊', Selkie: '🌊' };
+
+function getCharacterHouse(char) {
+  if (typeof char?.house !== 'string') return '';
+  return houseNames.find(house => house.toLowerCase() === char.house.trim().toLowerCase()) || '';
+}
+
+async function loadCommonRoom() {
+  const setAssignment = window.setCommonRoomAssignment;
+  if (!setAssignment) return;
+
+  if (isDM) {
+    setAssignment({ loading: false, house: null, characterId: null, characterName: '', error: '', missing: false, dm: true });
+    return;
   }
 
-  // Check 2: Match via tags/player_name (e.g., Player: test)
-  const assignedPlayer = parsePlayerName(char);
-  return Boolean(assignedPlayer && assignedPlayer === activeUser);
+  setAssignment({ loading: true, house: null, characterId: null, characterName: '', error: '', missing: false, dm: false });
+  const { data, error } = await sb.from('characters').select('*');
+  if (error) {
+    setAssignment({
+      loading: false,
+      house: null,
+      characterId: null,
+      characterName: '',
+      error: `Could not load your house assignment: ${error.message}`,
+      missing: false,
+      dm: false
+    });
+    return;
+  }
+
+  const playerId = getCurrentPlayerId();
+  const playerCharacters = (data || []).filter(char =>
+    getCharacterPlayerId(char) === playerId
+  );
+  const character = playerCharacters[0];
+  setAssignment({
+    loading: false,
+    house: getCharacterHouse(character),
+    characterId: character?.id ?? null,
+    characterName: character?.name || '',
+    error: '',
+    missing: !getCharacterHouse(character),
+    dm: false
+  });
+}
+
+function renderHousePlayerCounts(characters) {
+  const playersByHouse = Object.fromEntries(houseNames.map(house => [house, new Map()]));
+  characters.forEach(char => {
+    const player = getCharacterPlayerId(char);
+    const house = getCharacterHouse(char);
+    if (!player || !house) return;
+    const alreadyActive = playersByHouse[house].get(player) === true;
+    playersByHouse[house].set(player, alreadyActive || isCharacterActive(char.activity));
+  });
+
+  return `<div class="house-player-counts" aria-label="Player counts by house">${houseNames.map(house => `
+    <div class="house-player-count house-${house.toLowerCase()}">
+      <span>House ${house}</span>
+      <strong>${[...playersByHouse[house].values()].filter(Boolean).length} active</strong>
+      <small>${[...playersByHouse[house].values()].filter(active => !active).length} inactive</small>
+    </div>`).join('')}
+  </div>`;
+}
+
+function isCharacterActive(activity) {
+  if (typeof activity === 'boolean') return activity;
+  return typeof activity === 'string' && activity.trim().toLowerCase() === 'inactive' ? false : true;
+}
+
+async function setCharacterActivity(charId, activity, booleanColumn = false) {
+  if (!isDM || !['active', 'inactive'].includes(activity)) return;
+  const { error } = await sb.from('characters')
+    .update({ activity: booleanColumn ? activity === 'active' : activity })
+    .eq('id', charId);
+  if (error) {
+    alert(`Failed to update player activity: ${error.message}`);
+    return;
+  }
+  await loadCharacters();
 }
 
 async function loadCharacters() {
@@ -3082,6 +3347,7 @@ async function loadCharacters() {
 
   let html = '';
   if (isDM) {
+    html += renderHousePlayerCounts(data || []);
     html += `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewCharacter()">+ Add Character</button>`;
   }
 
@@ -3119,13 +3385,30 @@ function renderCharacterCard(char) {
   if (!isDM && !isVisible) return '';
 
   const canEdit = canEditCharacter(char);
-
-  let tagDisplay = '';
-  if (Array.isArray(char.tags)) {
-    tagDisplay = char.tags.join(' | ');
-  } else {
-    tagDisplay = char.role_tag || char.tags || char.role || '';
-  }
+  const canManagePrivateBio = isDM || canEdit;
+  const house = getCharacterHouse(char);
+  const assignedPlayer = getCharacterPlayerId(char);
+  const isActive = isCharacterActive(char.activity);
+  const characterDetails = [
+    ['Level', char.level],
+    ['Race', char.race],
+    ['Class', char.class]
+  ].filter(([, value]) => value != null && String(value).trim() !== '');
+  const detailsDisplay = characterDetails.length
+    ? `<div class="character-details">${characterDetails.map(([label, value]) => `<span class="character-detail">${label}: ${escapeHtml(String(value))}</span>`).join('')}</div>`
+    : '';
+  const houseBadge = house
+    ? `<span class="character-house-badge house-${house.toLowerCase()}"><span aria-hidden="true">${houseEmblems[house]}</span> House ${escapeHtml(house)}</span>`
+    : '';
+  const activityBadge = isDM && assignedPlayer
+    ? `<span class="character-activity-badge${isActive ? '' : ' inactive'}">${isActive ? 'Active' : 'Inactive'}</span>`
+    : '';
+  const cardBadges = houseBadge || activityBadge
+    ? `<div class="character-card-badges">${houseBadge}${activityBadge}</div>`
+    : '';
+  const activityControl = isDM && assignedPlayer
+    ? `<button class="btn btn-sm btn-secondary" type="button" onclick="setCharacterActivity('${char.id}', '${isActive ? 'inactive' : 'active'}', ${typeof char.activity === 'boolean'})">Mark ${isActive ? 'inactive' : 'active'}</button>`
+    : '';
 
   let dmControls = '';
   let secretSection = '';
@@ -3141,7 +3424,7 @@ function renderCharacterCard(char) {
       </div>`;
   }
 
-  if (canEdit || isDM) {
+  if (canManagePrivateBio) {
     const visibilityToggle = isDM ? `
       <div style="display:flex; align-items:center; gap:8px;">
         <span class="status-badge ${isVisible ? 'public' : 'hidden'}">${isVisible ? 'Public' : 'Hidden'}</span>
@@ -3155,16 +3438,15 @@ function renderCharacterCard(char) {
       <div class="card-footer-controls">
         ${visibilityToggle}
         <div style="display:flex; gap:6px;">
-          ${canEdit ? `<button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Edit</button>` : ''}
+          ${activityControl}
+          ${canManagePrivateBio ? `<button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Edit Bios</button>` : ''}
           ${isDM ? `<button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${char.id}', 'characters', 'character-cards-container')">Delete</button>` : ''}
         </div>
       </div>`;
   }
 
-  const bioRaw = char.bio || char.description || '';
-  const backstoryContent = canEdit
-    ? renderMarkdown(bioRaw)
-    : (bioRaw ? '<p class="empty-note">This backstory is only visible to its assigned player and the DM.</p>' : '');
+  const publicBio = char.public_bio || '';
+  const privateBio = char.bio || '';
 
   return `
     <div class="block-card" id="character-card-${char.id}">
@@ -3173,20 +3455,31 @@ function renderCharacterCard(char) {
         <div class="card-title-group">
           <div>
             <h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>
-            ${tagDisplay ? `<p class="card-subtitle">${escapeHtml(tagDisplay)}</p>` : ''}
+            ${detailsDisplay}
           </div>
+          ${cardBadges}
         </div>
 
-        <div class="block-body" style="margin-top:10px;">${backstoryContent}</div>
+        <div class="character-bios">
+          <div class="character-bio-section public">
+            <h4>Public Character Bio</h4>
+            <div class="block-body">${renderMarkdown(publicBio, 'No public character bio yet.')}</div>
+          </div>
+          ${canManagePrivateBio ? `
+            <div class="character-bio-section private">
+              <h4>Private Bio <span class="character-bio-visibility">Only you and the DM can see this</span></h4>
+              <div class="block-body">${renderMarkdown(privateBio, 'No private notes yet.')}</div>
+            </div>` : ''}
+        </div>
         ${secretSection}
         ${dmControls}
       </div>
 
-      ${canEdit || isDM ? `
+      ${canManagePrivateBio ? `
         <!-- Edit Mode -->
         <div class="character-edit-mode" style="display:none;">
           <div class="card-edit-form">
-            <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character</h4>
+            <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character Bios</h4>
 
             ${isDM ? `
             <div class="form-group">
@@ -3196,13 +3489,40 @@ function renderCharacterCard(char) {
 
             ${isDM ? `
             <div class="form-group">
-              <label>Tags (e.g. "Player: Name | Lvl 1 | Elf | Wizard")</label>
-              <input type="text" id="edit-char-tags-${char.id}" value="${escapeHtml(tagDisplay)}" class="input-field" />
+              <strong>Character Details</strong>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
+                <div>
+                  <label for="edit-char-level-${char.id}">Level</label>
+                  <input type="text" id="edit-char-level-${char.id}" value="${escapeHtml(char.level ?? '')}" class="input-field" />
+                </div>
+                <div>
+                  <label for="edit-char-race-${char.id}">Race</label>
+                  <input type="text" id="edit-char-race-${char.id}" value="${escapeHtml(char.race ?? '')}" class="input-field" />
+                </div>
+                <div>
+                  <label for="edit-char-class-${char.id}">Class</label>
+                  <input type="text" id="edit-char-class-${char.id}" value="${escapeHtml(char.class ?? '')}" class="input-field" />
+                </div>
+                <div>
+                  <label for="edit-char-house-${char.id}">House</label>
+                  <select id="edit-char-house-${char.id}" class="input-field">
+                    <option value="" ${house ? '' : 'selected'}>No house</option>
+                    ${houseNames.map(name => `<option value="${name}" ${house === name ? 'selected' : ''}>${name}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
             </div>` : ''}
 
-            <div class="form-group">
-              <label>Bio / Backstory (Markdown Enabled)</label>
-              ${markdownEditor(`edit-char-bio-${char.id}`, bioRaw, 6)}
+            <div class="character-edit-section">
+              <h5>Public Character Bio</h5>
+              <p>Visible to everyone who can view this character. Supports Markdown.</p>
+              ${markdownEditor(`edit-char-public-bio-${char.id}`, publicBio, 5)}
+            </div>
+
+            <div class="character-edit-section private">
+              <h5>Private Bio</h5>
+              <p>Only you and the DM can see these notes. Supports Markdown.</p>
+              ${markdownEditor(`edit-char-bio-${char.id}`, privateBio, 5)}
             </div>
 
             ${isDM ? `
@@ -3225,22 +3545,20 @@ function renderCharacterCard(char) {
 async function saveInlineCharacterEdit(charId) {
   const nameEl = document.getElementById(`edit-char-name-${charId}`);
   const bioEl = document.getElementById(`edit-char-bio-${charId}`);
-  const tagsEl = document.getElementById(`edit-char-tags-${charId}`);
+  const publicBioEl = document.getElementById(`edit-char-public-bio-${charId}`);
   const secretEl = document.getElementById(`edit-char-secret-${charId}`);
 
-  if (!bioEl || (isDM && !nameEl)) return;
+  if (!bioEl || !publicBioEl || (isDM && !nameEl)) return;
 
-  const bio = bioEl.value; // Retains raw linebreaks and Markdown formatting
+  const updateData = { bio: bioEl.value, public_bio: publicBioEl.value };
 
-  const updateData = { bio };
-
-  // Only update tags and secrets if the DM is editing
+  // Character metadata and secrets remain DM-managed.
   if (isDM) {
     updateData.name = nameEl.value.trim();
-    if (tagsEl) {
-      const rawTags = tagsEl.value.trim();
-      updateData.tags = rawTags.split('|').map(t => t.trim()).filter(Boolean);
-    }
+    updateData.level = document.getElementById(`edit-char-level-${charId}`)?.value.trim() || null;
+    updateData.race = document.getElementById(`edit-char-race-${charId}`)?.value.trim() || null;
+    updateData.class = document.getElementById(`edit-char-class-${charId}`)?.value.trim() || null;
+    updateData.house = document.getElementById(`edit-char-house-${charId}`)?.value || null;
     if (secretEl) {
       updateData.secret = secretEl.value.trim();
     }
@@ -3402,6 +3720,7 @@ async function saveInlineCharacterEdit(charId) {
         }).join('')}
       </div>
     `).join('')}`;
+    updateSpoilerButtons();
   }
 
   function renderNpcSecretBlock(secretEntry, encodedId) {
@@ -3425,7 +3744,7 @@ async function saveInlineCharacterEdit(charId) {
     const editForm = isDM ? `
       <div class="npc-secrets-edit" id="npc-secrets-edit-${encodedId}" style="display:none;">
         <label for="npc-secret-input-${encodedId}">Secret</label>
-        <textarea id="npc-secret-input-${encodedId}" class="input-field" rows="4" maxlength="10000">${escapeHtml(secret)}</textarea>
+        ${markdownEditor(`npc-secret-input-${encodedId}`, secret, 4)}
         <label for="npc-milestones-input-${encodedId}">Friendship milestones (one per line)</label>
         <textarea id="npc-milestones-input-${encodedId}" class="input-field" rows="4" maxlength="5000">${escapeHtml(milestoneValues.join('\n'))}</textarea>
         <p class="npc-secret-error" id="npc-secret-error-${encodedId}" role="alert" style="display:none;"></p>
@@ -3683,10 +4002,14 @@ async function saveInlineCharacterEdit(charId) {
           ? JSON.stringify(value, null, 2)
           : String(value);
       const fieldId = `edit-npc-${cardId}-${index}`;
+      const hasMarkdownPreview = typeof value === 'string' && /description|bio|secret|summary|notes|backstory|content|lore/i.test(key);
+      const fieldAttributes = `data-npc-field="${escapeHtml(key)}" data-npc-type="${value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value}"`;
       return `
         <div class="form-group">
           <label for="${fieldId}">${escapeHtml(key.replace(/_/g, ' '))}${value !== null && typeof value === 'object' ? ' (JSON)' : ''}</label>
-          <textarea id="${fieldId}" data-npc-field="${escapeHtml(key)}" data-npc-type="${value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value}" rows="${typeof value === 'string' && value.length > 100 ? 4 : 2}" class="input-field">${escapeHtml(displayValue)}</textarea>
+          ${hasMarkdownPreview
+            ? markdownEditor(fieldId, displayValue, typeof value === 'string' && value.length > 100 ? 4 : 2, '', fieldAttributes)
+            : `<textarea id="${fieldId}" ${fieldAttributes} rows="${typeof value === 'string' && value.length > 100 ? 4 : 2}" class="input-field">${escapeHtml(displayValue)}</textarea>`}
         </div>
       `;
     }).join('');
