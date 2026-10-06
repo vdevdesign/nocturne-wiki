@@ -236,9 +236,19 @@ function shuffleFoxRiddles() {
   return shuffled;
 }
 
+function shuffleFoxAnswerIndices(riddle) {
+  const shuffled = riddle.answers.map((_, index) => index);
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 function FoxGame() {
   const [riddles, setRiddles] = React.useState(shuffleFoxRiddles);
   const [riddle, setRiddle] = React.useState(0);
+  const [answerOrder, setAnswerOrder] = React.useState(() => shuffleFoxAnswerIndices(riddles[0]));
   const [score, setScore] = React.useState(0);
   const [choice, setChoice] = React.useState(null);
   const [finished, setFinished] = React.useState(false);
@@ -247,7 +257,7 @@ function FoxGame() {
   function chooseAnswer(index) {
     if (choice !== null || finished) return;
     setChoice(index);
-    if (index === current.correct) setScore(score + 1);
+    if (answerOrder[index] === current.correct) setScore(score + 1);
   }
 
   function continueGame() {
@@ -255,13 +265,17 @@ function FoxGame() {
       setFinished(true);
       return;
     }
-    setRiddle(riddle + 1);
+    const nextRiddle = riddle + 1;
+    setRiddle(nextRiddle);
+    setAnswerOrder(shuffleFoxAnswerIndices(riddles[nextRiddle]));
     setChoice(null);
   }
 
   function restartGame() {
-    setRiddles(shuffleFoxRiddles());
+    const nextRiddles = shuffleFoxRiddles();
+    setRiddles(nextRiddles);
     setRiddle(0);
+    setAnswerOrder(shuffleFoxAnswerIndices(nextRiddles[0]));
     setScore(0);
     setChoice(null);
     setFinished(false);
@@ -287,19 +301,19 @@ function FoxGame() {
         <>
           <p className="fox-question">{current.question}</p>
           <div className="fox-answers">
-            {current.answers.map((answer, index) => (
+            {answerOrder.map((answerIndex, index) => (
               <button
                 className={`btn btn-secondary fox-answer${choice === index ? ' selected' : ''}`}
                 type="button"
-                key={answer}
+                key={current.answers[answerIndex]}
                 disabled={choice !== null}
                 onClick={() => chooseAnswer(index)}
-              >{answer}</button>
+              >{current.answers[answerIndex]}</button>
             ))}
           </div>
           {choice !== null && (
             <div className="house-game-feedback" aria-live="polite">
-              <p>{choice === current.correct ? current.clue : `Not quite—the answer was ${current.answers[current.correct]}. A clever fox learns from every clue.`}</p>
+              <p>{answerOrder[choice] === current.correct ? current.clue : `Not quite—the answer was ${current.answers[current.correct]}. A clever fox learns from every clue.`}</p>
               <button className="btn" type="button" onClick={continueGame}>{riddle + 1 === riddles.length ? 'See your result' : 'Next riddle'}</button>
             </div>
           )}
@@ -451,7 +465,7 @@ function CommonRoomsPage() {
     setSharedMatchId(null);
     setSharedGameError('');
 
-    if (assignment.dm || !assignment.house || assignment.loading || !window.currentUserId) {
+    if (assignment.dm || !assignment.house || !window.currentUserId) {
       setSharedGameLoading(false);
       return undefined;
     }
@@ -465,7 +479,7 @@ function CommonRoomsPage() {
     });
 
     return () => { active = false; };
-  }, [assignment.house, assignment.dm, assignment.loading]);
+  }, [assignment.house, assignment.dm]);
 
   async function chooseHouse(houseName) {
     if (savingHouse || !assignment.characterId || !commonRoomHouses[houseName]) return;
@@ -501,7 +515,7 @@ function CommonRoomsPage() {
       title="Common Rooms"
       subtitle="A little corner of the academy for every house—and a small trial to match."
     >
-      {assignment.loading ? <p className="empty-note">Finding your place in the academy...</p> : null}
+      {assignment.loading && !assignment.house ? <p className="empty-note">Finding your place in the academy...</p> : null}
       {assignment.error ? <p className="house-room-error" role="alert">{assignment.error}</p> : null}
       {!assignment.loading && assignment.missing && !assignment.dm ? (
         <div className="card house-room-unassigned">

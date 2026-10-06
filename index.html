@@ -62,6 +62,8 @@
   .password-request:last-child { border-bottom: 0; }
   .password-request strong { color: var(--text); }
   .password-request-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .password-request input { width: 100%; margin-top: 8px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font: 12px var(--font-body); }
+  .password-request input:focus { border-color: var(--purple); outline: none; }
   .inline-status { margin-top: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--text-dim); font-size: 12px; }
   .inline-status.error { color: var(--rose); border-color: var(--rose-dim); }
   .brand h1 { font-family: var(--font-title); font-weight: 600; font-size: 26px; letter-spacing: 0.5px; margin: 0; color: var(--text); }
@@ -1411,8 +1413,7 @@
 
     const { error } = await sb.from('password_reset_requests').insert({
       username,
-      email: `${username}@campaign.local`,
-      status: 'pending'
+      email: `${username}@campaign.local`
     });
 
     if (error) {
@@ -1438,7 +1439,7 @@
     const { data, error } = await sb.from('password_reset_requests')
       .select('*').eq('status', 'pending').order('created_at', { ascending: false });
     if (error) {
-      inbox.innerHTML = '<div class="inline-status error">Create the password_reset_requests table to enable this inbox.</div>';
+      inbox.innerHTML = `<div class="inline-status error">Could not load password requests: ${escapeHtml(error.message)}</div>`;
       count.style.display = 'none';
       return;
     }
@@ -1449,8 +1450,9 @@
       <div class="password-request" id="password-request-${request.id}">
         <strong>${escapeHtml(request.username)}</strong><br>
         <span>Requested ${new Date(request.created_at).toLocaleString()}</span>
+        <input type="password" id="password-reset-${request.id}" autocomplete="new-password" minlength="8" maxlength="128" placeholder="New password (at least 8 characters)" aria-label="New password for ${escapeHtml(request.username)}">
         <div class="password-request-actions">
-          <button class="btn btn-sm btn-secondary" onclick="markPasswordRequestHandled('${request.id}')">Mark handled</button>
+          <button class="btn btn-sm btn-secondary" onclick="changeRequestedPassword('${request.id}')">Set password</button>
         </div>
       </div>`).join('') : '<div class="empty-note">No pending password requests.</div>';
   }
@@ -1462,12 +1464,30 @@
       .subscribe();
   }
 
-  async function markPasswordRequestHandled(requestId) {
-    const { error } = await sb.from('password_reset_requests').update({
-      status: 'handled', handled_by: currentUser.id, handled_at: new Date().toISOString()
-    }).eq('id', requestId);
+  async function changeRequestedPassword(requestId) {
+    const input = document.getElementById(`password-reset-${requestId}`);
+    const button = input?.parentElement?.querySelector('button');
+    const password = input?.value || '';
+    if (password.length < 8 || password.length > 128) {
+      input?.setCustomValidity('Use a password between 8 and 128 characters.');
+      input?.reportValidity();
+      return;
+    }
+    input.setCustomValidity('');
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Updating…';
+    }
+
+    const { error } = await sb.functions.invoke('change-password', {
+      body: { requestId, password }
+    });
     if (error) {
-      document.getElementById('passwordInbox').insertAdjacentHTML('afterbegin', `<div class="inline-status error">${escapeHtml(error.message)}</div>`);
+      if (button) {
+        button.disabled = false;
+        button.textContent = 'Set password';
+      }
+      document.getElementById('passwordInbox').insertAdjacentHTML('afterbegin', `<div class="inline-status error">Could not change the password: ${escapeHtml(error.message)}</div>`);
       return;
     }
     loadPasswordRequests();
@@ -3457,7 +3477,7 @@ async function loadCommonRoom() {
     return;
   }
 
-  setAssignment({ loading: true, house: null, characterId: null, characterName: '', error: '', missing: false, dm: false });
+  setAssignment(previous => ({ ...previous, loading: true, error: '', dm: false }));
   const { data, error } = await sb.from('characters').select('*');
   if (error) {
     setAssignment({

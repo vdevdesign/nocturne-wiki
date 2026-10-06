@@ -10,33 +10,50 @@ create table if not exists public.password_reset_requests (
 
 alter table public.password_reset_requests enable row level security;
 
+revoke all on table public.password_reset_requests from public, anon, authenticated;
+grant insert on table public.password_reset_requests to anon, authenticated;
+grant select, update on table public.password_reset_requests to authenticated;
+grant usage, select on sequence public.password_reset_requests_id_seq to anon, authenticated;
+
+drop policy if exists "Authenticated users can create reset requests"
+on public.password_reset_requests;
 create policy "Authenticated users can create reset requests"
 on public.password_reset_requests for insert
-to authenticated
-with check (true);
+to anon, authenticated
+with check (
+  status = 'pending'
+  and handled_by is null
+  and handled_at is null
+  and length(trim(username)) > 0
+  and email = lower(username) || '@campaign.local'
+);
 
+drop policy if exists "DMs can read reset requests"
+on public.password_reset_requests;
 create policy "DMs can read reset requests"
 on public.password_reset_requests for select
 to authenticated
 using (
   exists (
     select 1 from public.profiles
-    where profiles.id = auth.uid() and profiles.role = 'dm'
+    where profiles.id = (select auth.uid()) and profiles.role = 'dm'
   )
 );
 
+drop policy if exists "DMs can handle reset requests"
+on public.password_reset_requests;
 create policy "DMs can handle reset requests"
 on public.password_reset_requests for update
 to authenticated
 using (
   exists (
     select 1 from public.profiles
-    where profiles.id = auth.uid() and profiles.role = 'dm'
+    where profiles.id = (select auth.uid()) and profiles.role = 'dm'
   )
 )
 with check (
   exists (
     select 1 from public.profiles
-    where profiles.id = auth.uid() and profiles.role = 'dm'
+    where profiles.id = (select auth.uid()) and profiles.role = 'dm'
   )
 );

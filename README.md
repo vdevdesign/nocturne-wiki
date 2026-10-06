@@ -29,7 +29,7 @@ Run [supabase-quest-board.sql](supabase-quest-board.sql) in the Supabase SQL edi
 
 ## Password reset requests
 
-Password recovery is admin-driven because campaign accounts use synthetic `@campaign.local` addresses. Run [supabase-password-reset-requests.sql](supabase-password-reset-requests.sql) in the Supabase SQL editor. Players can then submit an inline reset request, and DMs can review and mark requests handled from the email inbox beside the campaign title.
+Password recovery is admin-driven because campaign accounts use synthetic `@campaign.local` addresses. Run [supabase-password-reset-requests.sql](supabase-password-reset-requests.sql) in the Supabase SQL editor. Signed-out players can submit an inline reset request; only DMs can review requests and set a new password from the email inbox beside the campaign title. To enable password changes, install the Supabase CLI, sign in with `supabase login`, link this project with `supabase link --project-ref xpsaorwxjminbnmooojc`, then deploy the `change-password` Edge Function with `supabase functions deploy change-password`. Supabase supplies the service-role key to the Edge Function environment; never add it to the website.
 
 ## House games
 
