@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS public.matches (
   state jsonb NOT NULL DEFAULT '{}'::jsonb,
   winner_house text CHECK (winner_house IS NULL OR winner_house IN ('phoenix', 'fox', 'selkie')),
   points_awarded boolean NOT NULL DEFAULT false,
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT matches_house_pair_check CHECK (
     (mode = 'tournament' AND (house_b IS NULL OR house_b <> house_a))
@@ -133,12 +134,63 @@ CREATE TABLE IF NOT EXISTS public.matches (
   )
 );
 
+ALTER TABLE public.matches
+  ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
 CREATE TABLE IF NOT EXISTS public.match_players (
   match_id uuid NOT NULL REFERENCES public.matches(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   house text NOT NULL CHECK (house IN ('phoenix', 'fox', 'selkie')),
   PRIMARY KEY (match_id, user_id)
 );
+
+WITH creator_candidates AS (
+  SELECT
+    m.id,
+    mp.user_id,
+    m.status,
+    m.created_at,
+    row_number() OVER (
+      PARTITION BY mp.user_id, (m.status IN ('waiting', 'active'))
+      ORDER BY (m.status = 'active') DESC, m.created_at DESC, m.id
+    ) AS creator_rank
+  FROM public.matches AS m
+  JOIN public.match_players AS mp
+    ON mp.match_id = m.id AND mp.house = m.house_a
+  WHERE m.mode = 'tournament'
+)
+UPDATE public.matches AS m
+SET created_by = candidates.user_id
+FROM creator_candidates AS candidates
+WHERE candidates.id = m.id
+  AND m.created_by IS NULL
+  AND (candidates.status NOT IN ('waiting', 'active') OR candidates.creator_rank = 1);
+
+WITH duplicate_open_duels AS (
+  SELECT
+    id,
+    row_number() OVER (
+      PARTITION BY created_by
+      ORDER BY (status = 'active') DESC, created_at DESC, id
+    ) AS creator_rank
+  FROM public.matches
+  WHERE mode = 'tournament'
+    AND game = 'rune_duel'
+    AND status IN ('waiting', 'active')
+    AND created_by IS NOT NULL
+)
+UPDATE public.matches AS m
+SET created_by = NULL
+FROM duplicate_open_duels AS duplicates
+WHERE duplicates.id = m.id
+  AND duplicates.creator_rank > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS matches_one_open_rune_duel_per_creator
+  ON public.matches (created_by)
+  WHERE mode = 'tournament'
+    AND game = 'rune_duel'
+    AND status IN ('waiting', 'active')
+    AND created_by IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS public.rune_duel_picks (
   match_id uuid NOT NULL,
@@ -344,6 +396,8 @@ BEGIN
       'status', m.status,
       'state', m.state,
       'winner_house', m.winner_house,
+      'created_by', COALESCE(m.created_by, creator_player.user_id),
+      'creator_name', COALESCE(NULLIF(split_part(creator.email, '@', 1), ''), 'Player'),
       'created_at', m.created_at,
       'players', COALESCE((
         SELECT jsonb_agg(jsonb_build_object(
@@ -357,9 +411,31 @@ BEGIN
       ), '[]'::jsonb)
     ) AS session_row
     FROM public.matches AS m
+    LEFT JOIN LATERAL (
+      SELECT mp.user_id
+      FROM public.match_players AS mp
+      WHERE mp.match_id = m.id AND mp.house = m.house_a
+      ORDER BY mp.user_id
+      LIMIT 1
+    ) AS creator_player ON true
+    LEFT JOIN public.profiles AS creator
+      ON creator.id = COALESCE(m.created_by, creator_player.user_id)
     WHERE m.mode = 'tournament'
+      AND (
+        m.id IN (
+          SELECT recent.id
+          FROM public.matches AS recent
+          WHERE recent.mode = 'tournament'
+          ORDER BY recent.created_at DESC
+          LIMIT 50
+        )
+        OR (
+          COALESCE(m.created_by, creator_player.user_id) = auth.uid()
+          AND m.game = 'rune_duel'
+          AND m.status IN ('waiting', 'active')
+        )
+      )
     ORDER BY m.created_at DESC
-    LIMIT 50
   ) AS sessions;
 
   RETURN v_sessions;
@@ -368,6 +444,42 @@ $$;
 
 REVOKE ALL ON FUNCTION public.get_game_sessions() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_game_sessions() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.delete_tournament_request(match_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_match public.matches;
+BEGIN
+  IF auth.uid() IS NULL OR NOT EXISTS (
+    SELECT 1 FROM public.profiles AS p
+    WHERE p.id = auth.uid() AND p.role = 'dm'
+  ) THEN
+    RAISE EXCEPTION 'Only DMs may delete tournament requests.';
+  END IF;
+
+  SELECT * INTO v_match
+  FROM public.matches AS m
+  WHERE m.id = delete_tournament_request.match_id
+  FOR UPDATE;
+
+  IF NOT FOUND
+    OR v_match.mode <> 'tournament'
+    OR v_match.game <> 'rune_duel'
+    OR v_match.status <> 'waiting' THEN
+    RAISE EXCEPTION 'Only waiting Rune Duel requests can be deleted.';
+  END IF;
+
+  DELETE FROM public.matches WHERE id = v_match.id;
+  RETURN true;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.delete_tournament_request(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.delete_tournament_request(uuid) TO authenticated;
 
 DROP POLICY IF EXISTS house_points_read_access ON public.house_points;
 CREATE POLICY house_points_read_access
@@ -395,8 +507,29 @@ BEGIN
     RAISE EXCEPTION 'Provide a valid game name.';
   END IF;
 
-  INSERT INTO public.matches (game, mode, house_a, status)
-  VALUES (btrim(create_tournament_match.game), 'tournament', v_house, 'waiting')
+  IF btrim(create_tournament_match.game) = 'rune_duel'
+    AND EXISTS (
+      SELECT 1
+      FROM public.matches AS m
+      WHERE (
+        m.created_by = auth.uid()
+        OR EXISTS (
+          SELECT 1
+          FROM public.match_players AS mp
+          WHERE mp.match_id = m.id
+            AND mp.user_id = auth.uid()
+            AND mp.house = m.house_a
+        )
+      )
+        AND m.mode = 'tournament'
+        AND m.game = 'rune_duel'
+        AND m.status IN ('waiting', 'active')
+    ) THEN
+    RAISE EXCEPTION 'Finish your current Rune Duel before creating another.';
+  END IF;
+
+  INSERT INTO public.matches (game, mode, house_a, status, created_by)
+  VALUES (btrim(create_tournament_match.game), 'tournament', v_house, 'waiting', auth.uid())
   RETURNING * INTO v_match;
 
   INSERT INTO public.match_players (match_id, user_id, house)

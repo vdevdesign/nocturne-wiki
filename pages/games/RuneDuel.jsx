@@ -1,3 +1,14 @@
+function RuneArt({ pick }) {
+  const artwork = {
+    flame: 'flame.png',
+    gale: 'gale.png',
+    stone: 'stone.png',
+    shadow: 'shadow.png'
+  };
+  const image = artwork[pick] || 'sealed.png';
+  return <img className="rune-art" src={`assets/rune-duel/${image}`} alt="" aria-hidden="true" />;
+}
+
 window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] }) {
   const [myPick, setMyPick] = React.useState(null);
   const [spectatorPicks, setSpectatorPicks] = React.useState([]);
@@ -147,6 +158,7 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
                 return (
                   <div className={`rune-reveal ${pick ? 'revealed' : ''}`} key={house}>
                     <small>{spectatorPlayers[index]?.name || 'Player'}, House {house}</small>
+                    {!picksLoading ? <RuneArt pick={pick} /> : null}
                     <strong>{picksLoading ? '...' : pick || 'Hidden'}</strong>
                     <span>{pick ? 'Revealed' : 'Hidden until both lock in'}</span>
                   </div>
@@ -163,22 +175,24 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
           <div className="rune-reveal-grid" aria-live="polite">
             <div className="rune-reveal">
               <small>Your rune</small>
+              {!picksLoading ? <RuneArt pick={myPick} /> : null}
               <strong>{picksLoading ? '...' : myPick || 'Choose below'}</strong>
               {myPick ? <span>Locked in</span> : null}
             </div>
             <div className={`rune-reveal ${opponentPickRevealed ? 'revealed' : ''}`}>
               <small>House {opponentHouse}</small>
+              <RuneArt pick={opponentPickRevealed} />
               <strong>{opponentPickRevealed || 'Hidden'}</strong>
               <span>{opponentPickRevealed ? 'Revealed' : 'Waiting for both players'}</span>
             </div>
           </div>
           <div className="rune-pick-grid">
             {[
-              ['flame', '🔥', 'Flame'],
-              ['gale', '🌬️', 'Gale'],
-              ['stone', '🪨', 'Stone'],
-              ['shadow', '🌑', 'Shadow']
-            ].map(([pick, icon, label]) => (
+              ['flame', 'Flame'],
+              ['gale', 'Gale'],
+              ['stone', 'Stone'],
+              ['shadow', 'Shadow']
+            ].map(([pick, label]) => (
               <button
                 className={`rune-pick ${myPick === pick ? 'selected' : ''}`}
                 type="button"
@@ -186,7 +200,7 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
                 disabled={Boolean(myPick) || submitting || picksLoading}
                 onClick={() => submitPick(pick)}
               >
-                <span aria-hidden="true">{icon}</span>
+                <RuneArt pick={pick} />
                 {label}
               </button>
             ))}

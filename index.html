@@ -891,6 +891,19 @@
 .games-rule, .games-note { color: var(--text-dim); font-size: 13px; line-height: 1.6; }
 .games-error, .games-disconnected { color: var(--rose); font-size: 13px; line-height: 1.5; }
 .games-status, .games-connection, .games-house-badge { padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-dim); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; }
+.games-option-picker { display: grid; gap: 12px; margin: 16px 0 8px; padding: 0; border: 0; }
+.games-option-picker legend { margin-bottom: 8px; color: var(--text-faint); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.games-option-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.games-option-card { display: flex; align-items: center; gap: 12px; min-height: 82px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-alt); cursor: pointer; }
+.games-option-card:hover, .games-option-card.selected { border-color: var(--gold-dim); background: linear-gradient(145deg, rgba(138,104,214,0.1), rgba(201,162,75,0.06)); }
+.games-option-card.rune-duel-option { background-image: linear-gradient(90deg, rgba(18,17,31,0.94), rgba(18,17,31,0.72)), url("assets/rune-duel/rune-duel-card-bg.png"); background-position: center; background-size: cover; }
+.games-option-card.rune-duel-option:hover, .games-option-card.rune-duel-option.selected { background-image: linear-gradient(90deg, rgba(18,17,31,0.9), rgba(18,17,31,0.62)), url("assets/rune-duel/rune-duel-card-bg.png"); }
+.games-option-card input { width: 16px; height: 16px; accent-color: var(--gold); flex: 0 0 auto; }
+.games-option-copy { display: grid; gap: 5px; flex: 1; }
+.games-option-copy strong { color: var(--text); font-family: var(--font-title); font-size: 19px; }
+.games-option-copy small { color: var(--text-faint); font-size: 11px; line-height: 1.5; }
+.games-option-check { color: var(--gold); font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; }
+.games-option-picker > .btn { justify-self: start; }
 .games-connection.connected { color: #9bd4ad; border-color: rgba(115,190,135,0.4); }
 .games-connection.disconnected { color: var(--rose); border-color: var(--rose-dim); }
 .games-match-list { display: grid; gap: 10px; margin-top: 16px; }
@@ -908,7 +921,14 @@
 .games-session-status { padding: 3px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-faint); font-family: var(--font-mono); font-size: 9px; font-weight: 400; text-transform: uppercase; }
 .games-session-status.active { border-color: rgba(115,190,135,0.4); color: #9bd4ad; }
 .games-session-status.finished { border-color: var(--gold-dim); color: var(--gold); }
-.rune-duel { padding: 18px; }
+.games-delete-actions { display: inline-flex; align-items: center; gap: 8px; }
+.game-request-overlay { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 20px; background: rgba(5,7,15,0.78); backdrop-filter: blur(5px); }
+.game-request-popup { position: relative; width: min(100%, 440px); padding: 28px; border: 1px solid var(--gold-dim); border-radius: 12px; background: linear-gradient(145deg, #211c31, #111521); box-shadow: 0 18px 70px rgba(0,0,0,0.55), 0 0 32px rgba(201,162,75,0.1); }
+.game-request-popup h2 { margin: 8px 0; color: var(--text); font-family: var(--font-title); font-size: 30px; }
+.game-request-popup p { color: var(--text-dim); line-height: 1.6; }
+.game-request-close { position: absolute; top: 10px; right: 12px; border: 0; color: var(--text-faint); background: transparent; font-size: 25px; cursor: pointer; }
+.game-request-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.rune-duel { padding: 18px; background-image: linear-gradient(180deg, rgba(17,18,31,0.9), rgba(17,18,31,0.96)), url("assets/rune-duel/rune-duel-card-bg.png"); background-position: center; background-size: cover; }
 .rune-scoreboard { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 18px 0; }
 .rune-scoreboard div { display: grid; justify-items: center; gap: 4px; }
 .rune-scoreboard span { color: var(--text-faint); font-size: 11px; text-transform: capitalize; }
@@ -920,9 +940,10 @@
 .rune-reveal small, .rune-reveal span { color: var(--text-faint); font-size: 10px; text-transform: uppercase; }
 .rune-reveal strong { color: var(--purple); font-family: var(--font-mono); font-size: 16px; text-transform: capitalize; }
 .rune-reveal.revealed strong { color: var(--gold); animation: runeReveal 500ms ease-out both; }
+.rune-art { display: block; width: 54px; height: 54px; object-fit: contain; }
+.rune-pick .rune-art { width: 76px; height: 76px; }
 .rune-pick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
-.rune-pick { display: grid; justify-items: center; gap: 6px; padding: 10px 5px; border: 1px solid var(--line); border-radius: 8px; color: var(--text-dim); background: var(--surface); cursor: pointer; }
-.rune-pick span { font-size: 22px; }
+.rune-pick { display: grid; justify-items: center; gap: 6px; padding: 10px 5px; border: 1px solid var(--line); border-radius: 8px; color: var(--text-dim); background: rgba(18,17,31,0.82); cursor: pointer; }
 .rune-pick:hover:not(:disabled), .rune-pick.selected { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 16px rgba(201,162,75,0.12); }
 .rune-pick:disabled { cursor: default; opacity: 0.65; }
 @keyframes runeReveal { from { opacity: 0; transform: rotateY(90deg) scale(0.8); } to { opacity: 1; transform: rotateY(0) scale(1); } }
@@ -941,6 +962,10 @@
   .games-section-heading { align-items: flex-start; flex-direction: column; }
   .games-match-row { align-items: flex-start; flex-direction: column; }
   .games-match-row .btn { width: 100%; }
+  .games-delete-actions { width: 100%; flex-direction: column; }
+  .games-delete-actions .btn { width: 100%; }
+  .game-request-actions { flex-direction: column; }
+  .game-request-actions .btn { width: 100%; }
   .games-session-monitor-heading { align-items: flex-start; flex-direction: column; }
   .rune-pick-grid { grid-template-columns: repeat(2, 1fr); }
   .constellation-canvas { height: 260px; }

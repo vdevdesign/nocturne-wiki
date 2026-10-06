@@ -578,7 +578,7 @@ function CommonRoomsPage() {
           {house === 'Phoenix' ? <PhoenixGame key={house} /> : null}
           {house === 'Fox' ? <FoxGame key={house} /> : null}
           {house === 'Selkie' ? <SelkieGame key={house} /> : null}
-          <section className={`games-section house-${house.toLowerCase()}`}>
+          <div className={`games-section house-${house.toLowerCase()}`}>
             <div className="games-section-heading">
               <div>
                 <span className="games-kicker">House {house}, together</span>
@@ -599,7 +599,7 @@ function CommonRoomsPage() {
                 playerName={window.currentPlayerName || assignment.characterName || 'Player'}
               />
             ) : null}
-          </section>
+          </div>
         </>
       ) : null}
     </PageSection>

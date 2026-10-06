@@ -1,18 +1,34 @@
 window.GamesHub = function GamesHub() {
+  const tournamentGames = [
+    {
+      id: 'rune_duel',
+      name: 'Rune Duel',
+      description: 'Choose an elemental rune each round. First to three wins the duel for your house.'
+    }
+  ];
   const [refreshVersion, setRefreshVersion] = React.useState(0);
   const [house, setHouse] = React.useState(window.currentHouse || '');
   const [isDM, setIsDM] = React.useState(window.currentUserIsDM === true);
+  const [selectedGame, setSelectedGame] = React.useState('rune_duel');
   const [waitingMatches, setWaitingMatches] = React.useState([]);
   const [ownWaitingMatch, setOwnWaitingMatch] = React.useState(null);
   const [tournamentSessions, setTournamentSessions] = React.useState([]);
   const [points, setPoints] = React.useState([]);
   const [selectedMatchId, setSelectedMatchId] = React.useState(null);
   const [spectating, setSpectating] = React.useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = React.useState(null);
+  const [deletingMatchId, setDeletingMatchId] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
   const [connection, setConnection] = React.useState('connecting');
+  const seenRequestIds = React.useRef(new Set());
   const selectedMatch = window.useMatch(selectedMatchId);
+  const hasOpenCreatedDuel = tournamentSessions.some(session => (
+    session.game === 'rune_duel'
+    && session.created_by === window.currentUserId
+    && ['waiting', 'active'].includes(session.status)
+  ));
   const leaderboard = ['phoenix', 'fox', 'selkie']
     .map(name => ({
       house: name,
@@ -55,30 +71,30 @@ window.GamesHub = function GamesHub() {
     const userHouse = (window.currentHouse || '').toLowerCase();
 
     async function loadHub() {
-      const [matchesResult, sessionsResult, pointsResult] = await Promise.all([
-        sb.from('matches').select('*').eq('mode', 'tournament').eq('game', 'rune_duel').order('created_at', { ascending: false }).limit(50),
+      const [sessionsResult, pointsResult] = await Promise.all([
         sb.rpc('get_game_sessions'),
         sb.from('house_points').select('house, points').order('house')
       ]);
       if (!active) return;
       const missingSessionsRpc = sessionsResult.error?.code === 'PGRST202'
         || sessionsResult.error?.message?.includes('get_game_sessions');
-      if (matchesResult.error) {
-        setError(matchesResult.error.message);
-        setConnection('disconnected');
-      } else {
-        const matches = matchesResult.data || [];
-        setWaitingMatches(matches.filter(match => match.status === 'waiting' && match.house_a !== userHouse));
-        setOwnWaitingMatch(matches.find(match => match.status === 'waiting' && match.house_a === userHouse) || null);
-        setConnection('connected');
-      }
       if (sessionsResult.error) {
+        setConnection('disconnected');
         setError(previous => previous || (missingSessionsRpc
           ? 'Tournament spectator sessions are not set up yet. Run the latest supabase-house-games.sql in the Supabase SQL editor, then refresh the API schema cache.'
           : sessionsResult.error.message));
       } else {
-        const sessions = sessionsResult.data || [];
+        const sessions = (sessionsResult.data || []).filter(session => (
+          session.mode === 'tournament' && session.game === 'rune_duel'
+        ));
         setTournamentSessions(sessions);
+        setWaitingMatches(sessions.filter(match => (
+          match.status === 'waiting' && match.house_a !== userHouse
+        )));
+        setOwnWaitingMatch(sessions.find(match => (
+          match.created_by === window.currentUserId
+          && match.status === 'waiting'
+        )) || null);
         const myActiveMatch = sessions.find(match => (
           match.status === 'active'
           && match.players?.some(player => player.user_id === window.currentUserId)
@@ -87,6 +103,7 @@ window.GamesHub = function GamesHub() {
           setSelectedMatchId(myActiveMatch.id);
           setSpectating(false);
         }
+        setConnection('connected');
       }
       if (pointsResult.error) {
         setError(previous => previous || pointsResult.error.message);
@@ -105,8 +122,38 @@ window.GamesHub = function GamesHub() {
         if (pointsError) setError(pointsError.message);
         else setPoints(data || []);
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => {
-        if (active) setRefreshVersion(version => version + 1);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, payload => {
+        if (active && payload.eventType !== 'INSERT') setRefreshVersion(version => version + 1);
+      })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'matches'
+      }, async payload => {
+        const request = payload.new;
+        if (
+          !active
+          || request.mode !== 'tournament'
+          || request.game !== 'rune_duel'
+          || request.status !== 'waiting'
+          || seenRequestIds.current.has(request.id)
+        ) return;
+
+        seenRequestIds.current.add(request.id);
+        const { data: sessions, error: sessionError } = await sb.rpc('get_game_sessions');
+        if (!active) return;
+        if (sessionError) {
+          setError(sessionError.message);
+        }
+        const session = (sessions || []).find(item => item.id === request.id);
+        window.dispatchEvent(new CustomEvent('nocturne-rune-duel-request', {
+          detail: {
+            id: request.id,
+            creatorName: session?.creator_name || 'A player',
+            house: request.house_a
+          }
+        }));
+        setRefreshVersion(version => version + 1);
       })
       .subscribe(status => {
         if (!active) return;
@@ -125,7 +172,7 @@ window.GamesHub = function GamesHub() {
   async function createMatch() {
     setBusy(true);
     setError('');
-    const { data, error: createError } = await sb.rpc('create_tournament_match', { game: 'rune_duel' });
+    const { data, error: createError } = await sb.rpc('create_tournament_match', { game: selectedGame });
     if (createError) setError(createError.message);
     else if (data?.id) {
       setSelectedMatchId(data.id);
@@ -148,6 +195,19 @@ window.GamesHub = function GamesHub() {
     setBusy(false);
   }
 
+  async function deleteRequest(matchId) {
+    setDeletingMatchId(matchId);
+    setError('');
+    const { error: deleteError } = await sb.rpc('delete_tournament_request', { match_id: matchId });
+    if (deleteError) {
+      setError(deleteError.message);
+    } else {
+      setPendingDeleteId(null);
+      setRefreshVersion(version => version + 1);
+    }
+    setDeletingMatchId(null);
+  }
+
   if (loading) {
     return (
       <PageSection id="games" eyebrow="Trials and shared wonders" title="House Games" subtitle="Challenge another house in the tournament, or watch tournament matches unfold.">
@@ -162,17 +222,49 @@ window.GamesHub = function GamesHub() {
       {connection === 'disconnected' ? <p className="games-disconnected" role="status">Live updates are disconnected. Reload this page to reconnect.</p> : null}
       {!house && !isDM ? <p className="games-note">Choose your house in Common Rooms before joining games.</p> : null}
 
-      <section className="games-section">
+      <div className="games-section">
         <div className="games-section-heading">
           <div>
             <span className="games-kicker">{isDM ? 'Spectator mode' : 'Cross-house competition'}</span>
             <h3>{isDM ? 'Tournament Spectating' : 'The Tournament'}</h3>
           </div>
-          {!isDM ? <button className="btn" type="button" disabled={busy || !house} onClick={createMatch}>Create a Rune Duel</button> : null}
         </div>
+        {!isDM ? (
+          <fieldset className="games-option-picker">
+            <legend>Choose a tournament game</legend>
+            <div className="games-option-list">
+              {tournamentGames.map(game => (
+                <label className={`games-option-card rune-duel-option ${selectedGame === game.id ? 'selected' : ''}`} key={game.id}>
+                  <input
+                    type="radio"
+                    name="tournament-game"
+                    value={game.id}
+                    checked={selectedGame === game.id}
+                    onChange={() => setSelectedGame(game.id)}
+                  />
+                  <span className="games-option-copy">
+                    <strong>{game.name}</strong>
+                    <small>{game.description}</small>
+                  </span>
+                  <span className="games-option-check" aria-hidden="true">{selectedGame === game.id ? 'Selected' : 'Select'}</span>
+                </label>
+              ))}
+            </div>
+            {hasOpenCreatedDuel ? (
+              <p className="games-note">You already created an open Rune Duel. Finish it before creating another.</p>
+            ) : (
+              <button className="btn" type="button" disabled={busy || !house || !selectedGame} onClick={createMatch}>
+                Create {tournamentGames.find(game => game.id === selectedGame)?.name || 'game'}
+              </button>
+            )}
+          </fieldset>
+        ) : null}
         {!isDM && ownWaitingMatch ? (
           <div className="games-match-row">
-            <div><strong>Your challenge is waiting</strong><span>House {ownWaitingMatch.house_a} is looking for another house.</span></div>
+            <div>
+              <strong>Your challenge is waiting</strong>
+              <span>Created by {ownWaitingMatch.creator_name || 'you'}, House {ownWaitingMatch.house_a} is looking for another house.</span>
+            </div>
             <span className="games-status">Waiting</span>
           </div>
         ) : null}
@@ -208,7 +300,7 @@ window.GamesHub = function GamesHub() {
         <div className="games-session-monitor">
           <div className="games-session-monitor-heading">
             <h4>{isDM ? 'Live tournament sessions' : 'Tournament sessions'}</h4>
-            <span>{tournamentSessions.length} recent</span>
+            <span>{tournamentSessions.length} listed</span>
           </div>
           {tournamentSessions.length ? (
             <div className="games-match-list">
@@ -217,6 +309,9 @@ window.GamesHub = function GamesHub() {
                 const playerSummary = (session.players || []).map(player => (
                   `${player.name} · House ${player.house}`
                 )).join(' vs ');
+                const creatorLabel = session.creator_name
+                  ? `Created by ${session.creator_name}`
+                  : 'Creator unknown';
                 const statusText = session.status === 'waiting'
                   ? 'Waiting for a rival house'
                   : session.status === 'finished'
@@ -226,6 +321,7 @@ window.GamesHub = function GamesHub() {
                   <div className="games-match-row" key={session.id}>
                     <div className="games-session-summary">
                       <strong>Rune Duel <span className={`games-session-status ${session.status}`}>{session.status}</span></strong>
+                      <span>{creatorLabel}</span>
                       <span>{playerSummary || `House ${session.house_a} is seeking an opponent`}</span>
                       <small>{statusText}</small>
                     </div>
@@ -238,6 +334,20 @@ window.GamesHub = function GamesHub() {
                           setSpectating(true);
                         }}
                       >Watch</button>
+                    ) : isDM ? (
+                      pendingDeleteId === session.id ? (
+                        <span className="games-delete-actions">
+                          <button
+                            className="btn btn-danger btn-sm"
+                            type="button"
+                            disabled={deletingMatchId === session.id}
+                            onClick={() => deleteRequest(session.id)}
+                          >{deletingMatchId === session.id ? 'Deleting...' : 'Confirm delete'}</button>
+                          <button className="btn btn-secondary btn-sm" type="button" onClick={() => setPendingDeleteId(null)}>Cancel</button>
+                        </span>
+                      ) : (
+                        <button className="btn btn-secondary btn-sm" type="button" onClick={() => setPendingDeleteId(session.id)}>Delete request</button>
+                      )
                     ) : <span className="games-status">Lobby</span>}
                   </div>
                 );
@@ -245,9 +355,9 @@ window.GamesHub = function GamesHub() {
             </div>
           ) : <p className="empty-note">No tournament sessions have started yet.</p>}
         </div>
-      </section>
+      </div>
 
-      <section className="games-section leaderboard-section">
+      <div className="games-section leaderboard-section">
         <div className="games-section-heading">
           <div><span className="games-kicker">Points earned together</span><h3>House Leaderboard</h3></div>
           <span className={`games-connection ${connection}`}>{connection}</span>
@@ -261,7 +371,7 @@ window.GamesHub = function GamesHub() {
             </div>
           ))}
         </div>
-      </section>
+      </div>
     </PageSection>
   );
 };

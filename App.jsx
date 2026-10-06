@@ -184,6 +184,45 @@ function ChatModal() {
   ));
 }
 
+function RuneDuelRequestPopup() {
+  const [request, setRequest] = React.useState(null);
+
+  React.useEffect(() => {
+    function handleRequest(event) {
+      setRequest(event.detail);
+    }
+    window.addEventListener('nocturne-rune-duel-request', handleRequest);
+    return () => window.removeEventListener('nocturne-rune-duel-request', handleRequest);
+  }, []);
+
+  if (!request) return null;
+
+  return h('div', { className: 'game-request-overlay' },
+    h('div', { className: 'game-request-popup', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'gameRequestTitle' },
+      h('button', {
+        className: 'game-request-close',
+        type: 'button',
+        'aria-label': 'Dismiss request notification',
+        onClick: () => setRequest(null)
+      }, '×'),
+      h('span', { className: 'games-kicker' }, 'Tournament request'),
+      h('h2', { id: 'gameRequestTitle' }, 'A Rune Duel awaits'),
+      h('p', null, `${request.creatorName} from House ${request.house} created a Rune Duel.`),
+      h('div', { className: 'game-request-actions' },
+        h('button', {
+          className: 'btn',
+          type: 'button',
+          onClick: () => {
+            setRequest(null);
+            window.navigateTo('games');
+          }
+        }, 'Open House Games'),
+        h('button', { className: 'btn btn-secondary', type: 'button', onClick: () => setRequest(null) }, 'Dismiss')
+      )
+    )
+  );
+}
+
 function App() {
   return h(React.Fragment, null,
     h(AuthScreen),
@@ -196,6 +235,7 @@ function App() {
     h('button', { type: 'button', className: 'mobile-nav-backdrop', id: 'mobileNavBackdrop', 'aria-label': 'Close navigation menu', onClick: () => window.setMobileNavOpen(false) }),
     h(Sidebar),
     h(ContentSections),
+    h(RuneDuelRequestPopup),
     h(ChatModal)
   );
 }
