@@ -19,6 +19,8 @@
 - Campaign dashboard with the latest recap, active leads, and next-session details
 - Back navigation on every page, including browser and mouse back-button support
 
+If Session Chat reports that `recipient_name` is missing from `session_messages`, run [supabase-session-chat-whispers.sql](supabase-session-chat-whispers.sql) in the Supabase SQL editor. This adds the column used to display whisper recipients and refreshes the PostgREST schema cache.
+
 NPC death-save counts are stored on each NPC record. DMs can roll or reset saves from the NPC card when its HP reaches 0; death-save rolls are no longer posted in Session Chat. Run [supabase-npc-death-saves.sql](supabase-npc-death-saves.sql) in the Supabase SQL editor to add the tracking columns to NPCs.
 
 NPC cards read class and race from their respective `npcs` columns. DM-only secrets and friendship milestones are loaded from `npc_secrets`, keyed by the matching NPC ID; DMs can edit them inline and reveal spoilers individually or use the global blackout control.

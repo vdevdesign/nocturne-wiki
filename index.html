@@ -1847,8 +1847,8 @@
 
   async function rollD20(diceExp = '1d20') {
     if (!isDM && !isSessionOpen) return;
-    playDiceAnimation();
     await postChatMessage(createRollMessage(diceExp));
+    playDiceAnimation();
   }
 
   async function rollConfiguredDice() {
