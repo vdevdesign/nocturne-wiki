@@ -30,3 +30,11 @@ Run [supabase-quest-board.sql](supabase-quest-board.sql) in the Supabase SQL edi
 ## Password reset requests
 
 Password recovery is admin-driven because campaign accounts use synthetic `@campaign.local` addresses. Run [supabase-password-reset-requests.sql](supabase-password-reset-requests.sql) in the Supabase SQL editor. Players can then submit an inline reset request, and DMs can review and mark requests handled from the email inbox beside the campaign title.
+
+## House games
+
+Run [supabase-house-games.sql](supabase-house-games.sql) in the Supabase SQL editor after the existing character details setup. It copies house assignments to `profiles.house`, keeps profile and character assignments synchronized, creates the tournament and common room game tables and server-side RPCs, and seeds the house leaderboard. Existing character IDs are expected to match account usernames for the backfill; verify `profiles.house` after migration if the character assignments use a different key.
+
+Players can create or join cross-house Rune Duels and watch active or completed tournament matches in a read-only view; rune choices are revealed only after both players submit. Common Rooms contains the shared constellation game for members of the assigned house; it is not available to spectators from other houses. Tournament winners earn 10 points, and common room awards are capped at 50 per house per UTC day. The SQL functions enforce the points limit and match rules. If a player closes a tournament match before it ends, that match remains active and they can return from the House Games page after signing in again.
+
+If the spectator list reports that `get_game_sessions` is missing, rerun the latest full `supabase-house-games.sql` file. It installs the session-list RPC and requests a PostgREST schema-cache reload.

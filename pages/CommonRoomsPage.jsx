@@ -428,6 +428,9 @@ function CommonRoomsPage() {
   const [previewHouse, setPreviewHouse] = React.useState('Phoenix');
   const [savingHouse, setSavingHouse] = React.useState(false);
   const [housePickerOpen, setHousePickerOpen] = React.useState(false);
+  const [sharedMatchId, setSharedMatchId] = React.useState(null);
+  const [sharedGameLoading, setSharedGameLoading] = React.useState(false);
+  const [sharedGameError, setSharedGameError] = React.useState('');
   window.setCommonRoomAssignment = setAssignment;
   window.setCommonRoomPreview = setPreviewHouse;
 
@@ -442,6 +445,27 @@ function CommonRoomsPage() {
 
   const house = assignment.dm ? previewHouse : assignment.house;
   const details = house ? commonRoomHouses[house] : null;
+
+  React.useEffect(() => {
+    let active = true;
+    setSharedMatchId(null);
+    setSharedGameError('');
+
+    if (assignment.dm || !assignment.house || assignment.loading || !window.currentUserId) {
+      setSharedGameLoading(false);
+      return undefined;
+    }
+
+    setSharedGameLoading(true);
+    sb.rpc('join_common_room', { game: 'shared_constellation' }).then(({ data, error }) => {
+      if (!active) return;
+      if (error) setSharedGameError(error.message);
+      else setSharedMatchId(data?.id || null);
+      setSharedGameLoading(false);
+    });
+
+    return () => { active = false; };
+  }, [assignment.house, assignment.dm, assignment.loading]);
 
   async function chooseHouse(houseName) {
     if (savingHouse || !assignment.characterId || !commonRoomHouses[houseName]) return;
@@ -464,6 +488,8 @@ function CommonRoomsPage() {
     } else {
       setAssignment(previous => ({ ...previous, house: houseName, missing: false, error: '' }));
       setHousePickerOpen(false);
+      window.currentHouse = houseName.toLowerCase();
+      window.dispatchEvent(new CustomEvent('nocturne-auth-changed'));
     }
     setSavingHouse(false);
   }
@@ -552,6 +578,28 @@ function CommonRoomsPage() {
           {house === 'Phoenix' ? <PhoenixGame key={house} /> : null}
           {house === 'Fox' ? <FoxGame key={house} /> : null}
           {house === 'Selkie' ? <SelkieGame key={house} /> : null}
+          <section className={`games-section house-${house.toLowerCase()}`}>
+            <div className="games-section-heading">
+              <div>
+                <span className="games-kicker">House {house}, together</span>
+                <h3>Shared Constellation</h3>
+              </div>
+              {!assignment.dm ? <span className="games-house-badge">Cooperative game</span> : null}
+            </div>
+            <p className="games-rule">Place five stars together to complete the pattern. Your house earns 10 points, up to 50 common room points each UTC day.</p>
+            {assignment.dm ? (
+              <p className="empty-note">DM preview shows the room only. Join with a player account from this house to play its shared game.</p>
+            ) : null}
+            {sharedGameLoading ? <p className="empty-note">Connecting to your house game...</p> : null}
+            {sharedGameError ? <p className="games-error" role="alert">{sharedGameError}</p> : null}
+            {!assignment.dm && sharedMatchId ? (
+              <window.SharedConstellation
+                matchId={sharedMatchId}
+                house={house.toLowerCase()}
+                playerName={window.currentPlayerName || assignment.characterName || 'Player'}
+              />
+            ) : null}
+          </section>
         </>
       ) : null}
     </PageSection>

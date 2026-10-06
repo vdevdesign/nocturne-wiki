@@ -884,6 +884,68 @@
 .tidepool-card span { font-size: 25px; }
 .tidepool-card small { font-size: 10px; }
 .tidepool-card:disabled { cursor: default; opacity: 0.85; }
+.games-section { margin-top: 30px; padding: 22px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(145deg, rgba(27,24,41,0.94), rgba(20,18,31,0.9)); }
+.games-section-heading, .games-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.games-section-heading h3, .games-card-heading h3 { margin: 3px 0 0; color: var(--text); font-family: var(--font-title); font-size: 26px; }
+.games-kicker { color: var(--gold); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.games-rule, .games-note { color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+.games-error, .games-disconnected { color: var(--rose); font-size: 13px; line-height: 1.5; }
+.games-status, .games-connection, .games-house-badge { padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-dim); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; }
+.games-connection.connected { color: #9bd4ad; border-color: rgba(115,190,135,0.4); }
+.games-connection.disconnected { color: var(--rose); border-color: var(--rose-dim); }
+.games-match-list { display: grid; gap: 10px; margin-top: 16px; }
+.games-match-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-alt); }
+.games-match-row div { display: grid; gap: 5px; }
+.games-match-row strong { color: var(--text); font-size: 13px; }
+.games-match-row span { color: var(--text-faint); font-size: 11px; }
+.games-active-match { display: grid; gap: 12px; margin-top: 16px; }
+.games-session-monitor { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+.games-session-monitor-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.games-session-monitor-heading h4 { margin: 0; color: var(--text); font-family: var(--font-title); font-size: 21px; }
+.games-session-monitor-heading > span, .games-session-summary small { color: var(--text-faint); font-family: var(--font-mono); font-size: 10px; }
+.games-session-summary { display: grid; gap: 5px; }
+.games-session-summary strong { display: flex; align-items: center; gap: 8px; }
+.games-session-status { padding: 3px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-faint); font-family: var(--font-mono); font-size: 9px; font-weight: 400; text-transform: uppercase; }
+.games-session-status.active { border-color: rgba(115,190,135,0.4); color: #9bd4ad; }
+.games-session-status.finished { border-color: var(--gold-dim); color: var(--gold); }
+.rune-duel { padding: 18px; }
+.rune-scoreboard { display: flex; align-items: center; justify-content: center; gap: 22px; margin: 18px 0; }
+.rune-scoreboard div { display: grid; justify-items: center; gap: 4px; }
+.rune-scoreboard span { color: var(--text-faint); font-size: 11px; text-transform: capitalize; }
+.rune-scoreboard strong { color: var(--gold); font-family: var(--font-mono); font-size: 28px; }
+.rune-score-divider { color: var(--purple); font-family: var(--font-mono); font-size: 22px; }
+.games-round { color: var(--text-dim); font-family: var(--font-mono); font-size: 11px; text-align: center; }
+.rune-reveal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rune-reveal { display: grid; justify-items: center; gap: 7px; min-height: 76px; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.rune-reveal small, .rune-reveal span { color: var(--text-faint); font-size: 10px; text-transform: uppercase; }
+.rune-reveal strong { color: var(--purple); font-family: var(--font-mono); font-size: 16px; text-transform: capitalize; }
+.rune-reveal.revealed strong { color: var(--gold); animation: runeReveal 500ms ease-out both; }
+.rune-pick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+.rune-pick { display: grid; justify-items: center; gap: 6px; padding: 10px 5px; border: 1px solid var(--line); border-radius: 8px; color: var(--text-dim); background: var(--surface); cursor: pointer; }
+.rune-pick span { font-size: 22px; }
+.rune-pick:hover:not(:disabled), .rune-pick.selected { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 16px rgba(201,162,75,0.12); }
+.rune-pick:disabled { cursor: default; opacity: 0.65; }
+@keyframes runeReveal { from { opacity: 0; transform: rotateY(90deg) scale(0.8); } to { opacity: 1; transform: rotateY(0) scale(1); } }
+.games-leaderboard { display: grid; gap: 8px; margin-top: 14px; }
+.games-leaderboard-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-left: 2px solid var(--purple-dim); border-radius: 6px; background: var(--bg-alt); color: var(--text-dim); text-transform: capitalize; }
+.games-leaderboard-row.house-phoenix { border-left-color: #b76554; }
+.games-leaderboard-row.house-fox { border-left-color: #c98d4b; }
+.games-leaderboard-row.house-selkie { border-left-color: #63a4a7; }
+.games-leaderboard-row strong, .games-rank { color: var(--gold); font-family: var(--font-mono); }
+.games-rank { color: var(--text-faint); font-size: 11px; }
+.constellation-canvas { display: block; width: 100%; height: min(48vw, 320px); min-height: 220px; margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; cursor: crosshair; touch-action: manipulation; }
+.constellation-footer { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--text-faint); font-family: var(--font-mono); font-size: 10px; }
+.constellation-card > .btn { margin-top: 12px; }
+@media (max-width: 560px) {
+  .games-section { padding: 16px; }
+  .games-section-heading { align-items: flex-start; flex-direction: column; }
+  .games-match-row { align-items: flex-start; flex-direction: column; }
+  .games-match-row .btn { width: 100%; }
+  .games-session-monitor-heading { align-items: flex-start; flex-direction: column; }
+  .rune-pick-grid { grid-template-columns: repeat(2, 1fr); }
+  .constellation-canvas { height: 260px; }
+}
+@media (prefers-reduced-motion: reduce) { .rune-reveal.revealed strong { animation: none; } }
 @media (max-width: 560px) {
   .house-picker-vignette { padding: 12px; }
   .house-picker-dialog { max-height: calc(100vh - 24px); padding: 26px 16px 18px; }
@@ -919,7 +981,11 @@
 <script type="text/babel" src="pages/PrimerPage.jsx"></script>
 <script type="text/babel" src="pages/RestrictedPage.jsx"></script>
 <script type="text/babel" src="pages/CommonRoomsPage.jsx"></script>
-<script type="text/babel" src="App.jsx?v=20261005-npc-death-saves"></script>
+<script type="text/babel" src="pages/games/useMatch.jsx"></script>
+<script type="text/babel" src="pages/games/RuneDuel.jsx"></script>
+<script type="text/babel" src="pages/games/SharedConstellation.jsx"></script>
+<script type="text/babel" src="pages/games/GamesHub.jsx"></script>
+<script type="text/babel" src="App.jsx?v=20261006-house-games"></script>
 <div id="legacy-app" style="display:none;">
 
 <!-- ================= AUTH SCREEN ================= -->
@@ -1252,6 +1318,11 @@
 
     currentUser = { id: 'dev-user', email: 'dm@campaign.local' };
     isDM = true;
+    window.currentUserIsDM = true;
+    window.currentUserId = currentUser.id;
+    window.currentPlayerName = 'DM';
+    window.currentHouse = '';
+    window.dispatchEvent(new CustomEvent('nocturne-auth-changed'));
     document.getElementById('authScreen').classList.add('hidden');
     document.getElementById('appSidebar').style.display = 'flex';
     document.getElementById('appMain').style.display = 'block';
@@ -1373,6 +1444,11 @@
 
     currentUser = null;
     isDM = false;
+    window.currentUserIsDM = false;
+    window.currentUserId = null;
+    window.currentPlayerName = '';
+    window.currentHouse = '';
+    window.dispatchEvent(new CustomEvent('nocturne-auth-changed'));
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('appSidebar').style.display = 'none';
     document.getElementById('appMain').style.display = 'none';
@@ -1392,6 +1468,11 @@
     currentUser = user;
     let { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
     isDM = !!profile && profile.role === 'dm';
+    window.currentUserIsDM = isDM;
+    window.currentUserId = user.id;
+    window.currentPlayerName = (user.email || '').split('@')[0] || 'Player';
+    window.currentHouse = profile?.house || '';
+    window.dispatchEvent(new CustomEvent('nocturne-auth-changed'));
 
     document.getElementById('authScreen').classList.add('hidden');
     document.getElementById('appSidebar').style.display = 'flex';
@@ -1900,6 +1981,52 @@
   }
 
   /* ===================== SESSION SUMMARIES ===================== */
+  function getSessionDateParts(value) {
+    if (value === null || value === undefined) return null;
+    const trimmed = String(value).trim();
+    if (!trimmed) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [year, month, day] = trimmed.split('-').map(Number);
+      if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+        return [year, month - 1, day];
+      }
+    }
+
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return [parsed.getFullYear(), parsed.getMonth(), parsed.getDate()];
+  }
+
+  function normalizeSessionDateForStorage(value) {
+    const parts = getSessionDateParts(value);
+    if (!parts) return '';
+    const [year, monthIndex, day] = parts;
+    const month = String(monthIndex + 1).padStart(2, '0');
+    const paddedDay = String(day).padStart(2, '0');
+    return `${year}-${month}-${paddedDay}`;
+  }
+
+  function formatSessionDate(value) {
+    const parts = getSessionDateParts(value);
+    if (!parts) return value ? String(value) : '';
+    const [year, monthIndex, day] = parts;
+    const parsed = new Date(year, monthIndex, day);
+
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(parsed);
+  }
+
+  function getSessionDateSortValue(value) {
+    const parts = getSessionDateParts(value);
+    if (!parts) return Number.NEGATIVE_INFINITY;
+    const [year, monthIndex, day] = parts;
+    return Date.UTC(year, monthIndex, day);
+  }
+
   async function loadSummaries() {
     const container = document.getElementById('summaries-container');
     const toolbar = document.getElementById('summaries-toolbar');
@@ -1914,21 +2041,24 @@
     }
 
     const { data, error } = await sb.from('session_summaries')
-      .select('*')
-      .order('session_date', { ascending: false, nullsFirst: false });
+      .select('*');
 
     if (error) {
       container.innerHTML = `<p class="error-msg">Failed to load summaries: ${escapeHtml(error.message)}</p>`;
       return;
     }
 
-    if (!data || data.length === 0) {
+    const sortedSummaries = [...(data || [])].sort((a, b) => {
+      return getSessionDateSortValue(b.session_date) - getSessionDateSortValue(a.session_date);
+    });
+
+    if (!sortedSummaries.length) {
       container.innerHTML = '<p class="empty-note">No session summaries recorded yet.</p>';
       updateSpoilerButtons();
       return;
     }
 
-    container.innerHTML = data.map(summary => renderSummaryCard(summary)).join('');
+    container.innerHTML = sortedSummaries.map(summary => renderSummaryCard(summary)).join('');
     updateSpoilerButtons();
   }
 
@@ -2179,7 +2309,7 @@
       : 'Not scheduled yet';
     const latestSummary = summary
       ? `<div><strong>${escapeHtml(summary.session_number ? `Session ${summary.session_number}: ` : '')}${escapeHtml(summary.title || 'Untitled Session')}</strong>
-          ${summary.session_date ? `<div class="role-tag" style="margin-top:4px;">${escapeHtml(summary.session_date)}</div>` : ''}
+          ${summary.session_date ? `<div class="role-tag" style="margin-top:4px;">${escapeHtml(formatSessionDate(summary.session_date))}</div>` : ''}
           ${summary.body ? `<p style="margin:8px 0 0; color:var(--text-dim);">${renderMarkdown(summary.body.slice(0, 320))}${summary.body.length > 320 ? '…' : ''}</p>` : ''}
           <button class="btn btn-sm btn-secondary" style="margin-top:10px;" onclick="navigateTo('summaries', true)">Read session recaps</button>
         </div>`
@@ -2239,14 +2369,28 @@
     await loadDashboard();
   }
 
+  async function getNextSessionNumber() {
+    const { data, error } = await sb.from('session_summaries').select('session_number');
+    if (error) return 1;
+
+    const highest = (data || []).reduce((max, row) => {
+      const value = Number(row?.session_number);
+      return Number.isFinite(value) ? Math.max(max, value) : max;
+    }, 0);
+
+    return highest + 1;
+  }
+
   async function addNewSessionSummary() {
     if (!isDM) return;
 
+    const nextSessionNumber = await getNextSessionNumber();
+    const today = new Date();
     const { data, error } = await sb.from('session_summaries').insert({
-      session_number: '',
+      session_number: nextSessionNumber,
       title: 'New Session Summary',
       body: '',
-      session_date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      session_date: today.toISOString().slice(0, 10),
       visible_to_players: true
     }).select();
 
@@ -2297,7 +2441,7 @@
     }
 
     const sessionNum = summary.session_number ? `Session ${escapeHtml(summary.session_number)}: ` : '';
-    const dateStr = summary.session_date ? escapeHtml(summary.session_date) : '';
+    const dateStr = summary.session_date ? formatSessionDate(summary.session_date) : '';
 
     return `
       <div class="block-card" id="summary-card-${summary.id}">
@@ -2306,7 +2450,7 @@
           <div class="block-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
               <h3 style="margin:0; color:var(--gold,#c9a050);">${sessionNum}${escapeHtml(summary.title || 'Untitled Session')}</h3>
-              ${dateStr ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${dateStr}</p>` : ''}
+              ${dateStr ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${escapeHtml(dateStr)}</p>` : ''}
             </div>
           </div>
 
@@ -2331,7 +2475,7 @@
             </div>
 
             <label style="font-size:0.8rem; color:var(--text-faint);">Date Played</label>
-            <input type="text" id="edit-summary-date-${summary.id}" value="${escapeHtml(summary.session_date || '')}" class="input-field" placeholder="e.g. Oct 12, 2024" />
+            <input type="date" id="edit-summary-date-${summary.id}" value="${escapeHtml(normalizeSessionDateForStorage(summary.session_date) || '')}" class="input-field" />
 
             <label style="font-size:0.8rem; color:var(--text-faint);">Public Summary / Notes</label>
             ${markdownEditor(`edit-summary-body-${summary.id}`, summary.body || summary.content || summary.description || '', 5)}
@@ -2374,17 +2518,23 @@
       return;
     }
 
-    const session_number = numEl.value.trim();
+    const rawSessionNumber = numEl.value.trim();
+    const parsedSessionNumber = rawSessionNumber ? Number(rawSessionNumber) : await getNextSessionNumber();
+    if (!Number.isFinite(parsedSessionNumber)) {
+      alert('Session number must be a valid number.');
+      return;
+    }
+
     const title = titleEl.value.trim();
-    const session_date = dateEl.value.trim();
+    const session_date = normalizeSessionDateForStorage(dateEl.value);
     const body = bodyEl.value.trim();
     const secret = secretEl.value.trim();
 
     const { error } = await sb.from('session_summaries')
       .update({
-        session_number,
+        session_number: parsedSessionNumber,
         title,
-        session_date,
+        session_date: session_date || null,
         body,
         secret
       })
