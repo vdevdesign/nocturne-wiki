@@ -9,6 +9,47 @@ function RuneArt({ pick }) {
   return <img className="rune-art" src={`assets/rune-duel/${image}`} alt="" aria-hidden="true" />;
 }
 
+function RuneRoundResults({ result, match, players }) {
+  if (!result) return null;
+  const houses = [match.house_a, match.house_b];
+  const picks = [result.house_a_pick, result.house_b_pick];
+  const winner = result.winner_house;
+  const isDraw = result.outcome === 'draw';
+  const winnerName = players.find(player => player.house === winner)?.name;
+
+  return (
+    <div className="rune-last-round" aria-live="polite">
+      <div className="rune-last-round-heading">
+        <strong>Round {result.round} results</strong>
+        <span>
+          {isDraw
+            ? 'Draw, neither house scored.'
+            : `${winnerName ? `${winnerName} of ` : ''}House ${winner} wins this round.`}
+        </span>
+      </div>
+      <div className="rune-last-round-players">
+        {houses.map((house, index) => {
+          const player = players.find(entry => entry.house === house);
+          const victory = !isDraw && house === winner;
+          return (
+            <div className={`rune-last-round-player ${victory ? 'victory' : ''}`} key={house}>
+              <div>
+                <strong>{player?.name || `House ${house}`}</strong>
+                <span>House {house}</span>
+              </div>
+              <RuneArt pick={picks[index]} />
+              <span className="rune-last-round-pick">{picks[index]}</span>
+              <span className={`rune-round-outcome ${isDraw ? 'draw' : victory ? 'win' : 'loss'}`}>
+                {isDraw ? 'Draw' : victory ? 'Victory this round' : 'Defeat this round'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] }) {
   const [myPick, setMyPick] = React.useState(null);
   const [spectatorPicks, setSpectatorPicks] = React.useState([]);
@@ -133,11 +174,19 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
         </p>
       ) : null}
       <p className="games-rule">Flame defeats Gale. Gale defeats Stone. Stone defeats Shadow. Shadow defeats Flame. Matching or opposite runes draw without scoring.</p>
+      <figure className="rune-matchup-chart">
+        <img
+          src="assets/rune-duel/rune-duel-matchups.png"
+          alt="Rune Duel matchup chart. Flame defeats Gale, Gale defeats Stone, Stone defeats Shadow, and Shadow defeats Flame. Matching runes and opposite runes tie and replay."
+        />
+        <figcaption>Read each row as the rune you played. Matching or opposite runes tie and replay the round.</figcaption>
+      </figure>
       <div className="rune-scoreboard">
         <div><span>House {match.house_a}</span><strong>{scores.house_a || 0}</strong></div>
         <span className="rune-score-divider">:</span>
         <div><span>House {match.house_b || 'opponent'}</span><strong>{scores.house_b || 0}</strong></div>
       </div>
+      <RuneRoundResults result={lastResult} match={match} players={players} />
       {match.status === 'active' ? (
         <>
           {!spectating && presenceConnection === 'disconnected' ? <p className="games-disconnected">Tournament presence is disconnected.</p> : null}
@@ -164,11 +213,6 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
                   </div>
                 );
               })}
-              {lastResult ? (
-                <p className="games-note spectator-last-result">
-                  Previous round: House {lastResult.winner_house || 'both'} {lastResult.outcome === 'draw' ? 'drew' : 'won'}.
-                </p>
-              ) : null}
             </div>
           ) : (
           <>
@@ -205,16 +249,12 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
               </button>
             ))}
           </div>
-          {lastResult?.outcome === 'draw' && lastResult.round === round - 1 ? (
-            <p className="games-note" aria-live="polite">Both runes met evenly. Choose again for the next round.</p>
-          ) : null}
           </>
           )}
         </>
       ) : (
         <p className="games-note" aria-live="polite">
           {match.winner_house ? `House ${match.winner_house} won the duel.` : 'This match has finished.'}
-          {lastResult ? ` Final round: ${lastResult.house_a_pick} against ${lastResult.house_b_pick}.` : ''}
         </p>
       )}
       {pickError ? <p className="games-error" role="alert">{pickError}</p> : null}
