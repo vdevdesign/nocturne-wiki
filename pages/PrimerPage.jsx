@@ -39,7 +39,7 @@ window.PrimerPage = function PrimerPage() {
     h('p', null, 'If any of that does not sound fun, session zero is the time to say so.'),
     h('div', { className: 'card' },
       h('h4', null, 'Safety Tools'),
-      h('p', null, 'Our safe word is ', h('strong', null, '“Coconut.”'), ' It means “pause, change, or skip this,” with no explanation needed. You can also message or talk to the DM privately after the session if something makes you uncomfortable. This is not a formality—nobody has to be the first to speak up.')
+      h('p', null, 'Our safe word is ', h('strong', null, 'COCONUT'), '. Say it and we pause, change, or skip whatever is happening, no explanation needed in the moment.')
     ),
 
     h('h3', null, 'Friendship Points (FP)'),

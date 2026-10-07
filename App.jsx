@@ -36,7 +36,7 @@ function AuthScreen() {
 }
 
 const navigation = [
-  ['home', 'Home', '⌂'], ['session-zero', 'Session Zero & Rules', '◷'], ['characters', 'Players', '♙'],
+  ['home', 'Home', '⌂'], ['characters', 'Players', '♙'],
   ['worldbook', 'Worldbook', '◇'], ['npcs', 'NPCs & Friendship Points', '♧'],
   ['common-rooms', 'Common Rooms', '✧'], ['games', 'House Games', '✦'], ['quest-board', 'Quest & Rumor Board', '⚑'], ['summaries', 'Session Summaries', '≡'],
   ['loot', 'Loot & Rewards', '◈'], ['primer', 'Player Primer', '✦']
@@ -152,7 +152,7 @@ function Sidebar() {
 
 function ContentSections() {
   return h('main', { id: 'appMain', style: { display: 'none' } },
-    h(HomePage), h(WorldbookPage), h(NpcsPage), h(CharactersPage), h(SessionZeroPage),
+    h(HomePage), h(WorldbookPage), h(NpcsPage), h(CharactersPage),
     h(CommonRoomsPage), h(GamesHub), h(SummariesPage), h(QuestBoardPage), h(LootPage), h(PrimerPage), h(RestrictedPage)
   );
 }

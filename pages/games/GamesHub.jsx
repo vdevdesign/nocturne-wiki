@@ -14,6 +14,7 @@ window.GamesHub = function GamesHub() {
   const [ownWaitingMatch, setOwnWaitingMatch] = React.useState(null);
   const [tournamentSessions, setTournamentSessions] = React.useState([]);
   const [points, setPoints] = React.useState([]);
+  const [showAllCompleted, setShowAllCompleted] = React.useState(false);
   const [selectedMatchId, setSelectedMatchId] = React.useState(null);
   const [spectating, setSpectating] = React.useState(false);
   const [pendingDeleteId, setPendingDeleteId] = React.useState(null);
@@ -66,7 +67,6 @@ window.GamesHub = function GamesHub() {
       return undefined;
     }
 
-    setLoading(true);
     setError('');
     const userHouse = (window.currentHouse || '').toLowerCase();
 
@@ -208,6 +208,67 @@ window.GamesHub = function GamesHub() {
     setDeletingMatchId(null);
   }
 
+  const ongoingSessions = tournamentSessions.filter(session => session.status !== 'finished');
+  const completedSessions = tournamentSessions.filter(session => session.status === 'finished');
+  const visibleCompletedSessions = showAllCompleted
+    ? completedSessions
+    : completedSessions.slice(0, 3);
+
+  function renderSession(session) {
+    const isWatchable = session.status === 'active' || session.status === 'finished';
+    const playerSummary = (session.players || []).map(player => (
+      `${player.name} · House ${player.house}`
+    )).join(' vs ');
+    const creatorLabel = session.creator_name
+      ? `Created by ${session.creator_name}`
+      : 'Creator unknown';
+    const statusText = session.status === 'waiting'
+      ? 'Waiting for a rival house'
+      : session.status === 'finished'
+        ? `Winner: House ${session.winner_house || 'unknown'}`
+        : `Round ${Number(session.state?.round) || 1}`;
+    const winnerCrest = session.status === 'finished'
+      && ['phoenix', 'fox', 'selkie'].includes(session.winner_house)
+      ? `assets/house-${session.winner_house}.png`
+      : null;
+
+    return (
+      <div className={`games-match-row${winnerCrest ? ' completed' : ''}`} key={session.id}>
+        {winnerCrest ? <img className="games-session-winner-crest" src={winnerCrest} alt="" aria-hidden="true" /> : null}
+        <div className="games-session-summary">
+          <strong>Rune Duel <span className={`games-session-status ${session.status}`}>{session.status}</span></strong>
+          <span>{creatorLabel}</span>
+          <span>{playerSummary || `House ${session.house_a} is seeking an opponent`}</span>
+          <small className={winnerCrest ? 'games-session-winner' : ''}>{statusText}</small>
+        </div>
+        {isWatchable ? (
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={() => {
+              setSelectedMatchId(session.id);
+              setSpectating(true);
+            }}
+          >Watch</button>
+        ) : isDM ? (
+          pendingDeleteId === session.id ? (
+            <span className="games-delete-actions">
+              <button
+                className="btn btn-danger btn-sm"
+                type="button"
+                disabled={deletingMatchId === session.id}
+                onClick={() => deleteRequest(session.id)}
+              >{deletingMatchId === session.id ? 'Deleting...' : 'Confirm delete'}</button>
+              <button className="btn btn-secondary btn-sm" type="button" onClick={() => setPendingDeleteId(null)}>Cancel</button>
+            </span>
+          ) : (
+            <button className="btn btn-secondary btn-sm" type="button" onClick={() => setPendingDeleteId(session.id)}>Delete request</button>
+          )
+        ) : <span className="games-status">Lobby</span>}
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <PageSection id="games" eyebrow="Trials and shared wonders" title="House Games" subtitle="Challenge another house in the tournament, or watch tournament matches unfold.">
@@ -299,61 +360,33 @@ window.GamesHub = function GamesHub() {
         {!isDM && !ownWaitingMatch && !selectedMatchId && !waitingMatches.length ? <p className="empty-note">No rival house is waiting. Create a challenge to begin.</p> : null}
         <div className="games-session-monitor">
           <div className="games-session-monitor-heading">
-            <h4>{isDM ? 'Live tournament sessions' : 'Tournament sessions'}</h4>
+            <h4>{isDM ? 'Tournament sessions' : 'Your tournament sessions'}</h4>
             <span>{tournamentSessions.length} listed</span>
           </div>
-          {tournamentSessions.length ? (
+          {ongoingSessions.length ? (
             <div className="games-match-list">
-              {tournamentSessions.map(session => {
-                const isWatchable = session.status === 'active' || session.status === 'finished';
-                const playerSummary = (session.players || []).map(player => (
-                  `${player.name} · House ${player.house}`
-                )).join(' vs ');
-                const creatorLabel = session.creator_name
-                  ? `Created by ${session.creator_name}`
-                  : 'Creator unknown';
-                const statusText = session.status === 'waiting'
-                  ? 'Waiting for a rival house'
-                  : session.status === 'finished'
-                    ? `Won by House ${session.winner_house || 'unknown'}`
-                    : `Round ${Number(session.state?.round) || 1}`;
-                return (
-                  <div className="games-match-row" key={session.id}>
-                    <div className="games-session-summary">
-                      <strong>Rune Duel <span className={`games-session-status ${session.status}`}>{session.status}</span></strong>
-                      <span>{creatorLabel}</span>
-                      <span>{playerSummary || `House ${session.house_a} is seeking an opponent`}</span>
-                      <small>{statusText}</small>
-                    </div>
-                    {isWatchable ? (
-                      <button
-                        className="btn btn-secondary"
-                        type="button"
-                        onClick={() => {
-                          setSelectedMatchId(session.id);
-                          setSpectating(true);
-                        }}
-                      >Watch</button>
-                    ) : isDM ? (
-                      pendingDeleteId === session.id ? (
-                        <span className="games-delete-actions">
-                          <button
-                            className="btn btn-danger btn-sm"
-                            type="button"
-                            disabled={deletingMatchId === session.id}
-                            onClick={() => deleteRequest(session.id)}
-                          >{deletingMatchId === session.id ? 'Deleting...' : 'Confirm delete'}</button>
-                          <button className="btn btn-secondary btn-sm" type="button" onClick={() => setPendingDeleteId(null)}>Cancel</button>
-                        </span>
-                      ) : (
-                        <button className="btn btn-secondary btn-sm" type="button" onClick={() => setPendingDeleteId(session.id)}>Delete request</button>
-                      )
-                    ) : <span className="games-status">Lobby</span>}
-                  </div>
-                );
-              })}
+              {ongoingSessions.map(renderSession)}
             </div>
-          ) : <p className="empty-note">No tournament sessions have started yet.</p>}
+          ) : <p className="empty-note">No open tournament sessions.</p>}
+          {completedSessions.length ? (
+            <div className="games-completed">
+              <div className="games-completed-heading">
+                <h5>Completed games</h5>
+                <span>{completedSessions.length} finished</span>
+              </div>
+              <div className="games-match-list">
+                {visibleCompletedSessions.map(renderSession)}
+              </div>
+              {completedSessions.length > 3 ? (
+                <button
+                  className="btn btn-secondary btn-sm games-view-more"
+                  type="button"
+                  aria-expanded={showAllCompleted}
+                  onClick={() => setShowAllCompleted(expanded => !expanded)}
+                >{showAllCompleted ? 'View fewer' : `View more (${completedSessions.length - 3})`}</button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 

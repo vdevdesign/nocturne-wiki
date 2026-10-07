@@ -920,6 +920,15 @@
 .games-session-monitor-heading > span, .games-session-summary small { color: var(--text-faint); font-family: var(--font-mono); font-size: 10px; }
 .games-session-summary { display: grid; gap: 5px; }
 .games-session-summary strong { display: flex; align-items: center; gap: 8px; }
+.games-completed { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
+.games-completed-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.games-completed-heading h5 { margin: 0; color: var(--text); font-family: var(--font-title); font-size: 18px; }
+.games-completed-heading span { color: var(--text-faint); font-family: var(--font-mono); font-size: 10px; }
+.games-match-row.completed { position: relative; isolation: isolate; overflow: hidden; background-image: linear-gradient(90deg, rgba(18,17,31,0.84), rgba(18,17,31,0.72)), url("assets/rune-duel/rune-duel-card-bg.png"); background-position: center; background-size: cover; }
+.games-session-winner-crest { position: absolute; z-index: 0; top: 50%; left: 50%; width: 160px; height: 160px; object-fit: contain; opacity: 0.34; pointer-events: none; transform: translate(-50%, -50%); }
+.games-session-summary, .games-match-row.completed > .btn { position: relative; z-index: 1; }
+.games-session-summary .games-session-winner { color: var(--gold); font-weight: 700; text-transform: capitalize; }
+.games-view-more { margin-top: 12px; }
 .games-session-status { padding: 3px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-faint); font-family: var(--font-mono); font-size: 9px; font-weight: 400; text-transform: uppercase; }
 .games-session-status.active { border-color: rgba(115,190,135,0.4); color: #9bd4ad; }
 .games-session-status.finished { border-color: var(--gold-dim); color: var(--gold); }
@@ -1028,7 +1037,7 @@
 <script type="text/babel" src="pages/games/useMatch.jsx"></script>
 <script type="text/babel" src="pages/games/RuneDuel.jsx?v=20261006-rune-matchup-chart"></script>
 <script type="text/babel" src="pages/games/SharedConstellation.jsx"></script>
-<script type="text/babel" src="pages/games/GamesHub.jsx?v=20261006-rune-duel-art"></script>
+<script type="text/babel" src="pages/games/GamesHub.jsx?v=20261007-completed-games"></script>
 <script type="text/babel" src="App.jsx?v=20261006-house-games"></script>
 <div id="legacy-app" style="display:none;">
 
