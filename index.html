@@ -564,8 +564,21 @@
 }
 
 .character-bios { display: grid; gap: 12px; margin-top: 16px; }
-.character-card-identity { display: grid; grid-template-columns: minmax(92px, 132px) minmax(0, 1fr); gap: 16px; align-items: start; }
-.character-card-portrait { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; border: 1px solid var(--gold-dim); background: var(--surface-2); }
+.character-card-identity { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.character-card-identity > div:not(.character-card-portrait) { width: 100%; }
+.character-card-identity .card-title-group { flex-direction: column; align-items: center; gap: 8px; }
+.character-roster-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.character-card { margin-bottom: 0; }
+.character-card { cursor: pointer; }
+.character-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.character-info-page { display: grid; gap: 16px; }
+.character-info-toolbar { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.character-info-header { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.character-info-portrait { width: 180px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 9px; border: 1px solid var(--gold-dim); background: var(--surface-2); }
+.character-info-header .character-public-appearance { max-width: 680px; }
+.character-info-private { margin-top: 0; }
+.character-card-featured { grid-column: 1 / -1; }
+.character-card-portrait { width: 112px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; border: 1px solid var(--gold-dim); background: var(--surface-2); }
 .character-card-portrait-placeholder { display: grid; place-items: center; color: var(--text-faint); font-size: 2rem; }
 .character-public-appearance { margin: 12px 0 0; color: var(--text-dim); line-height: 1.55; }
 .character-private-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 12px; }
@@ -574,7 +587,14 @@
 .character-image-upload { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; align-items: center; }
 .character-image-preview { width: 72px; height: 92px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); }
 .character-image-preview.placeholder { display: grid; place-items: center; color: var(--text-faint); font-size: 1.4rem; }
-@media (max-width: 520px) { .character-card-identity { grid-template-columns: 76px minmax(0, 1fr); gap: 10px; } }
+@media (max-width: 900px) {
+  .character-roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .character-card-featured { grid-column: span 2; }
+}
+@media (max-width: 560px) {
+  .character-roster-grid { grid-template-columns: 1fr; }
+  .character-card-featured { grid-column: auto; }
+}
 .character-bio-section { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: rgba(0,0,0,0.12); }
 .character-bio-section h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--gold); font-family: var(--font-title); font-size: 19px; }
 .character-bio-section.private { border-color: rgba(138,104,214,0.4); background: rgba(138,104,214,0.06); }
@@ -593,10 +613,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-top: 14px;
   padding-top: 10px;
   border-top: 1px dashed var(--line, #333);
 }
+.character-card-actions { display: flex; flex: 1 1 auto; min-width: 0; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.character-card-actions .btn { max-width: 100%; white-space: normal; }
+@media (max-width: 420px) { .card-footer-controls { align-items: flex-start; flex-direction: column; } .character-card-actions { width: 100%; justify-content: flex-start; } }
 
 .status-badge {
   font-size: 0.75rem;
@@ -3689,6 +3713,25 @@ function getCharacterPlayerId(char) {
   return char?.id == null ? '' : String(char.id).trim().toLowerCase();
 }
 
+function getCharacterAccountIds(char) {
+  const tagValues = Array.isArray(char?.tags) ? char.tags : (typeof char?.tags === 'string' ? char.tags.split('|') : []);
+  const taggedPlayers = tagValues
+    .map(value => String(value).match(/^\s*player\s*[:=-]\s*(.+?)\s*$/i)?.[1])
+    .filter(Boolean);
+  return [char?.id, char?.player_id, char?.user_id, char?.owner_id, char?.player_username, char?.username, char?.player, char?.owner, char?.assigned_player, ...taggedPlayers]
+    .filter(value => value != null && String(value).trim() !== '')
+    .map(value => String(value).trim().toLowerCase());
+}
+
+function characterBelongsToCurrentUser(char) {
+  if (!currentUser) return false;
+  const accountIds = getCharacterAccountIds(char);
+  const currentIds = [currentUser.id, currentUser.email, currentUser.user_metadata?.username, currentUser.user_metadata?.user_name, getCurrentPlayerId()]
+    .filter(value => value != null && String(value).trim() !== '')
+    .map(value => String(value).trim().toLowerCase());
+  return currentIds.some(id => accountIds.includes(id));
+}
+
 function canEditCharacter(char) {
   if (typeof isDM !== 'undefined' && isDM === true) {
     return true;
@@ -3697,7 +3740,7 @@ function canEditCharacter(char) {
   const activeUser = getCurrentPlayerId();
   if (!activeUser) return false;
 
-  return getCharacterPlayerId(char) === activeUser;
+  return characterBelongsToCurrentUser(char) || getCharacterPlayerId(char) === activeUser;
 }
 
 const houseNames = ['Phoenix', 'Fox', 'Selkie'];
@@ -3797,6 +3840,8 @@ async function loadCharacters() {
     return;
   }
 
+  characterDirectoryRows = data || [];
+
   let html = '';
   if (isDM) {
     html += renderHousePlayerCounts(data || []);
@@ -3809,7 +3854,12 @@ async function loadCharacters() {
     return;
   }
 
-  html += data.map(char => renderCharacterCard(char)).join('');
+  const orderedCharacters = [...data].sort((a, b) => {
+    const aIsCurrent = characterBelongsToCurrentUser(a);
+    const bIsCurrent = characterBelongsToCurrentUser(b);
+    return Number(bIsCurrent) - Number(aIsCurrent);
+  });
+  html += `<div class="character-roster-grid">${orderedCharacters.map(char => renderCharacterCard(char)).join('')}</div>`;
   container.innerHTML = html;
 }
 
@@ -3838,6 +3888,7 @@ function renderCharacterCard(char) {
 
   const canEdit = canEditCharacter(char);
   const canManagePrivateBio = isDM || canEdit;
+  const isFeaturedCharacter = characterBelongsToCurrentUser(char);
   const house = getCharacterHouse(char);
   const assignedPlayer = getCharacterPlayerId(char);
   const isActive = isCharacterActive(char.activity);
@@ -3888,9 +3939,9 @@ function renderCharacterCard(char) {
     dmControls = `
       <div class="card-footer-controls">
         ${visibilityToggle}
-        <div style="display:flex; gap:6px;">
+        <div class="character-card-actions">
           ${activityControl}
-          ${canManagePrivateBio ? `<button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Edit Bios</button>` : ''}
+          ${canManagePrivateBio ? `<button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Edit</button>` : ''}
           ${isDM ? `<button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${char.id}', 'characters', 'character-cards-container')">Delete</button>` : ''}
         </div>
       </div>`;
@@ -3898,19 +3949,12 @@ function renderCharacterCard(char) {
 
   const publicBio = char.public_bio || '';
   const privateBio = char.bio || '';
-  const privateDetails = [
-    ['Full real name', char.full_real_name], ['Age', char.age], ['Aliases', char.aliases],
-    ['Parents', char.parents], ['Race', char.race], ['Class', char.class],
-    ['Hometown', char.hometown], ['Background', char.background], ['Goals', char.goals],
-    ['Fears', char.fears], ['Bonds', char.bonds]
-  ].filter(([, value]) => value != null && String(value).trim() !== '');
-  const privateDetailsDisplay = privateDetails.length ? `<div class="character-private-details">${privateDetails.map(([label, value]) => `<div class="character-private-detail"><strong>${label}</strong><div>${renderMarkdown(String(value), '')}</div></div>`).join('')}</div>` : '';
   const portrait = char.image_url
     ? `<img class="character-card-portrait" src="${escapeHtml(char.image_url)}" alt="Portrait of ${escapeHtml(char.name || 'character')}" />`
     : `<div class="character-card-portrait character-card-portrait-placeholder" aria-label="No character portrait">✦</div>`;
 
   return `
-    <div class="block-card" id="character-card-${char.id}">
+    <div class="block-card character-card${isFeaturedCharacter ? ' character-card-featured' : ''}" id="character-card-${char.id}" onclick="openCharacterInfo('${char.id}', event)" role="link" tabindex="0" aria-label="Open ${escapeHtml(char.name || 'character')} information">
       <!-- View Mode -->
       <div class="character-view-mode">
         <div class="character-card-identity">
@@ -3929,14 +3973,7 @@ function renderCharacterCard(char) {
             <h4>Public Character Bio</h4>
             <div class="block-body">${renderMarkdown(publicBio, 'No public character bio yet.')}</div>
           </div>
-          ${canManagePrivateBio ? `
-            <div class="character-bio-section private">
-              <h4>Private Bio <span class="character-bio-visibility">Only you and the DM can see this</span></h4>
-              ${privateDetailsDisplay}
-              <div class="block-body">${renderMarkdown(privateBio, 'No private notes yet.')}</div>
-            </div>` : ''}
         </div>
-        ${secretSection}
         ${dmControls}
       </div>
 
@@ -4071,6 +4108,57 @@ async function saveInlineCharacterEdit(charId) {
   } else {
     loadCharacters();
   }
+}
+
+let characterDirectoryRows = [];
+
+function openCharacterInfo(charId, event) {
+  if (event?.target?.closest('button, input, textarea, select, [contenteditable="true"], label, a')) return;
+  const character = characterDirectoryRows.find(row => String(row.id) === String(charId));
+  const container = document.getElementById('character-cards-container');
+  if (!character || !container) return;
+  container.innerHTML = renderCharacterInfoPage(character);
+  container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeCharacterInfo() {
+  loadCharacters();
+}
+
+async function editCharacterFromInfo(charId) {
+  await loadCharacters();
+  toggleInlineEdit('character', charId);
+}
+
+function renderCharacterInfoPage(char) {
+  const canManagePrivateBio = isDM || canEditCharacter(char);
+  const house = getCharacterHouse(char);
+  const privateDetails = [
+    ['Full real name', char.full_real_name], ['Age', char.age], ['Aliases', char.aliases],
+    ['Parents', char.parents], ['Race', char.race], ['Class', char.class],
+    ['Hometown', char.hometown], ['Background', char.background], ['Goals', char.goals],
+    ['Fears', char.fears], ['Bonds', char.bonds]
+  ].filter(([, value]) => value != null && String(value).trim() !== '');
+  const privateDetailsDisplay = privateDetails.length ? `<div class="character-private-details">${privateDetails.map(([label, value]) => `<div class="character-private-detail"><strong>${label}</strong><div>${renderMarkdown(String(value), '')}</div></div>`).join('')}</div>` : '<p class="empty-note">No private character details yet.</p>';
+  const portrait = char.image_url
+    ? `<img class="character-info-portrait" src="${escapeHtml(char.image_url)}" alt="Portrait of ${escapeHtml(char.name || 'character')}" />`
+    : `<div class="character-info-portrait character-card-portrait-placeholder" aria-label="No character portrait">✦</div>`;
+  const privateSection = canManagePrivateBio ? `
+    <section class="character-info-private character-bio-section private">
+      <h4>Private Bio &amp; Character Information <span class="character-bio-visibility">Only the character owner and DM can see this</span></h4>
+      ${privateDetailsDisplay}
+      <div class="block-body">${renderMarkdown(char.bio || '', 'No private bio yet.')}</div>
+      ${isDM && (char.secret || char.dm_secret) ? `<div class="character-info-secret"><strong>DM Secret</strong>${renderMarkdown(char.secret || char.dm_secret, '')}</div>` : ''}
+    </section>` : '';
+  return `<div class="character-info-page">
+    <div class="character-info-toolbar"><button class="btn btn-sm btn-secondary" type="button" onclick="closeCharacterInfo()">← Back to Players</button>${canManagePrivateBio ? `<button class="btn btn-sm btn-secondary" type="button" onclick="editCharacterFromInfo('${char.id}')">Edit</button>` : ''}</div>
+    <div class="character-info-header">
+      ${portrait}
+      <div><h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>${house ? `<span class="character-house-badge house-${house.toLowerCase()}">${houseEmblems[house]} House ${escapeHtml(house)}</span>` : ''}${char.appearance ? `<div class="character-public-appearance"><strong>Appearance</strong><br>${renderMarkdown(char.appearance, '')}</div>` : ''}</div>
+    </div>
+    <section class="character-bio-section public"><h4>Public Character Bio</h4><div class="block-body">${renderMarkdown(char.public_bio || '', 'No public character bio yet.')}</div></section>
+    ${privateSection}
+  </div>`;
 }
 
 function previewCharacterImage(charId, input) {
