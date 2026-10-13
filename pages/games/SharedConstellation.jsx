@@ -183,7 +183,7 @@ window.SharedConstellation = function SharedConstellation({ matchId, house, play
         <div><span className="games-kicker">Common room</span><h3>Shared Constellation</h3></div>
         <span className={`games-connection ${connection}`}>{connection}</span>
       </div>
-      <p className="games-rule">Place five stars on the faint constellation to earn 10 points for House {house}. Your house can earn up to 50 common room points per day.</p>
+      <p className="games-rule">Place five stars on the faint constellation to earn points for House {house}. Each house can earn up to 5 constellation points per UTC day.</p>
       <canvas
         className="constellation-canvas"
         ref={canvasRef}

@@ -925,8 +925,17 @@
 .games-completed-heading h5 { margin: 0; color: var(--text); font-family: var(--font-title); font-size: 18px; }
 .games-completed-heading span { color: var(--text-faint); font-family: var(--font-mono); font-size: 10px; }
 .games-match-row.completed { position: relative; isolation: isolate; overflow: hidden; background-image: linear-gradient(90deg, rgba(18,17,31,0.84), rgba(18,17,31,0.72)), url("assets/rune-duel/rune-duel-card-bg.png"); background-position: center; background-size: cover; }
-.games-session-winner-crest { position: absolute; z-index: 0; top: 50%; left: 50%; width: 160px; height: 160px; object-fit: contain; opacity: 0.34; pointer-events: none; transform: translate(-50%, -50%); }
+.games-session-winner-crest { position: absolute; z-index: 0; top: 50%; left: 50%; width: 320px; height: 320px; object-fit: contain; opacity: 0.3; pointer-events: none; transform: translate(-50%, -50%); }
 .games-session-summary, .games-match-row.completed > .btn { position: relative; z-index: 1; }
+.points-history-list { display: flex; flex-direction: column; gap: 10px; }
+.points-history-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px; background: rgba(18,17,31,0.55); }
+.points-history-crest { width: 44px; height: 44px; object-fit: contain; flex: 0 0 auto; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35)); }
+.points-history-details { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; }
+.points-history-details small { color: var(--text-faint); font-family: var(--font-mono); font-size: 10px; }
+.points-history-row.house-phoenix .points-history-details strong { color: #d0603f; }
+.points-history-row.house-fox .points-history-details strong { color: #d9a13f; }
+.points-history-row.house-selkie .points-history-details strong { color: #72b9bd; }
+.points-history-amount { font-family: var(--font-mono); font-size: 18px; color: var(--gold); flex: 0 0 auto; }
 .games-session-summary .games-session-winner { color: var(--gold); font-weight: 700; text-transform: capitalize; }
 .games-view-more { margin-top: 12px; }
 .games-session-status { padding: 3px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-faint); font-family: var(--font-mono); font-size: 9px; font-weight: 400; text-transform: uppercase; }
@@ -2462,15 +2471,16 @@
       title: 'New Session Summary',
       body: '',
       session_date: today.toISOString().slice(0, 10),
+      secret: '',
       visible_to_players: true
-    }).select();
+    }).select('*').single();
 
     if (error) {
       alert("Error adding summary: " + error.message);
     } else {
       await loadSummaries();
-      if (data && data.length > 0) {
-        setTimeout(() => toggleInlineSummaryEdit(data[0].id), 50);
+      if (data?.id) {
+        setTimeout(() => toggleInlineSummaryEdit(data.id), 50);
       }
     }
   }
@@ -3110,8 +3120,65 @@ function toggleInlineEdit(type, id) {
           <h4>🎭 Template Characters</h4>
           <p class="hub-desc">Pre-made character archetypes, secret stats, and player templates.</p>
         </div>
+
+        <div class="hub-card" onclick="openPointsHistory()">
+          <h4>🏆 House Points History</h4>
+          <p class="hub-desc">Every house point award from tournament wins and common room games, with dates and amounts.</p>
+        </div>
       </div>
     `;
+  }
+
+  async function openPointsHistory() {
+    const container = document.getElementById('restricted-container');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div style="margin-bottom: 20px;">
+        <button class="btn btn-secondary btn-sm" onclick="showRestrictedHub()">← Back to Restricted Hub</button>
+      </div>
+      <h3 style="margin-top: 0;">House Points History</h3>
+      <p class="subtitle" style="margin-bottom: 20px;">Every award recorded for the house leaderboard, from tournament victories and common room games.</p>
+      <div id="points-history-container"><p class="empty-note">Loading…</p></div>
+    `;
+
+    const target = document.getElementById('points-history-container');
+    const { data, error } = await sb.from('house_point_awards')
+      .select('id, house, game, amount, created_at, match:matches(game, mode, house_a, house_b, winner_house)')
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (!document.getElementById('points-history-container')) return;
+    if (error) {
+      target.innerHTML = `<p class="error-msg">Couldn't load the points history: ${escapeHtml(error.message)}. Make sure the latest supabase-house-games.sql has been run in the Supabase SQL editor.</p>`;
+      return;
+    }
+
+    if (!data || !data.length) {
+      target.innerHTML = `<p class="empty-note">No house points have been awarded yet.</p>`;
+      return;
+    }
+
+    const crestFor = house => ['phoenix', 'fox', 'selkie'].includes(house) ? `assets/house-${house}.png` : null;
+    const rows = data.map(award => {
+      const mode = award.match?.mode === 'common_room' ? 'Common room' : 'Tournament';
+      const game = (award.game && award.game !== 'unknown') ? award.game : (award.match?.game || 'unknown');
+      const gameLabel = game.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const when = new Date(award.created_at).toLocaleString();
+      const crest = crestFor(award.house);
+      return `
+        <div class="points-history-row house-${escapeHtml(award.house)}">
+          ${crest ? `<img class="points-history-crest" src="${crest}" alt="" aria-hidden="true" />` : ''}
+          <div class="points-history-details">
+            <strong>House ${escapeHtml(award.house)} +${award.amount}</strong>
+            <span>${escapeHtml(gameLabel)} · ${mode}</span>
+            <small>${escapeHtml(when)}</small>
+          </div>
+          <span class="points-history-amount">+${award.amount}</span>
+        </div>`;
+    }).join('');
+
+    target.innerHTML = `<div class="points-history-list">${rows}</div>`;
   }
 
   async function openRestrictedSubSection(tableName, title, description, label) {
@@ -3799,6 +3866,8 @@ async function saveInlineCharacterEdit(charId) {
   /* ===================== NPCS & GROUPED FACTIONS ===================== */
   const npcRowsById = new Map();
   const npcSecretsById = new Map();
+  const npcFriendshipById = new Map();
+  let npcPlayers = [];
   const npcHpSaveTimers = new Map();
   let npcSecretLoadError = '';
 
@@ -3806,22 +3875,24 @@ async function saveInlineCharacterEdit(charId) {
     const container = document.getElementById('npc-cards-container');
     if (!container) return;
 
-    const { data: npcs, error: npcErr } = await sb.from('npcs').select('*').order('name');
+    const { data: allNpcs, error: npcErr } = await sb.from('npcs').select('*').order('name');
 
     if (npcErr) {
       container.innerHTML = `<p class="error-msg">Failed to load NPCs: ${escapeHtml(npcErr.message)}</p>`;
       return;
     }
 
+    const npcs = isDM ? (allNpcs || []) : (allNpcs || []).filter(npc => npc.visible_to_players !== false);
     npcRowsById.clear();
     npcSecretsById.clear();
+    npcFriendshipById.clear();
     npcSecretLoadError = '';
     if (!npcs || npcs.length === 0) {
-      container.innerHTML = '<p class="empty-note">No NPCs recorded yet.</p>';
+      container.innerHTML = `${isDM ? '<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewNpc()">+ Add NPC</button>' : ''}<p class="empty-note">No NPCs recorded yet.</p>`;
       return;
     }
 
-    if (isDM) {
+    if (isDM && npcs.length) {
       const { data: secrets, error: secretsError } = await sb.from('npc_secrets')
         .select('npc_id, secret, milestones')
         .in('npc_id', npcs.map(npc => String(npc.id)));
@@ -3830,6 +3901,16 @@ async function saveInlineCharacterEdit(charId) {
       } else {
         (secrets || []).forEach(secret => npcSecretsById.set(String(secret.npc_id), secret));
       }
+      const [{ data: players }, { data: friendshipRows, error: friendshipError }] = await Promise.all([
+        sb.from('profiles').select('id, email, role').neq('role', 'dm').order('email'),
+        sb.from('npc_friendship_points').select('npc_id, player_id, points').in('npc_id', npcs.map(npc => String(npc.id)))
+      ]);
+      npcPlayers = players || [];
+      if (friendshipError) npcSecretLoadError = `${npcSecretLoadError ? `${npcSecretLoadError} ` : ''}Failed to load friendship points: ${friendshipError.message}`;
+      (friendshipRows || []).forEach(row => {
+        const key = `${row.npc_id}:${row.player_id}`;
+        npcFriendshipById.set(key, Number(row.points) || 0);
+      });
     }
 
     const groupedNPCs = new Map();
@@ -3840,7 +3921,7 @@ async function saveInlineCharacterEdit(charId) {
       groupedNPCs.get(faction).push(npc);
     });
 
-    container.innerHTML = `${npcSecretLoadError ? `<p class="error-msg">${escapeHtml(npcSecretLoadError)}</p>` : ''}
+    container.innerHTML = `${isDM ? '<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewNpc()">+ Add NPC</button>' : ''}${npcSecretLoadError ? `<p class="error-msg">${escapeHtml(npcSecretLoadError)}</p>` : ''}
       ${Array.from(groupedNPCs, ([faction, factionNPCs]) => `
       <div class="faction-group">
         <h3 class="faction-title">${escapeHtml(faction)}</h3>
@@ -3899,6 +3980,7 @@ async function saveInlineCharacterEdit(charId) {
           const secretBlock = isDM
             ? renderNpcSecretBlock(npcSecrets, npcCardId)
             : '';
+          const friendshipBlock = isDM ? renderNpcFriendshipControls(npc, npcCardId) : renderNpcPlayerFriendship(npc);
           const hpWidget = hpKey ? (isDM ? `
             <div class="npc-hp-widget" data-hp-key="${escapeHtml(hpKey)}">
               <label class="npc-hp-value-row" for="npc-hp-${npcCardId}">HP
@@ -3914,7 +3996,12 @@ async function saveInlineCharacterEdit(charId) {
           ` : `<span class="npc-hp-readonly">HP: ${escapeHtml(npc[hpKey] ?? '—')}</span>`) : '';
           const editControls = isDM ? `
             <div style="display:flex; justify-content:flex-end; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
+              <label style="display:flex; align-items:center; gap:6px; margin-right:auto; color:var(--text-faint); font-size:0.85rem;">
+                <input type="checkbox" ${npc.visible_to_players !== false ? 'checked' : ''} onchange="setNpcVisibility('${npcCardId}', this.checked)">
+                Public to players
+              </label>
               <button class="btn btn-sm btn-secondary" onclick="toggleNpcEdit('${npcCardId}')">Edit NPC</button>
+              <button class="btn btn-sm btn-secondary" onclick="deleteNpc('${npcCardId}')">Delete</button>
             </div>
           ` : '';
 
@@ -3932,6 +4019,7 @@ async function saveInlineCharacterEdit(charId) {
                 ${pointsHtml}
                 ${descriptionKey ? renderMarkdown(npc[descriptionKey]) : ''}
                 ${detailsHtml}
+                ${friendshipBlock}
                 ${secretBlock}
                 ${editControls}
               </div>
@@ -3978,11 +4066,55 @@ async function saveInlineCharacterEdit(charId) {
       <section class="npc-secrets" aria-label="DM-only secrets">
         <div class="npc-secrets-header">
           <h5>DM Secrets</h5>
-          ${isDM ? `<button type="button" class="btn btn-sm btn-secondary" onclick="toggleNpcSecretsEdit('${encodedId}')">Edit secrets</button>` : ''}
+          ${isDM ? `<span class="status-badge hidden">DM only</span>` : ''}
         </div>
         <div class="npc-secrets-view" id="npc-secrets-view-${encodedId}">${content}</div>
         ${editForm}
       </section>`;
+  }
+
+  function renderNpcFriendshipControls(npc, encodedId) {
+    const options = npcPlayers.map(player => {
+      const label = player.email || player.id;
+      return `<option value="${escapeHtml(player.id)}">${escapeHtml(label)}</option>`;
+    }).join('');
+    return `<div class="npc-friendship-controls" style="display:flex; flex-wrap:wrap; align-items:end; gap:8px; margin-top:10px; padding:10px; border:1px solid var(--gold-dim); border-radius:6px;">
+      <label style="flex:1 1 180px;">Player
+        <select class="input-field" id="npc-friendship-player-${encodedId}" onchange="updateNpcFriendshipDisplay('${encodedId}')">
+          <option value="">Select a player</option>${options}
+        </select>
+      </label>
+      <label style="width:110px;">Points
+        <input class="input-field" id="npc-friendship-points-${encodedId}" type="number" min="0" step="1" value="0">
+      </label>
+      <button type="button" class="btn btn-sm" onclick="saveNpcFriendship('${encodedId}')">Save FP</button>
+      <span id="npc-friendship-status-${encodedId}" class="inline-status" aria-live="polite"></span>
+    </div>`;
+  }
+
+  function renderNpcPlayerFriendship(npc) {
+    return '';
+  }
+
+  function updateNpcFriendshipDisplay(encodedId) {
+    const playerId = document.getElementById(`npc-friendship-player-${encodedId}`)?.value;
+    const input = document.getElementById(`npc-friendship-points-${encodedId}`);
+    if (input) input.value = playerId ? (npcFriendshipById.get(`${decodeURIComponent(encodedId)}:${playerId}`) || 0) : 0;
+  }
+
+  async function saveNpcFriendship(encodedId) {
+    if (!isDM) return;
+    const npcId = decodeURIComponent(encodedId);
+    const playerId = document.getElementById(`npc-friendship-player-${encodedId}`)?.value;
+    const input = document.getElementById(`npc-friendship-points-${encodedId}`);
+    const status = document.getElementById(`npc-friendship-status-${encodedId}`);
+    const points = Number(input?.value);
+    if (!playerId) { if (status) status.textContent = 'Choose a player.'; return; }
+    if (!Number.isSafeInteger(points) || points < 0) { if (status) status.textContent = 'Use a whole number of 0 or more.'; return; }
+    const { error } = await sb.from('npc_friendship_points').upsert({ npc_id: npcId, player_id: playerId, points, updated_at: new Date().toISOString() }, { onConflict: 'npc_id,player_id' });
+    if (error) { if (status) status.textContent = `Failed to save FP: ${error.message}`; return; }
+    npcFriendshipById.set(`${npcId}:${playerId}`, points);
+    if (status) status.textContent = 'Saved.';
   }
 
   function toggleNpcSecretsEdit(encodedId) {
@@ -4235,11 +4367,19 @@ async function saveInlineCharacterEdit(charId) {
       `;
     }).join('');
 
+    const secretEntry = npcSecretsById.get(String(npc.id)) || {};
+    let milestones = secretEntry.milestones || [];
+    if (typeof milestones === 'string') { try { milestones = JSON.parse(milestones); } catch { milestones = [milestones]; } }
+    if (!Array.isArray(milestones)) milestones = [];
     return `
       <div class="npc-edit-mode" style="display:none; margin-top:12px;">
         <div class="card-edit-form">
           <h4 style="margin:0 0 10px; color:var(--gold);">Edit NPC</h4>
           ${fieldsHtml}
+          <label for="edit-npc-secret-${cardId}" style="color:var(--rose);">DM Secret</label>
+          ${markdownEditor(`edit-npc-secret-${cardId}`, secretEntry.secret || '', 4)}
+          <label for="edit-npc-milestones-${cardId}" style="color:var(--rose);">Friendship milestones (one per line)</label>
+          <textarea id="edit-npc-milestones-${cardId}" class="input-field" rows="4" maxlength="5000">${escapeHtml(milestones.join('\n'))}</textarea>
           <div id="npc-edit-error-${cardId}" class="inline-status error" style="display:none;"></div>
           <div style="display:flex; gap:8px;">
             <button class="btn btn-sm" onclick="saveNpcEdit('${cardId}')">Save Changes</button>
@@ -4248,6 +4388,34 @@ async function saveInlineCharacterEdit(charId) {
         </div>
       </div>
     `;
+  }
+
+  async function addNewNpc() {
+    if (!isDM) return;
+    const { data, error } = await sb.from('npcs').insert({
+      name: 'New NPC', visible_to_players: true
+    }).select().single();
+    if (error) { alert(`Failed to add NPC: ${error.message}`); return; }
+    await loadNPCs();
+    if (data) setTimeout(() => toggleNpcEdit(encodeURIComponent(String(data.id))), 50);
+  }
+
+  async function setNpcVisibility(encodedId, visible) {
+    if (!isDM) return;
+    const npc = npcRowsById.get(decodeURIComponent(encodedId));
+    if (!npc) return;
+    const { error } = await sb.from('npcs').update({ visible_to_players: visible }).eq('id', npc.id);
+    if (error) { alert(`Failed to update NPC visibility: ${error.message}`); }
+    await loadNPCs();
+  }
+
+  async function deleteNpc(encodedId) {
+    if (!isDM || !confirm('Delete this NPC and its DM notes?')) return;
+    const npc = npcRowsById.get(decodeURIComponent(encodedId));
+    if (!npc) return;
+    const { error } = await sb.from('npcs').delete().eq('id', npc.id);
+    if (error) { alert(`Failed to delete NPC: ${error.message}`); return; }
+    await loadNPCs();
   }
 
   function toggleNpcEdit(encodedId) {
@@ -4300,6 +4468,13 @@ async function saveInlineCharacterEdit(charId) {
       return;
     }
 
+    const secretInput = document.getElementById(`edit-npc-secret-${encodedId}`);
+    const milestonesInput = document.getElementById(`edit-npc-milestones-${encodedId}`);
+    const secret = secretInput?.value.trim() || '';
+    const milestones = milestonesInput
+      ? milestonesInput.value.split(/\r?\n/).map(value => value.trim()).filter(Boolean)
+      : [];
+
     const hpKey = Object.keys(original).find(key => /^(hp|hit_points|current_hp)$/i.test(key));
     if (hpKey && Number(updatedNpc[hpKey]) > 0
       && ('death_save_successes' in original || 'death_save_failures' in original)) {
@@ -4309,6 +4484,14 @@ async function saveInlineCharacterEdit(charId) {
     const { error } = await sb.from('npcs').update(updatedNpc).eq('id', original.id);
     if (error) {
       errorEl.textContent = `Failed to save NPC: ${error.message}`;
+      errorEl.style.display = 'block';
+      return;
+    }
+    const { error: secretError } = await sb.from('npc_secrets').upsert({
+      npc_id: String(original.id), secret, milestones
+    }, { onConflict: 'npc_id' });
+    if (secretError) {
+      errorEl.textContent = `NPC saved, but secrets failed to save: ${secretError.message}`;
       errorEl.style.display = 'block';
       return;
     }

@@ -600,7 +600,7 @@ function CommonRoomsPage() {
               </div>
               {!assignment.dm ? <span className="games-house-badge">Cooperative game</span> : null}
             </div>
-            <p className="games-rule">Place five stars together to complete the pattern. Your house earns 10 points, up to 50 common room points each UTC day.</p>
+            <p className="games-rule">Place five stars together to complete the pattern. Your house earns points for the constellation, up to 5 points per UTC day from this game.</p>
             {assignment.dm ? (
               <p className="empty-note">DM preview shows the room only. Join with a player account from this house to play its shared game.</p>
             ) : null}

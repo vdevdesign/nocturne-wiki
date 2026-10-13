@@ -196,7 +196,7 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
             </p>
           ) : null}
           <p className="games-round">
-            Round {round}. Best of 5 scored rounds, first house to 3 wins takes 10 points. Draws replay.
+            Round {round}. Best of 5 scored rounds, first house to 3 wins earns 1 house point for their victory. Draws replay.
           </p>
           {spectating ? (
             <div className="rune-reveal-grid" aria-live="polite">
