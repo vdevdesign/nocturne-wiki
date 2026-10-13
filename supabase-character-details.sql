@@ -2,7 +2,18 @@ ALTER TABLE public.characters
   ADD COLUMN IF NOT EXISTS level text,
   ADD COLUMN IF NOT EXISTS race text,
   ADD COLUMN IF NOT EXISTS "class" text,
-  ADD COLUMN IF NOT EXISTS house text;
+  ADD COLUMN IF NOT EXISTS house text,
+  ADD COLUMN IF NOT EXISTS full_real_name text,
+  ADD COLUMN IF NOT EXISTS age text,
+  ADD COLUMN IF NOT EXISTS aliases text,
+  ADD COLUMN IF NOT EXISTS parents text,
+  ADD COLUMN IF NOT EXISTS hometown text,
+  ADD COLUMN IF NOT EXISTS appearance text,
+  ADD COLUMN IF NOT EXISTS background text,
+  ADD COLUMN IF NOT EXISTS goals text,
+  ADD COLUMN IF NOT EXISTS fears text,
+  ADD COLUMN IF NOT EXISTS bonds text,
+  ADD COLUMN IF NOT EXISTS image_url text;
 
 WITH legacy_tags AS (
   SELECT

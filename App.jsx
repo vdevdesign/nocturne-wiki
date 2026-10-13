@@ -137,7 +137,7 @@ window.addEventListener('resize', () => {
 function Sidebar() {
   return h('nav', { className: 'sidebar', id: 'appSidebar', style: { display: 'none' } },
     h('button', { type: 'button', className: 'mobile-nav-close', 'aria-label': 'Close navigation menu', onClick: () => window.setMobileNavOpen(false) }, '×'),
-    h('div', { className: 'brand' }, h('div', { className: 'brand-title-row' }, h(Sigil), h('div', null, h('h1', null, 'Nocturne'), h('p', null, 'Campaign Hub'))), h('div', { className: 'brand-meta-row' }, h('span', { className: 'role-pill', id: 'rolePill' }, 'player'), h('button', { className: 'inbox-button', id: 'inboxButton', title: 'Password requests', onClick: () => window.togglePasswordInbox() }, h('span', { className: 'email-icon', 'aria-hidden': true }, '✉'), h('span', { className: 'notification-bubble', id: 'inboxCount', style: { display: 'none' } }, '0'))), h('div', { className: 'password-inbox', id: 'passwordInbox', style: { display: 'none' } })),
+    h('div', { className: 'brand' }, h('div', { className: 'brand-title-row' }, h(Sigil), h('div', null, h('h1', null, 'Nocturne'), h('p', null, 'Campaign Hub'))), h('div', { className: 'brand-meta-row' }, h('span', { className: 'role-pill', id: 'rolePill' }, 'player'), h('button', { className: 'inbox-button', id: 'inboxButton', title: 'DM requests', onClick: () => window.togglePasswordInbox() }, h('span', { className: 'email-icon', 'aria-hidden': true }, '✉'), h('span', { className: 'notification-bubble', id: 'inboxCount', style: { display: 'none' } }, '0'))), h('div', { className: 'password-inbox', id: 'passwordInbox', style: { display: 'none' } })),
     h('ul', { className: 'navlist', id: 'navlist' },
       h('li', { style: { padding: '0 4px' } }, h('button', { className: 'nav-chat-btn', onClick: () => { window.setMobileNavOpen(false); window.openChatModal(); } },
         h('span', { className: 'nav-chat-label' }, h('span', { className: 'nav-icon', 'aria-hidden': true }, '◈'), h('span', null, 'Session Chats')),
@@ -145,6 +145,15 @@ function Sidebar() {
       )),
       navigation.map(([target, label, icon]) => h('li', { key: target }, h('button', { 'data-target': target, className: target === 'home' ? 'active' : '', onClick: () => navigateTo(target) }, h('span', { className: 'nav-icon', 'aria-hidden': true }, icon), h('span', { className: 'nav-label' }, label)))),
       h('li', null, h('button', { 'data-target': 'restricted', className: 'dm-nav-btn', id: 'dmNavBtn', style: { display: 'none' }, onClick: () => navigateTo('restricted') }, h('span', { className: 'nav-icon', 'aria-hidden': true }, '🔒'), h('span', { className: 'nav-label' }, 'Restricted Archives')))
+    ),
+    h('div', { className: 'suggestion-box' },
+      h('div', { className: 'suggestion-box-heading' }, h('span', { className: 'suggestion-box-title' }, 'Suggest a change'), h('span', { className: 'suggestion-box-icon', 'aria-hidden': true }, '✦')),
+      h('p', null, 'Have an idea or spotted a fix? Send it straight to the DM.'),
+      h('form', { id: 'suggestionForm', onSubmit: event => window.submitSuggestion(event) },
+        h('textarea', { id: 'suggestionInput', rows: 3, maxLength: 1000, placeholder: 'Feature idea or bug fix…', required: true, 'aria-label': 'Suggestion' }),
+        h('button', { className: 'btn btn-sm', type: 'submit' }, 'Send suggestion')
+      ),
+      h('div', { id: 'suggestionStatus', className: 'suggestion-status', role: 'status', 'aria-live': 'polite' })
     ),
     h('button', { className: 'logout-btn', id: 'logoutBtn', onClick: () => window.handleLogout() }, 'Sign out')
   );

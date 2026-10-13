@@ -2,7 +2,7 @@
 
 ## Implemented goals
 
-- **Player character bios:** New accounts automatically receive a starter character whose `id` is the username before `@campaign.local` and whose display `name` capitalizes the first letter. DMs can edit the character's details and house assignment. Players can edit a public character bio visible to everyone and a private bio visible in the UI only to the assigned player and DMs. DMs can edit both bios. The private-bio restriction is UI-level, not database-level security. Run [supabase-character-public-bio.sql](supabase-character-public-bio.sql) once in the Supabase SQL editor to add the public bio field; existing `bio` and `description` content remains private.
+- **Player character cards:** New accounts automatically receive a starter character whose `id` is the username before `@campaign.local` and whose display `name` capitalizes the first letter. Character cards show the public character name, uploaded portrait, appearance, and public bio. DMs can edit the full character template (full real name, age, aliases, parents, race, class, hometown, appearance, background, goals, fears, and bonds); players can edit their public appearance, portrait, and public bio. The private-bio restriction is UI-level, not database-level security. Run [supabase-character-public-bio.sql](supabase-character-public-bio.sql) and [supabase-character-details.sql](supabase-character-details.sql) once in the Supabase SQL editor to add the public bio and character template fields; existing `bio` and `description` content remains private.
 - **Player homebrew inventory:** Players can add, edit, and remove items in their own inventory, including an item name, description, quantity, and value. DMs can view and manage every player's inventory. Run [supabase-player-homebrew-inventory.sql](supabase-player-homebrew-inventory.sql) once in the Supabase SQL editor to add the inventory fields and owner/DM access policies.
 - **Inline editing:** Character backstories, homebrew inventory items, NPC hit points, campaign loot, session summaries, and restricted archive entries are edited in place. NPC hit points can be entered directly or adjusted by 1, 5, or 10; DMs can also create session chats with an inline form.
 - **Markdown live previews:** Markdown editors show a live rendered preview while editing.
@@ -32,6 +32,8 @@ Run [supabase-quest-board.sql](supabase-quest-board.sql) in the Supabase SQL edi
 ## Password reset requests
 
 Password recovery is admin-driven because campaign accounts use synthetic `@campaign.local` addresses. Run [supabase-password-reset-requests.sql](supabase-password-reset-requests.sql) in the Supabase SQL editor. Signed-out players can submit an inline reset request; only DMs can review requests and set a new password from the email inbox beside the campaign title. To enable password changes, install Node.js (which includes `npx`), then run these commands in PowerShell from the project folder:
+
+Player suggestions use the same DM inbox. Run [supabase-player-suggestions.sql](supabase-player-suggestions.sql) in the Supabase SQL editor once to create its table and access policies.
 
 ```powershell
 npx supabase login

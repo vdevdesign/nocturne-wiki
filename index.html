@@ -85,6 +85,16 @@
   .navlist .dm-nav-btn.active { background: rgba(177, 82, 107, 0.2); color: #f182a0; box-shadow: inset 2px 0 0 var(--rose); }
   .logout-btn { margin: 12px; padding: 8px 12px; font-size: 12px; color: var(--text-faint); background: none; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
   .logout-btn:hover { color: var(--text); border-color: var(--purple-dim); }
+  .suggestion-box { margin: 12px 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(27, 24, 41, 0.72); }
+  .suggestion-box-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .suggestion-box-title { color: var(--gold); font-family: var(--font-title); font-size: 17px; font-weight: 600; }
+  .suggestion-box-icon { color: var(--rose); font-size: 14px; }
+  .suggestion-box p { margin: 3px 0 9px; font-size: 11px; line-height: 1.45; color: var(--text-faint); }
+  .suggestion-box textarea { width: 100%; min-height: 62px; resize: vertical; padding: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font: 12px/1.4 var(--font-body); outline: none; }
+  .suggestion-box textarea:focus { border-color: var(--purple); }
+  .suggestion-box .btn { width: 100%; margin-top: 7px; }
+  .suggestion-status { min-height: 0; margin-top: 7px; color: var(--gold); font-size: 11px; line-height: 1.35; }
+  .suggestion-status.error { color: var(--rose); }
 
   main { flex: 1 1 900px; min-width: 0; width: 100%; padding: 56px 64px; max-width: 900px; overflow-x: hidden; }
   section { display: none; animation: fade-in 0.25s ease; }
@@ -554,6 +564,17 @@
 }
 
 .character-bios { display: grid; gap: 12px; margin-top: 16px; }
+.character-card-identity { display: grid; grid-template-columns: minmax(92px, 132px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.character-card-portrait { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; border: 1px solid var(--gold-dim); background: var(--surface-2); }
+.character-card-portrait-placeholder { display: grid; place-items: center; color: var(--text-faint); font-size: 2rem; }
+.character-public-appearance { margin: 12px 0 0; color: var(--text-dim); line-height: 1.55; }
+.character-private-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 12px; }
+.character-private-detail { padding: 10px; border: 1px solid rgba(138,104,214,0.25); border-radius: 7px; background: rgba(138,104,214,0.05); }
+.character-private-detail strong { display: block; margin-bottom: 4px; color: #b49be8; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.character-image-upload { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; align-items: center; }
+.character-image-preview { width: 72px; height: 92px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); }
+.character-image-preview.placeholder { display: grid; place-items: center; color: var(--text-faint); font-size: 1.4rem; }
+@media (max-width: 520px) { .character-card-identity { grid-template-columns: 76px minmax(0, 1fr); gap: 10px; } }
 .character-bio-section { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: rgba(0,0,0,0.12); }
 .character-bio-section h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--gold); font-family: var(--font-title); font-size: 19px; }
 .character-bio-section.private { border-color: rgba(138,104,214,0.4); background: rgba(138,104,214,0.06); }
@@ -1444,6 +1465,38 @@
     message.textContent = 'Your reset request is now in the DM inbox.';
   }
 
+  async function submitSuggestion(event) {
+    event.preventDefault();
+    const input = document.getElementById('suggestionInput');
+    const status = document.getElementById('suggestionStatus');
+    const button = event.currentTarget.querySelector('button[type="submit"]');
+    const message = input?.value.trim();
+    if (!message || !currentUser || currentUser.id === 'dev-user') {
+      status.textContent = currentUser?.id === 'dev-user' ? 'Suggestions are unavailable in offline preview.' : 'Please sign in before sending a suggestion.';
+      status.classList.add('error');
+      return;
+    }
+    button.disabled = true;
+    button.textContent = 'Sending…';
+    status.textContent = '';
+    status.classList.remove('error');
+    const { error } = await sb.from('player_suggestions').insert({
+      requested_by: currentUser.id,
+      requester_name: window.currentPlayerName || currentUser.email?.split('@')[0] || 'Player',
+      message
+    });
+    button.disabled = false;
+    button.textContent = 'Send suggestion';
+    if (error) {
+      status.textContent = `Could not send suggestion: ${error.message}`;
+      status.classList.add('error');
+      return;
+    }
+    input.value = '';
+    status.textContent = 'Sent to the DM inbox.';
+  }
+  window.submitSuggestion = submitSuggestion;
+
   function togglePasswordInbox() {
     const inbox = document.getElementById('passwordInbox');
     const isOpen = inbox.style.display !== 'none';
@@ -1458,15 +1511,27 @@
 
     const { data, error } = await sb.from('password_reset_requests')
       .select('*').eq('status', 'pending').order('created_at', { ascending: false });
-    if (error) {
-      inbox.innerHTML = `<div class="inline-status error">Could not load password requests: ${escapeHtml(error.message)}</div>`;
+    const { data: suggestions, error: suggestionError } = await sb.from('player_suggestions')
+      .select('*').eq('status', 'pending').order('created_at', { ascending: false });
+    if (error || suggestionError) {
+      inbox.innerHTML = `<div class="inline-status error">Could not load DM requests: ${escapeHtml((error || suggestionError).message)}</div>`;
       count.style.display = 'none';
       return;
     }
 
-    count.textContent = String(data?.length || 0);
-    count.style.display = data?.length ? 'block' : 'none';
-    inbox.innerHTML = data?.length ? data.map(request => `
+    const requests = data || [];
+    const pendingSuggestions = suggestions || [];
+    count.textContent = String(requests.length + pendingSuggestions.length);
+    count.style.display = requests.length + pendingSuggestions.length ? 'block' : 'none';
+    inbox.innerHTML = requests.length || pendingSuggestions.length ? `${pendingSuggestions.map(suggestion => `
+      <div class="password-request" id="suggestion-request-${suggestion.id}">
+        <strong>Suggestion from ${escapeHtml(suggestion.requester_name)}</strong><br>
+        <span>${escapeHtml(suggestion.message)}</span><br>
+        <span>Sent ${new Date(suggestion.created_at).toLocaleString()}</span>
+        <div class="password-request-actions">
+          <button class="btn btn-sm btn-secondary" onclick="handleSuggestion('${suggestion.id}')">Mark handled</button>
+        </div>
+      </div>`).join('')}${requests.map(request => `
       <div class="password-request" id="password-request-${request.id}">
         <strong>${escapeHtml(request.username)}</strong><br>
         <span>Requested ${new Date(request.created_at).toLocaleString()}</span>
@@ -1474,15 +1539,28 @@
         <div class="password-request-actions">
           <button class="btn btn-sm btn-secondary" onclick="changeRequestedPassword('${request.id}')">Set password</button>
         </div>
-      </div>`).join('') : '<div class="empty-note">No pending password requests.</div>';
+      </div>`).join('')}` : '<div class="empty-note">No pending DM requests.</div>';
   }
 
   function subscribeToPasswordRequests() {
     if (!isDM || passwordRequestSubscription) return;
     passwordRequestSubscription = sb.channel('password_reset_notifications')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'password_reset_requests' }, () => loadPasswordRequests())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'player_suggestions' }, () => loadPasswordRequests())
       .subscribe();
   }
+
+  async function handleSuggestion(id) {
+    const { error } = await sb.from('player_suggestions').update({
+      status: 'handled', handled_by: currentUser.id, handled_at: new Date().toISOString()
+    }).eq('id', id);
+    if (error) {
+      document.getElementById('passwordInbox').insertAdjacentHTML('afterbegin', `<div class="inline-status error">Could not update suggestion: ${escapeHtml(error.message)}</div>`);
+      return;
+    }
+    loadPasswordRequests();
+  }
+  window.handleSuggestion = handleSuggestion;
 
   async function changeRequestedPassword(requestId) {
     const input = document.getElementById(`password-reset-${requestId}`);
@@ -1633,9 +1711,10 @@
   }
 
   /* ===================== SESSION CHAT SYSTEM ===================== */
-  function openChatModal() {
+  async function openChatModal() {
     document.getElementById('chatModalOverlay').classList.add('open');
-    loadPreviousChatsMenu();
+    await loadPreviousChatsMenu(true);
+    document.getElementById('modalChatTitle').innerText = currentSessionId.replace('_', ' ').toUpperCase();
     initSessionChat(currentSessionId);
   }
 
@@ -1647,7 +1726,7 @@
     document.getElementById('chatMenuDrawer').classList.toggle('open');
   }
 
-  async function loadPreviousChatsMenu() {
+  async function loadPreviousChatsMenu(selectDefault = false) {
     const container = document.getElementById('previousChatsList');
     const dmBtnContainer = document.getElementById('dmNewChatBtn');
     
@@ -1655,12 +1734,22 @@
       dmBtnContainer.innerHTML = `<button class="btn btn-sm" onclick="showNewSessionChatForm()">+ New</button>`;
     }
 
-    const { data, error } = await sb.from('session_messages').select('session_id').order('created_at', { ascending: false });
+    const [{ data, error }, { data: sessionState }] = await Promise.all([
+      sb.from('session_messages').select('session_id, created_at').order('created_at', { ascending: true }),
+      sb.from('active_session').select('is_open, active_session_id').eq('id', 1).maybeSingle()
+    ]);
     
     if (error) { container.innerHTML = `<p class="error-msg">Failed to load sessions.</p>`; return; }
 
-    const uniqueSessions = Array.from(new Set((data || []).map(m => m.session_id)));
-    if (!uniqueSessions.includes(currentSessionId)) uniqueSessions.unshift(currentSessionId);
+    // The first message in a session establishes its creation order. Reverse that
+    // order so the newest-created chat is the default when no session is live.
+    const createdOrder = Array.from(new Set((data || []).map(m => m.session_id))).reverse();
+    const liveSessionId = sessionState?.is_open ? sessionState.active_session_id : null;
+    if (selectDefault) currentSessionId = liveSessionId || createdOrder[0] || currentSessionId;
+
+    const uniqueSessions = [...createdOrder];
+    if (liveSessionId && !uniqueSessions.includes(liveSessionId)) uniqueSessions.unshift(liveSessionId);
+    if (!uniqueSessions.includes(currentSessionId)) uniqueSessions.push(currentSessionId);
 
     renderPreviousChatsList(uniqueSessions);
   }
@@ -3753,7 +3842,6 @@ function renderCharacterCard(char) {
   const assignedPlayer = getCharacterPlayerId(char);
   const isActive = isCharacterActive(char.activity);
   const characterDetails = [
-    ['Level', char.level],
     ['Race', char.race],
     ['Class', char.class]
   ].filter(([, value]) => value != null && String(value).trim() !== '');
@@ -3810,17 +3898,30 @@ function renderCharacterCard(char) {
 
   const publicBio = char.public_bio || '';
   const privateBio = char.bio || '';
+  const privateDetails = [
+    ['Full real name', char.full_real_name], ['Age', char.age], ['Aliases', char.aliases],
+    ['Parents', char.parents], ['Race', char.race], ['Class', char.class],
+    ['Hometown', char.hometown], ['Background', char.background], ['Goals', char.goals],
+    ['Fears', char.fears], ['Bonds', char.bonds]
+  ].filter(([, value]) => value != null && String(value).trim() !== '');
+  const privateDetailsDisplay = privateDetails.length ? `<div class="character-private-details">${privateDetails.map(([label, value]) => `<div class="character-private-detail"><strong>${label}</strong><div>${renderMarkdown(String(value), '')}</div></div>`).join('')}</div>` : '';
+  const portrait = char.image_url
+    ? `<img class="character-card-portrait" src="${escapeHtml(char.image_url)}" alt="Portrait of ${escapeHtml(char.name || 'character')}" />`
+    : `<div class="character-card-portrait character-card-portrait-placeholder" aria-label="No character portrait">✦</div>`;
 
   return `
     <div class="block-card" id="character-card-${char.id}">
       <!-- View Mode -->
       <div class="character-view-mode">
-        <div class="card-title-group">
+        <div class="character-card-identity">
+          ${portrait}
           <div>
-            <h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>
-            ${detailsDisplay}
+            <div class="card-title-group">
+              <div><h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3></div>
+              ${cardBadges}
+            </div>
+            ${char.appearance ? `<p class="character-public-appearance"><strong>Appearance</strong><br>${renderMarkdown(char.appearance, '')}</p>` : ''}
           </div>
-          ${cardBadges}
         </div>
 
         <div class="character-bios">
@@ -3831,6 +3932,7 @@ function renderCharacterCard(char) {
           ${canManagePrivateBio ? `
             <div class="character-bio-section private">
               <h4>Private Bio <span class="character-bio-visibility">Only you and the DM can see this</span></h4>
+              ${privateDetailsDisplay}
               <div class="block-body">${renderMarkdown(privateBio, 'No private notes yet.')}</div>
             </div>` : ''}
         </div>
@@ -3842,7 +3944,15 @@ function renderCharacterCard(char) {
         <!-- Edit Mode -->
         <div class="character-edit-mode" style="display:none;">
           <div class="card-edit-form">
-            <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character Bios</h4>
+            <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Character Card</h4>
+
+            <div class="form-group">
+              <label>Character Portrait</label>
+              <div class="character-image-upload">
+                ${char.image_url ? `<img id="edit-char-image-preview-${char.id}" class="character-image-preview" src="${escapeHtml(char.image_url)}" alt="Current portrait" />` : `<div id="edit-char-image-preview-${char.id}" class="character-image-preview placeholder">✦</div>`}
+                <div><input type="file" id="edit-char-image-${char.id}" class="input-field" accept="image/*" onchange="previewCharacterImage('${char.id}', this)"><small class="empty-note">Upload an image for this character card.</small><input type="hidden" id="edit-char-image-data-${char.id}" value="${escapeHtml(char.image_url || '')}"></div>
+              </div>
+            </div>
 
             ${isDM ? `
             <div class="form-group">
@@ -3855,9 +3965,12 @@ function renderCharacterCard(char) {
               <strong>Character Details</strong>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px;">
                 <div>
-                  <label for="edit-char-level-${char.id}">Level</label>
-                  <input type="text" id="edit-char-level-${char.id}" value="${escapeHtml(char.level ?? '')}" class="input-field" />
+                  <label for="edit-char-full-real-name-${char.id}">Full real name</label>
+                  <input type="text" id="edit-char-full-real-name-${char.id}" value="${escapeHtml(char.full_real_name ?? '')}" class="input-field" />
                 </div>
+                <div><label for="edit-char-age-${char.id}">Age</label><input type="text" id="edit-char-age-${char.id}" value="${escapeHtml(char.age ?? '')}" class="input-field" /></div>
+                <div><label for="edit-char-aliases-${char.id}">Aliases</label><input type="text" id="edit-char-aliases-${char.id}" value="${escapeHtml(char.aliases ?? '')}" class="input-field" /></div>
+                <div><label for="edit-char-parents-${char.id}">Parents</label><input type="text" id="edit-char-parents-${char.id}" value="${escapeHtml(char.parents ?? '')}" class="input-field" /></div>
                 <div>
                   <label for="edit-char-race-${char.id}">Race</label>
                   <input type="text" id="edit-char-race-${char.id}" value="${escapeHtml(char.race ?? '')}" class="input-field" />
@@ -3866,6 +3979,7 @@ function renderCharacterCard(char) {
                   <label for="edit-char-class-${char.id}">Class</label>
                   <input type="text" id="edit-char-class-${char.id}" value="${escapeHtml(char.class ?? '')}" class="input-field" />
                 </div>
+                <div><label for="edit-char-hometown-${char.id}">Hometown</label><input type="text" id="edit-char-hometown-${char.id}" value="${escapeHtml(char.hometown ?? '')}" class="input-field" /></div>
                 <div>
                   <label for="edit-char-house-${char.id}">House</label>
                   <select id="edit-char-house-${char.id}" class="input-field">
@@ -3875,6 +3989,14 @@ function renderCharacterCard(char) {
                 </div>
               </div>
             </div>` : ''}
+
+            <div class="character-edit-section">
+              <h5>Public Character Details</h5>
+              <p>These fields are visible to everyone who can view this character.</p>
+              <div class="form-group"><label for="edit-char-appearance-${char.id}">Appearance</label><textarea id="edit-char-appearance-${char.id}" class="input-field" rows="3">${escapeHtml(char.appearance || '')}</textarea></div>
+            </div>
+
+            ${isDM ? `<div class="character-edit-section private"><h5>Private Character Details</h5><p>These template fields are visible only to the character owner and DM.</p><div class="form-group"><label>Background</label>${markdownEditor(`edit-char-background-${char.id}`, char.background || '', 3)}</div><div class="form-group"><label>Goals</label>${markdownEditor(`edit-char-goals-${char.id}`, char.goals || '', 2)}</div><div class="form-group"><label>Fears</label>${markdownEditor(`edit-char-fears-${char.id}`, char.fears || '', 2)}</div><div class="form-group"><label>Bonds</label>${markdownEditor(`edit-char-bonds-${char.id}`, char.bonds || '', 2)}</div></div>` : ''}
 
             <div class="character-edit-section">
               <h5>Public Character Bio</h5>
@@ -3913,14 +4035,27 @@ async function saveInlineCharacterEdit(charId) {
 
   if (!bioEl || !publicBioEl || (isDM && !nameEl)) return;
 
-  const updateData = { bio: bioEl.value, public_bio: publicBioEl.value };
+  const updateData = {
+    bio: bioEl.value,
+    public_bio: publicBioEl.value,
+    appearance: document.getElementById(`edit-char-appearance-${charId}`)?.value.trim() || null,
+    image_url: document.getElementById(`edit-char-image-data-${charId}`)?.value || null
+  };
 
   // Character metadata and secrets remain DM-managed.
   if (isDM) {
     updateData.name = nameEl.value.trim();
-    updateData.level = document.getElementById(`edit-char-level-${charId}`)?.value.trim() || null;
+    updateData.full_real_name = document.getElementById(`edit-char-full-real-name-${charId}`)?.value.trim() || null;
+    updateData.age = document.getElementById(`edit-char-age-${charId}`)?.value.trim() || null;
+    updateData.aliases = document.getElementById(`edit-char-aliases-${charId}`)?.value.trim() || null;
+    updateData.parents = document.getElementById(`edit-char-parents-${charId}`)?.value.trim() || null;
     updateData.race = document.getElementById(`edit-char-race-${charId}`)?.value.trim() || null;
     updateData.class = document.getElementById(`edit-char-class-${charId}`)?.value.trim() || null;
+    updateData.hometown = document.getElementById(`edit-char-hometown-${charId}`)?.value.trim() || null;
+    updateData.background = document.getElementById(`edit-char-background-${charId}`)?.value || null;
+    updateData.goals = document.getElementById(`edit-char-goals-${charId}`)?.value || null;
+    updateData.fears = document.getElementById(`edit-char-fears-${charId}`)?.value || null;
+    updateData.bonds = document.getElementById(`edit-char-bonds-${charId}`)?.value || null;
     updateData.house = document.getElementById(`edit-char-house-${charId}`)?.value || null;
     if (secretEl) {
       updateData.secret = secretEl.value.trim();
@@ -3936,6 +4071,20 @@ async function saveInlineCharacterEdit(charId) {
   } else {
     loadCharacters();
   }
+}
+
+function previewCharacterImage(charId, input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const data = String(reader.result || '');
+    const hidden = document.getElementById(`edit-char-image-data-${charId}`);
+    const preview = document.getElementById(`edit-char-image-preview-${charId}`);
+    if (hidden) hidden.value = data;
+    if (preview) preview.outerHTML = `<img id="edit-char-image-preview-${charId}" class="character-image-preview" src="${escapeHtml(data)}" alt="Selected portrait" />`;
+  };
+  reader.readAsDataURL(file);
 }
 
   /* ===================== NPCS & GROUPED FACTIONS ===================== */

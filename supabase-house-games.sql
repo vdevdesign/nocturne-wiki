@@ -463,7 +463,7 @@ BEGIN
           'user_id', mp.user_id,
           'house', mp.house,
           'name', COALESCE(NULLIF(split_part(p.email, '@', 1), ''), 'Player')
-        ) ORDER BY mp.house)
+        ) ORDER BY (mp.user_id = auth.uid()) DESC, mp.house, mp.user_id)
         FROM public.match_players AS mp
         LEFT JOIN public.profiles AS p ON p.id = mp.user_id
         WHERE mp.match_id = m.id
