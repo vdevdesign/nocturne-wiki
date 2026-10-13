@@ -1,5 +1,53 @@
 -- Run once in the Supabase SQL editor to add house multiplayer games.
 
+-- Automatically create the starter character for every new campaign account.
+-- The app signs players in with username@campaign.local, and the character
+-- directory uses the username prefix as characters.id.
+CREATE OR REPLACE FUNCTION public.create_character_for_new_player()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_username text;
+BEGIN
+  v_username := lower(NULLIF(btrim(split_part(NEW.email, '@', 1)), ''));
+
+  IF v_username IS NOT NULL THEN
+    INSERT INTO public.characters (id, name, bio, visible_to_players)
+    VALUES (
+      v_username,
+      upper(left(v_username, 1)) || substring(v_username from 2),
+      '',
+      true
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+
+  RETURN NEW;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.create_character_for_new_player() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS create_character_for_new_player ON auth.users;
+CREATE TRIGGER create_character_for_new_player
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.create_character_for_new_player();
+
+-- Backfill accounts created before this trigger was installed.
+INSERT INTO public.characters (id, name, bio, visible_to_players)
+SELECT
+  lower(btrim(split_part(u.email, '@', 1))),
+  upper(left(lower(btrim(split_part(u.email, '@', 1))), 1))
+    || substring(lower(btrim(split_part(u.email, '@', 1))) from 2),
+  '',
+  true
+FROM auth.users AS u
+WHERE NULLIF(btrim(split_part(u.email, '@', 1)), '') IS NOT NULL
+ON CONFLICT (id) DO NOTHING;
+
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS house text;
 
