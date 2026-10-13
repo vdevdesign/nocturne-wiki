@@ -11,7 +11,7 @@ ALTER TABLE public.session_summaries
   ADD COLUMN IF NOT EXISTS visible_to_players boolean NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS public.npc_friendship_points (
-  npc_id uuid NOT NULL REFERENCES public.npcs(id) ON DELETE CASCADE,
+  npc_id text NOT NULL REFERENCES public.npcs(id) ON DELETE CASCADE,
   player_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   points integer NOT NULL DEFAULT 0,
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS public.npc_friendship_points (
 );
 
 ALTER TABLE public.npc_friendship_points ENABLE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+  ON TABLE public.npc_friendship_points TO authenticated;
 
 DROP POLICY IF EXISTS npc_friendship_points_read ON public.npc_friendship_points;
 CREATE POLICY npc_friendship_points_read ON public.npc_friendship_points

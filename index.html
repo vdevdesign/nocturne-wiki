@@ -3125,6 +3125,11 @@ function toggleInlineEdit(type, id) {
           <h4>🏆 House Points History</h4>
           <p class="hub-desc">Every house point award from tournament wins and common room games, with dates and amounts.</p>
         </div>
+
+        <div class="hub-card" onclick="openNpcRelationships()">
+          <h4>NPC Relationships</h4>
+          <p class="hub-desc">Review every player's friendship points with each NPC.</p>
+        </div>
       </div>
     `;
   }
@@ -3179,6 +3184,43 @@ function toggleInlineEdit(type, id) {
     }).join('');
 
     target.innerHTML = `<div class="points-history-list">${rows}</div>`;
+  }
+
+  async function openNpcRelationships() {
+    if (!isDM) return;
+    const container = document.getElementById('restricted-container');
+    if (!container) return;
+    container.innerHTML = `
+      <div style="margin-bottom:20px;"><button class="btn btn-secondary btn-sm" onclick="showRestrictedHub()">← Back to Restricted Hub</button></div>
+      <h3 style="margin-top:0;">NPC Relationships</h3>
+      <p class="subtitle" style="margin-bottom:20px;">Friendship points by player and NPC.</p>
+      <div id="npc-relationships-container"><p class="empty-note">Loading…</p></div>`;
+    const target = document.getElementById('npc-relationships-container');
+    const [{ data: npcs, error: npcError }, { data: players, error: playerError }, { data: points, error: pointsError }] = await Promise.all([
+      sb.from('npcs').select('id, name, npc_name, title').order('name'),
+      sb.from('profiles').select('id, email').neq('role', 'dm').order('email'),
+      sb.from('npc_friendship_points').select('npc_id, player_id, points, updated_at').order('updated_at', { ascending: false })
+    ]);
+    const error = npcError || playerError || pointsError;
+    if (error) {
+      target.innerHTML = `<p class="error-msg">Couldn't load NPC relationships: ${escapeHtml(error.message)}</p>`;
+      return;
+    }
+    if (!points?.length) {
+      target.innerHTML = '<p class="empty-note">No NPC friendship points have been recorded yet.</p>';
+      return;
+    }
+    const npcNames = new Map((npcs || []).map(npc => [String(npc.id), npc.name || npc.npc_name || npc.title || 'Unnamed NPC']));
+    const playerNames = new Map((players || []).map(player => [String(player.id), player.email || player.id]));
+    target.innerHTML = `<div class="points-history-list">${points.map(row => `
+      <div class="points-history-row">
+        <div class="points-history-details">
+          <strong>${escapeHtml(npcNames.get(String(row.npc_id)) || 'Unknown NPC')}</strong>
+          <span>${escapeHtml(playerNames.get(String(row.player_id)) || 'Unknown player')}</span>
+          <small>Updated ${escapeHtml(new Date(row.updated_at).toLocaleString())}</small>
+        </div>
+        <span class="points-history-amount">${Number(row.points) || 0} FP</span>
+      </div>`).join('')}</div>`;
   }
 
   async function openRestrictedSubSection(tableName, title, description, label) {
@@ -3868,6 +3910,7 @@ async function saveInlineCharacterEdit(charId) {
   const npcSecretsById = new Map();
   const npcFriendshipById = new Map();
   let npcPlayers = [];
+  let npcFriendshipUnavailable = false;
   const npcHpSaveTimers = new Map();
   let npcSecretLoadError = '';
 
@@ -3886,6 +3929,7 @@ async function saveInlineCharacterEdit(charId) {
     npcRowsById.clear();
     npcSecretsById.clear();
     npcFriendshipById.clear();
+    npcFriendshipUnavailable = false;
     npcSecretLoadError = '';
     if (!npcs || npcs.length === 0) {
       container.innerHTML = `${isDM ? '<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewNpc()">+ Add NPC</button>' : ''}<p class="empty-note">No NPCs recorded yet.</p>`;
@@ -3906,11 +3950,17 @@ async function saveInlineCharacterEdit(charId) {
         sb.from('npc_friendship_points').select('npc_id, player_id, points').in('npc_id', npcs.map(npc => String(npc.id)))
       ]);
       npcPlayers = players || [];
-      if (friendshipError) npcSecretLoadError = `${npcSecretLoadError ? `${npcSecretLoadError} ` : ''}Failed to load friendship points: ${friendshipError.message}`;
+      if (friendshipError) npcFriendshipUnavailable = true;
       (friendshipRows || []).forEach(row => {
         const key = `${row.npc_id}:${row.player_id}`;
         npcFriendshipById.set(key, Number(row.points) || 0);
       });
+    } else if (currentUser?.id && npcs.length) {
+      const { data: friendshipRows, error: friendshipError } = await sb.from('npc_friendship_points')
+        .select('npc_id, player_id, points').eq('player_id', currentUser.id)
+        .in('npc_id', npcs.map(npc => String(npc.id)));
+      if (friendshipError) npcFriendshipUnavailable = true;
+      (friendshipRows || []).forEach(row => npcFriendshipById.set(`${row.npc_id}:${row.player_id}`, Number(row.points) || 0));
     }
 
     const groupedNPCs = new Map();
@@ -3933,6 +3983,8 @@ async function saveInlineCharacterEdit(charId) {
           const hpKey = Object.keys(npc).find(key => /^(hp|hit_points|current_hp)$/i.test(key));
           const descriptionKey = ['description', 'bio', 'details', 'summary', 'body']
             .find(key => npc[key] !== null && npc[key] !== undefined && npc[key] !== '');
+          const inlineSecretKey = ['secret', 'dm_secret', 'private_secret']
+            .find(key => npc[key] !== null && npc[key] !== undefined && String(npc[key]).trim() !== '');
           const pointEntries = [];
           const detailEntries = [];
 
@@ -3980,6 +4032,12 @@ async function saveInlineCharacterEdit(charId) {
           const secretBlock = isDM
             ? renderNpcSecretBlock(npcSecrets, npcCardId)
             : '';
+          const inlineSecretBlock = isDM && inlineSecretKey
+            ? `<div style="margin-top:10px; padding:10px; border:1px solid var(--rose-dim); border-radius:6px; background:rgba(177,82,107,0.06);">
+                <strong style="color:var(--rose); font-size:0.75rem; text-transform:uppercase;">DM Secret</strong>
+                <div class="spoiler-mask" title="Click to reveal spoiler" style="margin-top:4px;">${renderMarkdown(String(npc[inlineSecretKey]))}</div>
+              </div>`
+            : '';
           const friendshipBlock = isDM ? renderNpcFriendshipControls(npc, npcCardId) : renderNpcPlayerFriendship(npc);
           const hpWidget = hpKey ? (isDM ? `
             <div class="npc-hp-widget" data-hp-key="${escapeHtml(hpKey)}">
@@ -3996,10 +4054,13 @@ async function saveInlineCharacterEdit(charId) {
           ` : `<span class="npc-hp-readonly">HP: ${escapeHtml(npc[hpKey] ?? '—')}</span>`) : '';
           const editControls = isDM ? `
             <div style="display:flex; justify-content:flex-end; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
-              <label style="display:flex; align-items:center; gap:6px; margin-right:auto; color:var(--text-faint); font-size:0.85rem;">
-                <input type="checkbox" ${npc.visible_to_players !== false ? 'checked' : ''} onchange="setNpcVisibility('${npcCardId}', this.checked)">
-                Public to players
-              </label>
+              <div style="display:flex; align-items:center; gap:10px; margin-right:auto;">
+                <span class="status-badge ${npc.visible_to_players !== false ? 'public' : 'hidden'}">${npc.visible_to_players !== false ? 'Public' : 'Hidden'}</span>
+                <label class="switch" title="${npc.visible_to_players !== false ? 'Hide from players' : 'Show to players'}">
+                  <input type="checkbox" ${npc.visible_to_players !== false ? 'checked' : ''} onchange="setNpcVisibility('${npcCardId}', this.checked)">
+                  <span class="slider"></span>
+                </label>
+              </div>
               <button class="btn btn-sm btn-secondary" onclick="toggleNpcEdit('${npcCardId}')">Edit NPC</button>
               <button class="btn btn-sm btn-secondary" onclick="deleteNpc('${npcCardId}')">Delete</button>
             </div>
@@ -4020,6 +4081,7 @@ async function saveInlineCharacterEdit(charId) {
                 ${descriptionKey ? renderMarkdown(npc[descriptionKey]) : ''}
                 ${detailsHtml}
                 ${friendshipBlock}
+                ${inlineSecretBlock}
                 ${secretBlock}
                 ${editControls}
               </div>
@@ -4074,6 +4136,7 @@ async function saveInlineCharacterEdit(charId) {
   }
 
   function renderNpcFriendshipControls(npc, encodedId) {
+    if (npcFriendshipUnavailable) return `<p class="empty-note" style="margin-top:8px;">Friendship points are unavailable until the NPC management migration is run.</p>`;
     const options = npcPlayers.map(player => {
       const label = player.email || player.id;
       return `<option value="${escapeHtml(player.id)}">${escapeHtml(label)}</option>`;
@@ -4093,7 +4156,8 @@ async function saveInlineCharacterEdit(charId) {
   }
 
   function renderNpcPlayerFriendship(npc) {
-    return '';
+    const points = npcFriendshipById.get(`${npc.id}:${currentUser?.id}`);
+    return Number.isFinite(points) ? `<div class="status-badge public" style="display:inline-flex; margin-top:8px;">Your Friendship Points: <strong style="margin-left:5px;">${points}</strong></div>` : '';
   }
 
   function updateNpcFriendshipDisplay(encodedId) {
