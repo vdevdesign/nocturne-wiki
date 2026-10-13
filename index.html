@@ -687,6 +687,8 @@
   background: var(--purple-dim);
   color: #fff;
 }
+.md-toolbar button:disabled { opacity: 0.45; cursor: not-allowed; }
+.md-toolbar .md-toolbar-spacer { flex: 1; }
 .md-source { display: none !important; }
 .md-live-preview { border: 1px solid var(--line); border-radius: 0 0 6px 6px; background: var(--surface); }
 .md-live-preview-label { display: block; padding: 7px 10px 0; color: var(--text-faint); font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; }
@@ -3469,12 +3471,16 @@ function markdownEditor(id, value, rows = 6, className = '', sourceAttributes = 
   return `
     <div class="markdown-editor">
       <div class="md-toolbar" role="toolbar" aria-label="Text formatting">
-        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'h1')">H1</button>
-        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'h2')">H2</button>
-        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'h3')">H3</button>
-        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'bold')"><strong>B</strong></button>
-        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'italic')"><em>I</em></button>
-        <button type="button" onmousedown="event.preventDefault()" onclick="insertMdFormat('${id}', 'list')">• List</button>
+        <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'h1')">H1</button>
+        <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'h2')">H2</button>
+        <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'h3')">H3</button>
+        <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'bold')" aria-label="Bold"><strong>B</strong></button>
+        <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'italic')" aria-label="Italic"><em>I</em></button>
+        <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'clear')" aria-label="Clear formatting">Clear</button>
+        <span class="md-toolbar-spacer"></span>
+        <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'undo')" aria-label="Undo">↶</button>
+        <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'redo')" aria-label="Redo">↷</button>
+        <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'list')">• List</button>
       </div>
       <textarea id="${id}" rows="${rows}" class="md-source ${className}" ${sourceAttributes}>${escapeHtml(value)}</textarea>
       <div class="md-live-preview">
@@ -3488,6 +3494,26 @@ function syncMarkdownSource(editor) {
   const sourceId = editor.dataset.markdownEditorFor;
   const source = document.getElementById(sourceId);
   if (source) source.value = markdownFromHtml(editor);
+}
+
+// Toolbar clicks move focus away from contenteditable. Preserve the exact
+// range so commands affect only the selected text.
+const markdownSelections = new Map();
+
+function saveMdSelection(id) {
+  const editor = document.getElementById(`${id}-editor`);
+  const selection = window.getSelection();
+  if (!editor || !selection || !selection.rangeCount || !editor.contains(selection.anchorNode)) return;
+  markdownSelections.set(id, selection.getRangeAt(0).cloneRange());
+}
+
+function restoreMdSelection(id, editor) {
+  const range = markdownSelections.get(id);
+  editor.focus();
+  if (!range) return;
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 function markdownFromHtml(root) {
@@ -3542,7 +3568,8 @@ function markdownFromHtml(root) {
 function insertMdFormat(id, type) {
   const editor = document.getElementById(`${id}-editor`);
   if (!editor) return;
-  editor.focus();
+  saveMdSelection(id);
+  restoreMdSelection(id, editor);
   if (type === 'h1' || type === 'h2' || type === 'h3') {
     document.execCommand('formatBlock', false, type.toUpperCase());
   } else if (type === 'bold') {
@@ -3551,6 +3578,12 @@ function insertMdFormat(id, type) {
     document.execCommand('italic');
   } else if (type === 'list') {
     document.execCommand('insertUnorderedList');
+  } else if (type === 'clear') {
+    // removeFormat is selection-scoped; do not reset the containing block,
+    // which would unexpectedly change text outside the selection.
+    document.execCommand('removeFormat');
+  } else if (type === 'undo' || type === 'redo') {
+    document.execCommand(type);
   }
   syncMarkdownSource(editor);
 }
