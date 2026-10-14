@@ -585,6 +585,10 @@
 .character-private-detail { padding: 10px; border: 1px solid rgba(138,104,214,0.25); border-radius: 7px; background: rgba(138,104,214,0.05); }
 .character-private-detail strong { display: block; margin-bottom: 4px; color: #b49be8; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .character-image-upload { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; align-items: center; }
+.character-image-remove { grid-column: 1; grid-row: 2; width: 72px; }
+.character-image-review { display: grid; gap: 6px; margin-top: 8px; justify-items: center; color: var(--text-faint); font-size: 11px; text-align: center; }
+.character-image-review img { width: 72px; height: 92px; object-fit: cover; border-radius: 6px; border: 1px solid var(--gold-dim); }
+.character-image-review-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .character-image-preview { width: 72px; height: 92px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); }
 .character-image-preview.placeholder { display: grid; place-items: center; color: var(--text-faint); font-size: 1.4rem; }
 @media (max-width: 900px) {
@@ -3751,6 +3755,14 @@ function getCharacterHouse(char) {
   return houseNames.find(house => house.toLowerCase() === char.house.trim().toLowerCase()) || '';
 }
 
+function hasPendingCharacterImage(char) {
+  return typeof char?.image_url_pending === 'string' && char.image_url_pending.trim() !== '';
+}
+
+function getEditableCharacterImage(char) {
+  return char?.image_url_pending || char?.image_url || '';
+}
+
 async function loadCommonRoom() {
   const setAssignment = window.setCommonRoomAssignment;
   if (!setAssignment) return;
@@ -3911,6 +3923,9 @@ function renderCharacterCard(char) {
   const activityControl = isDM && assignedPlayer
     ? `<button class="btn btn-sm btn-secondary" type="button" onclick="setCharacterActivity('${char.id}', '${isActive ? 'inactive' : 'active'}', ${typeof char.activity === 'boolean'})">Mark ${isActive ? 'inactive' : 'active'}</button>`
     : '';
+  const imageApprovalControl = isDM && hasPendingCharacterImage(char)
+    ? `<button class="btn btn-sm" type="button" onclick="approveCharacterImage('${char.id}')">Approve image</button><button class="btn btn-sm btn-secondary" type="button" onclick="rejectCharacterImage('${char.id}')">Reject image</button>`
+    : '';
 
   let dmControls = '';
   let secretSection = '';
@@ -3941,6 +3956,7 @@ function renderCharacterCard(char) {
         ${visibilityToggle}
         <div class="character-card-actions">
           ${activityControl}
+          ${imageApprovalControl}
           ${canManagePrivateBio ? `<button class="btn btn-sm btn-secondary" onclick="toggleInlineEdit('character', '${char.id}')">Edit</button>` : ''}
           ${isDM ? `<button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${char.id}', 'characters', 'character-cards-container')">Delete</button>` : ''}
         </div>
@@ -3953,12 +3969,20 @@ function renderCharacterCard(char) {
     ? `<img class="character-card-portrait" src="${escapeHtml(char.image_url)}" alt="Portrait of ${escapeHtml(char.name || 'character')}" />`
     : `<div class="character-card-portrait character-card-portrait-placeholder" aria-label="No character portrait">✦</div>`;
 
+  const pendingImageReview = isDM && hasPendingCharacterImage(char)
+    ? `<div class="character-image-review"><span>Pending image for DM approval</span><img src="${escapeHtml(char.image_url_pending)}" alt="Pending portrait for ${escapeHtml(char.name || 'character')}" /></div>`
+    : (!isDM && characterBelongsToCurrentUser(char) && hasPendingCharacterImage(char)
+      ? `<p class="empty-note">Your portrait is pending DM approval.</p>`
+      : '');
+  const editableImageUrl = getEditableCharacterImage(char);
+
   return `
     <div class="block-card character-card${isFeaturedCharacter ? ' character-card-featured' : ''}" id="character-card-${char.id}" onclick="openCharacterInfo('${char.id}', event)" role="link" tabindex="0" aria-label="Open ${escapeHtml(char.name || 'character')} information">
       <!-- View Mode -->
       <div class="character-view-mode">
         <div class="character-card-identity">
           ${portrait}
+          ${pendingImageReview}
           <div>
             <div class="card-title-group">
               <div><h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3></div>
@@ -3986,8 +4010,9 @@ function renderCharacterCard(char) {
             <div class="form-group">
               <label>Character Portrait</label>
               <div class="character-image-upload">
+                <button type="button" id="edit-char-image-remove-${char.id}" class="btn btn-sm btn-secondary character-image-remove" onclick="removeCharacterImage('${char.id}')"${editableImageUrl ? '' : ' disabled'}>Remove image</button>
                 ${char.image_url ? `<img id="edit-char-image-preview-${char.id}" class="character-image-preview" src="${escapeHtml(char.image_url)}" alt="Current portrait" />` : `<div id="edit-char-image-preview-${char.id}" class="character-image-preview placeholder">✦</div>`}
-                <div><input type="file" id="edit-char-image-${char.id}" class="input-field" accept="image/*" onchange="previewCharacterImage('${char.id}', this)"><small class="empty-note">Upload an image for this character card.</small><input type="hidden" id="edit-char-image-data-${char.id}" value="${escapeHtml(char.image_url || '')}"></div>
+                <div><input type="file" id="edit-char-image-${char.id}" class="input-field" accept="image/*" onchange="previewCharacterImage('${char.id}', this)"><small class="empty-note">${hasPendingCharacterImage(char) ? 'Portrait pending DM approval. ' : ''}Upload an image for this character card.</small><input type="hidden" id="edit-char-image-data-${char.id}" value="${escapeHtml(editableImageUrl)}"><input type="hidden" id="edit-char-image-approved-${char.id}" value="${escapeHtml(char.image_url || '')}"><input type="hidden" id="edit-char-image-pending-${char.id}" value="${escapeHtml(char.image_url_pending || '')}"></div>
               </div>
             </div>
 
@@ -4069,15 +4094,33 @@ async function saveInlineCharacterEdit(charId) {
   const bioEl = document.getElementById(`edit-char-bio-${charId}`);
   const publicBioEl = document.getElementById(`edit-char-public-bio-${charId}`);
   const secretEl = document.getElementById(`edit-char-secret-${charId}`);
+  const imageData = document.getElementById(`edit-char-image-data-${charId}`)?.value || '';
+  const approvedImage = document.getElementById(`edit-char-image-approved-${charId}`)?.value || '';
+  const pendingImage = document.getElementById(`edit-char-image-pending-${charId}`)?.value || '';
 
   if (!bioEl || !publicBioEl || (isDM && !nameEl)) return;
 
   const updateData = {
     bio: bioEl.value,
     public_bio: publicBioEl.value,
-    appearance: document.getElementById(`edit-char-appearance-${charId}`)?.value.trim() || null,
-    image_url: document.getElementById(`edit-char-image-data-${charId}`)?.value || null
+    appearance: document.getElementById(`edit-char-appearance-${charId}`)?.value.trim() || null
   };
+
+  if (isDM) {
+    updateData.image_url = imageData || null;
+    updateData.image_url_pending = null;
+    updateData.image_approval_status = 'approved';
+  } else if (imageData !== approvedImage || pendingImage) {
+    if (!imageData) {
+      updateData.image_url = null;
+      updateData.image_url_pending = null;
+      updateData.image_approval_status = 'approved';
+    } else {
+      updateData.image_url = approvedImage || null;
+      updateData.image_url_pending = imageData;
+      updateData.image_approval_status = 'pending';
+    }
+  }
 
   // Character metadata and secrets remain DM-managed.
   if (isDM) {
@@ -4108,6 +4151,38 @@ async function saveInlineCharacterEdit(charId) {
   } else {
     loadCharacters();
   }
+}
+
+async function approveCharacterImage(charId) {
+  if (!isDM) return;
+  const character = characterDirectoryRows.find(row => String(row.id) === String(charId));
+  if (!character || !hasPendingCharacterImage(character)) return;
+
+  const { error } = await sb.from('characters').update({
+    image_url: character.image_url_pending,
+    image_url_pending: null,
+    image_approval_status: 'approved'
+  }).eq('id', charId);
+
+  if (error) {
+    alert(`Failed to approve character image: ${error.message}`);
+    return;
+  }
+  await loadCharacters();
+}
+
+async function rejectCharacterImage(charId) {
+  if (!isDM) return;
+  const { error } = await sb.from('characters').update({
+    image_url_pending: null,
+    image_approval_status: 'rejected'
+  }).eq('id', charId);
+
+  if (error) {
+    alert(`Failed to reject character image: ${error.message}`);
+    return;
+  }
+  await loadCharacters();
 }
 
 let characterDirectoryRows = [];
@@ -4169,10 +4244,24 @@ function previewCharacterImage(charId, input) {
     const data = String(reader.result || '');
     const hidden = document.getElementById(`edit-char-image-data-${charId}`);
     const preview = document.getElementById(`edit-char-image-preview-${charId}`);
+    const removeButton = document.getElementById(`edit-char-image-remove-${charId}`);
     if (hidden) hidden.value = data;
     if (preview) preview.outerHTML = `<img id="edit-char-image-preview-${charId}" class="character-image-preview" src="${escapeHtml(data)}" alt="Selected portrait" />`;
+    if (removeButton) removeButton.disabled = !data;
   };
   reader.readAsDataURL(file);
+}
+
+function removeCharacterImage(charId) {
+  const hidden = document.getElementById(`edit-char-image-data-${charId}`);
+  const fileInput = document.getElementById(`edit-char-image-${charId}`);
+  const preview = document.getElementById(`edit-char-image-preview-${charId}`);
+  const removeButton = document.getElementById(`edit-char-image-remove-${charId}`);
+
+  if (hidden) hidden.value = '';
+  if (fileInput) fileInput.value = '';
+  if (preview) preview.outerHTML = `<div id="edit-char-image-preview-${charId}" class="character-image-preview placeholder">✦</div>`;
+  if (removeButton) removeButton.disabled = true;
 }
 
   /* ===================== NPCS & GROUPED FACTIONS ===================== */
