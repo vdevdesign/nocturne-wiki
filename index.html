@@ -572,6 +572,7 @@
 .character-card { cursor: pointer; }
 .character-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .character-info-page { display: grid; gap: 16px; }
+.character-info-page > section { display: block; }
 .character-info-toolbar { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .character-info-header { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .character-info-portrait { width: 180px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 9px; border: 1px solid var(--gold-dim); background: var(--surface-2); }
@@ -1655,7 +1656,7 @@
     if (!user) return;
     currentUser = user;
     let { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
-    isDM = !!profile && profile.role === 'dm';
+    isDM = !!profile && String(profile.role || '').trim().toLowerCase() === 'dm';
     window.currentUserIsDM = isDM;
     window.currentUserId = user.id;
     window.currentPlayerName = (user.email || '').split('@')[0] || 'Player';
@@ -2348,8 +2349,9 @@
             <div>
               <span class="role-tag" style="color:${kind === 'rumor' ? 'var(--purple)' : 'var(--gold)'};">${kind === 'rumor' ? 'Rumor' : 'Quest'}</span>
               <h3 style="margin:6px 0 0; color:var(--gold);">${escapeHtml(entry.title)}</h3>
-            </div>
-            <span class="role-tag">${escapeHtml(status)}</span>
+          </div>
+          ${entry.image_url ? `<img class="character-card-portrait" src="${escapeHtml(entry.image_url)}" alt="Picture for ${escapeHtml(entry.title)}" />` : ''}
+          <span class="role-tag">${escapeHtml(status)}</span>
           </div>
           ${entry.description ? `<div style="margin-top:10px;">${renderMarkdown(entry.description)}</div>` : ''}
           ${entry.reward ? `<p style="margin:10px 0 0; color:var(--text-dim);"><strong>Reward / Lead:</strong> ${escapeHtml(entry.reward)}</p>` : ''}
@@ -2368,6 +2370,7 @@
       <div class="quest-board-edit-mode" style="display:none;">
         <label for="quest-title-${entry.id}">Title</label>
         <input id="quest-title-${entry.id}" class="input-field" maxlength="120" value="${escapeHtml(entry.title)}">
+        ${renderEditableImageField('quest', entry.id, entry.image_url, 'Quest Picture', 'Upload a picture for this quest or rumor.')}
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-top:10px;">
           <label>Type
             <select id="quest-kind-${entry.id}" class="input-field" onchange="updateQuestBoardStatusOptions(${entry.id})">
@@ -2445,7 +2448,8 @@
       status: document.getElementById(`quest-status-${entryId}`).value,
       title,
       description: document.getElementById(`quest-description-${entryId}`).value.trim(),
-      reward: document.getElementById(`quest-reward-${entryId}`).value.trim()
+      reward: document.getElementById(`quest-reward-${entryId}`).value.trim(),
+      image_url: getEditableImageValue('quest', entryId) || null
     }).eq('id', entryId);
 
     if (error) {
@@ -2653,6 +2657,7 @@
               ${dateStr ? `<p class="role-tag" style="margin:4px 0 0 0; font-size:0.85rem; color:var(--text-faint);">${escapeHtml(dateStr)}</p>` : ''}
             </div>
           </div>
+          ${summary.image_url ? `<img class="character-card-portrait" src="${escapeHtml(summary.image_url)}" alt="Picture for ${escapeHtml(summary.title || 'session summary')}" />` : ''}
 
           <div class="block-body" style="margin-top:10px;">${renderMarkdown(summary.body || summary.content || summary.description, 'No summary text.')}</div>
           ${secretSection}
@@ -2662,6 +2667,7 @@
         <!-- Inline Edit View Mode -->
         <div class="summary-edit-mode" style="display:none; margin-top:8px;">
           <h4 style="margin:0 0 10px 0; color:var(--gold);">Edit Session Summary</h4>
+          ${renderEditableImageField('summary', summary.id, summary.image_url, 'Summary Picture', 'Upload a picture for this session summary.')}
           <div style="display:flex; flex-direction:column; gap:8px;">
             <div style="display:flex; gap:8px;">
               <div style="flex:1;">
@@ -2736,7 +2742,8 @@
         title,
         session_date: session_date || null,
         body,
-        secret
+        secret,
+        image_url: getEditableImageValue('summary', summaryId) || null
       })
       .eq('id', summaryId);
 
@@ -2826,6 +2833,11 @@ async function populatePlayerSelector() {
     return;
   }
 
+  // loadLoot can be triggered more than once during sign-in/navigation. The
+  // request may resolve after another invocation has already populated the
+  // selector, so clear again after the async query before appending options.
+  selector.innerHTML = '';
+
   if (!profiles || profiles.length === 0) {
     selector.innerHTML = '<option value="">No player accounts found</option>';
     document.getElementById('player-private-inventory-list').innerHTML =
@@ -2833,7 +2845,20 @@ async function populatePlayerSelector() {
     return;
   }
 
-  profiles.forEach(profile => {
+  // A profile can be returned more than once when legacy profile rows share
+  // the same account identity/email. Keep one option per player so the
+  // inventory selector never shows duplicates.
+  const uniqueProfiles = [];
+  const seenPlayerKeys = new Set();
+  (profiles || []).forEach(profile => {
+    if (profile.role === 'dm') return;
+    const key = String(profile.id || profile.email || '').trim().toLowerCase();
+    if (!key || seenPlayerKeys.has(key)) return;
+    seenPlayerKeys.add(key);
+    uniqueProfiles.push(profile);
+  });
+
+  uniqueProfiles.forEach(profile => {
     const opt = document.createElement('option');
     opt.value = profile.id;
     opt.textContent = profile.id === currentUser?.id
@@ -2842,7 +2867,7 @@ async function populatePlayerSelector() {
     selector.appendChild(opt);
   });
   selector.disabled = false;
-  if (!selector.value) selector.selectedIndex = 0;
+  if (!selector.value && uniqueProfiles.length) selector.selectedIndex = 0;
   await loadPlayerPrivateInventory();
 }
 
@@ -2892,6 +2917,7 @@ async function loadPlayerPrivateInventory() {
             <strong style="color:var(--gold);">${escapeHtml(itemName)}</strong>
             <span style="font-size:0.85rem; color:var(--text-faint); font-family:var(--font-mono);"> (Qty: ${escapeHtml(String(qty))}${itemValue ? ` | Value: ${escapeHtml(itemValue)}` : ''})</span>
             ${itemDesc ? `<div class="block-body" style="margin-top:4px; font-size:0.85rem;">${renderMarkdown(itemDesc)}</div>` : ''}
+            ${inv.image_url || item.image_url ? `<img class="character-card-portrait" src="${escapeHtml(inv.image_url || item.image_url)}" alt="Picture of ${escapeHtml(itemName)}" />` : ''}
           </div>
           ${editControls}
         </div>
@@ -2915,6 +2941,7 @@ async function loadPlayerPrivateInventory() {
               <label>Description</label>
               ${markdownEditor(`edit-inventory-description-${inv.id}`, itemDesc, 3)}
             </div>
+            ${renderEditableImageField('inventory', inv.id, inv.image_url || item.image_url, 'Item Picture', 'Upload a picture for this inventory item.')}
             <div style="display:flex; gap:8px;">
               <button class="btn btn-sm" onclick="saveInventoryItem('${inv.id}')">Save Changes</button>
               <button class="btn btn-sm btn-secondary" onclick="toggleInventoryItemEdit('${inv.id}')">Cancel</button>
@@ -2958,6 +2985,7 @@ function showNewInventoryItemForm() {
         <label>Description</label>
         ${markdownEditor('new-inventory-description', '', 3)}
       </div>
+      ${renderEditableImageField('new-inventory', 'item', '', 'Item Picture', 'Upload a picture for this item.')}
       <div id="new-inventory-error" class="inline-status error" style="display:none;"></div>
       <div style="display:flex; gap:8px;">
         <button class="btn btn-sm" onclick="addHomebrewInventoryItem()">Add Item</button>
@@ -3008,7 +3036,8 @@ async function addHomebrewInventoryItem() {
     item_name: name,
     item_description: description,
     item_value: value,
-    quantity
+    quantity,
+    image_url: getEditableImageValue('new-inventory', 'item') || null
   });
   if (error) {
     if (errorEl) {
@@ -3037,7 +3066,8 @@ async function saveInventoryItem(invId) {
       item_name: name,
       item_description: description,
       item_value: value,
-      quantity
+      quantity,
+      image_url: getEditableImageValue('inventory', invId) || null
     })
     .eq('id', invId);
   if (error) {
@@ -3064,7 +3094,8 @@ async function giveItemToSelectedPlayer(lootId) {
     item_name: item.name,
     item_description: item.description || item.body || '',
     item_value: item.value || '',
-    quantity: 1
+    quantity: 1,
+    image_url: item.image_url || null
   });
 
   if (error) {
@@ -3125,6 +3156,7 @@ function renderLootCard(item) {
             ${metaText ? `<p class="card-subtitle">${metaText}</p>` : ''}
           </div>
         </div>
+        ${item.image_url ? `<img class="character-card-portrait" src="${escapeHtml(item.image_url)}" alt="Picture of ${escapeHtml(item.name || 'item')}" />` : ''}
         <div class="block-body" style="margin-top:10px;">${renderMarkdown(item.description || item.body, 'No description provided.')}</div>
         ${dmControls}
       </div>
@@ -3133,6 +3165,7 @@ function renderLootCard(item) {
       <div class="loot-edit-mode" style="display:none;">
         <div class="card-edit-form">
           <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Item</h4>
+          ${renderEditableImageField('loot', item.id, item.image_url, 'Item Picture', 'Upload a picture for this item.')}
           
           <div class="form-group">
             <label>Item Name</label>
@@ -3188,11 +3221,17 @@ async function addLootItem() {
 async function saveInlineLootEdit(itemId) {
   if (!isDM) return;
   const name = document.getElementById(`edit-loot-name-${itemId}`)?.value.trim();
-  const quantity = parseInt(document.getElementById(`edit-loot-qty-${itemId}`)?.value, 10) || 1;
+  const quantityInput = document.getElementById(`edit-loot-qty-${itemId}`)?.value.trim();
+  const quantity = Number(quantityInput);
   const value = document.getElementById(`edit-loot-value-${itemId}`)?.value.trim();
   const description = document.getElementById(`edit-loot-desc-${itemId}`)?.value.trim();
 
-  const { error } = await sb.from('loot').update({ name, quantity, value, description }).eq('id', itemId);
+  if (!name || !Number.isInteger(quantity) || quantity < 0) {
+    alert('Enter an item name and a whole-number quantity of zero or more.');
+    return;
+  }
+
+  const { error } = await sb.from('loot').update({ name, quantity, value, description, image_url: getEditableImageValue('loot', itemId) || null }).eq('id', itemId);
   if (error) alert("Failed to save: " + error.message);
   else loadLoot();
 }
@@ -3442,6 +3481,7 @@ function toggleInlineEdit(type, id) {
             <button class="btn btn-sm btn-secondary" onclick="deleteTableBlock('${row.id}', '${tableName}', '${containerId}')">Delete</button>
           </div>` : ''}
         </div>
+        ${row.image_url ? `<img class="character-card-portrait" src="${escapeHtml(row.image_url)}" alt="Picture for ${escapeHtml(row.title || 'entry')}" />` : ''}
         ${hpWidget}
         <div class="block-body" id="body-${row.id}">${renderMarkdown(row.body, 'No entry text.')}</div>
         ${dmControls}
@@ -3451,6 +3491,7 @@ function toggleInlineEdit(type, id) {
       <div class="block-edit-mode" style="display:none; margin-top:8px;">
         <div class="card-edit-form">
           <h4 style="margin:0 0 4px 0; color:var(--gold);">Edit Entry</h4>
+          ${renderEditableImageField(`block-${tableName}`, row.id, row.image_url, 'Entry Picture', 'Upload a picture for this entry.')}
           <div class="form-group">
             <label>Title</label>
             <input type="text" id="edit-block-title-${row.id}" value="${escapeHtml(row.title || '')}" class="input-field" />
@@ -3479,9 +3520,12 @@ function toggleInlineEdit(type, id) {
   }
 
   async function saveGenericInlineEdit(id, tableName, containerId) {
-    const title = document.getElementById(`edit-block-title-${id}`).value.trim();
-    const body = document.getElementById(`edit-block-body-${id}`).value;
-    const { error } = await sb.from(tableName).update({ title, body }).eq('id', id);
+    const titleEl = document.getElementById(`edit-block-title-${id}`);
+    const bodyEl = document.getElementById(`edit-block-body-${id}`);
+    if (!titleEl || !bodyEl) return;
+    const title = titleEl.value.trim();
+    const body = bodyEl.value;
+    const { error } = await sb.from(tableName).update({ title, body, image_url: getEditableImageValue(`block-${tableName}`, id) || null }).eq('id', id);
     if (error) alert("Error updating entry: " + error.message);
     else loadTableSection(tableName, containerId, tableName);
   }
@@ -3535,7 +3579,8 @@ function toggleInlineEdit(type, id) {
     if (error) {
       alert('Failed to update visibility: ' + error.message);
     } else {
-      loadTableSection(tableName, containerId, tableName);
+      if (tableName === 'session_summaries') loadSummaries();
+      else loadTableSection(tableName, containerId, tableName);
     }
   }
 
@@ -3565,7 +3610,11 @@ function toggleInlineEdit(type, id) {
     if (error) {
       alert("Error deleting entry: " + error.message);
     } else {
-      loadTableSection(tableName, containerId, tableName);
+      // Session summaries have a dedicated renderer (including images,
+      // secrets, dates, and markdown). Do not replace it with the generic
+      // restricted-table renderer after a delete.
+      if (tableName === 'session_summaries') await loadSummaries();
+      else await loadTableSection(tableName, containerId, tableName);
     }
   }
 
@@ -3673,13 +3722,17 @@ function markdownFromHtml(root) {
     if (tag === 'p' || tag === 'div') {
       const content = Array.from(node.childNodes).map(child =>
         child.nodeType === Node.ELEMENT_NODE && ['UL', 'OL'].includes(child.tagName) ? `\n${block(child)}` : inline(child)
-      ).join('').trim();
-      return content ? `${content}\n\n` : '';
+      ).join('');
+      return content.trim() ? `${content}\n\n` : '';
     }
     return Array.from(node.childNodes).map(block).join('');
   }
 
-  return Array.from(root.childNodes).map(block).join('').replace(/\n{3,}/g, '\n\n').trim();
+  return Array.from(root.childNodes).map(block).join('')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^\n+/, '')
+    .replace(/\n+$/, '');
 }
 
 function insertMdFormat(id, type) {
@@ -3963,8 +4016,8 @@ function renderCharacterCard(char) {
       </div>`;
   }
 
-  const publicBio = char.public_bio || '';
-  const privateBio = char.bio || '';
+  const publicBio = char.public_bio || char.description || '';
+  const privateBio = char.bio || char.private_bio || '';
   const portrait = char.image_url
     ? `<img class="character-card-portrait" src="${escapeHtml(char.image_url)}" alt="Portrait of ${escapeHtml(char.name || 'character')}" />`
     : `<div class="character-card-portrait character-card-portrait-placeholder" aria-label="No character portrait">✦</div>`;
@@ -3977,7 +4030,7 @@ function renderCharacterCard(char) {
   const editableImageUrl = getEditableCharacterImage(char);
 
   return `
-    <div class="block-card character-card${isFeaturedCharacter ? ' character-card-featured' : ''}" id="character-card-${char.id}" onclick="openCharacterInfo('${char.id}', event)" role="link" tabindex="0" aria-label="Open ${escapeHtml(char.name || 'character')} information">
+    <div class="block-card character-card${isFeaturedCharacter ? ' character-card-featured' : ''}" id="character-card-${char.id}" onclick="openCharacterInfo('${char.id}', event)" onkeydown="if(event.key === 'Enter' || event.key === ' '){event.preventDefault(); openCharacterInfo('${char.id}', event);}" role="link" tabindex="0" aria-label="Open ${escapeHtml(char.name || 'character')} information">
       <!-- View Mode -->
       <div class="character-view-mode">
         <div class="character-card-identity">
@@ -3991,12 +4044,14 @@ function renderCharacterCard(char) {
             ${char.appearance ? `<p class="character-public-appearance"><strong>Appearance</strong><br>${renderMarkdown(char.appearance, '')}</p>` : ''}
           </div>
         </div>
-
         <div class="character-bios">
           <div class="character-bio-section public">
             <h4>Public Character Bio</h4>
             <div class="block-body">${renderMarkdown(publicBio, 'No public character bio yet.')}</div>
           </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+          <button class="btn btn-sm btn-secondary" type="button" onclick="openCharacterInfo('${char.id}', null)">View full character info</button>
         </div>
         ${dmControls}
       </div>
@@ -4187,11 +4242,29 @@ async function rejectCharacterImage(charId) {
 
 let characterDirectoryRows = [];
 
-function openCharacterInfo(charId, event) {
+let activeCharacterInfoRequest = 0;
+
+async function openCharacterInfo(charId, event) {
   if (event?.target?.closest('button, input, textarea, select, [contenteditable="true"], label, a')) return;
-  const character = characterDirectoryRows.find(row => String(row.id) === String(charId));
   const container = document.getElementById('character-cards-container');
-  if (!character || !container) return;
+  if (!container) return;
+
+  const requestId = ++activeCharacterInfoRequest;
+  let character = characterDirectoryRows.find(row => String(row.id) === String(charId));
+  if (!character) {
+    container.innerHTML = '<p class="empty-note">Loading character information…</p>';
+    const { data, error } = await sb.from('characters').select('*').eq('id', charId).maybeSingle();
+    if (requestId !== activeCharacterInfoRequest) return;
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Failed to load character information: ${escapeHtml(error.message)}</p>`;
+      return;
+    }
+    character = data;
+  }
+  if (!character) {
+    container.innerHTML = '<p class="error-msg">That character could not be found.</p>';
+    return;
+  }
   container.innerHTML = renderCharacterInfoPage(character);
   container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -4218,11 +4291,13 @@ function renderCharacterInfoPage(char) {
   const portrait = char.image_url
     ? `<img class="character-info-portrait" src="${escapeHtml(char.image_url)}" alt="Portrait of ${escapeHtml(char.name || 'character')}" />`
     : `<div class="character-info-portrait character-card-portrait-placeholder" aria-label="No character portrait">✦</div>`;
+  const publicBio = char.public_bio || char.description || '';
+  const privateBio = char.bio || char.private_bio || '';
   const privateSection = canManagePrivateBio ? `
     <section class="character-info-private character-bio-section private">
       <h4>Private Bio &amp; Character Information <span class="character-bio-visibility">Only the character owner and DM can see this</span></h4>
       ${privateDetailsDisplay}
-      <div class="block-body">${renderMarkdown(char.bio || '', 'No private bio yet.')}</div>
+      <div class="block-body"><strong>Private Bio</strong>${renderMarkdown(privateBio, 'No private bio yet.')}</div>
       ${isDM && (char.secret || char.dm_secret) ? `<div class="character-info-secret"><strong>DM Secret</strong>${renderMarkdown(char.secret || char.dm_secret, '')}</div>` : ''}
     </section>` : '';
   return `<div class="character-info-page">
@@ -4231,7 +4306,7 @@ function renderCharacterInfoPage(char) {
       ${portrait}
       <div><h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>${house ? `<span class="character-house-badge house-${house.toLowerCase()}">${houseEmblems[house]} House ${escapeHtml(house)}</span>` : ''}${char.appearance ? `<div class="character-public-appearance"><strong>Appearance</strong><br>${renderMarkdown(char.appearance, '')}</div>` : ''}</div>
     </div>
-    <section class="character-bio-section public"><h4>Public Character Bio</h4><div class="block-body">${renderMarkdown(char.public_bio || '', 'No public character bio yet.')}</div></section>
+    <section class="character-bio-section public"><h4>Public Character Bio</h4><div class="block-body">${renderMarkdown(publicBio, 'No public character bio yet.')}</div></section>
     ${privateSection}
   </div>`;
 }
@@ -4262,6 +4337,51 @@ function removeCharacterImage(charId) {
   if (fileInput) fileInput.value = '';
   if (preview) preview.outerHTML = `<div id="edit-char-image-preview-${charId}" class="character-image-preview placeholder">✦</div>`;
   if (removeButton) removeButton.disabled = true;
+}
+
+function renderEditableImageField(scope, id, imageUrl, label = 'Picture', help = 'Upload an image.') {
+  const value = imageUrl || '';
+  const safeId = escapeHtml(String(id));
+  return `
+    <div class="form-group">
+      <label>${escapeHtml(label)}</label>
+      <div class="character-image-upload">
+        <button type="button" id="edit-${scope}-image-remove-${safeId}" class="btn btn-sm btn-secondary character-image-remove" onclick="removeEditableImage('${scope}', '${safeId}')"${value ? '' : ' disabled'}>Remove image</button>
+        ${value ? `<img id="edit-${scope}-image-preview-${safeId}" class="character-image-preview" src="${escapeHtml(value)}" alt="Current picture" />` : `<div id="edit-${scope}-image-preview-${safeId}" class="character-image-preview placeholder">✦</div>`}
+        <div><input type="file" id="edit-${scope}-image-${safeId}" class="input-field" accept="image/*" onchange="previewEditableImage('${scope}', '${safeId}', this)"><small class="empty-note">${escapeHtml(help)}</small><input type="hidden" id="edit-${scope}-image-data-${safeId}" value="${escapeHtml(value)}"></div>
+      </div>
+    </div>`;
+}
+
+function previewEditableImage(scope, id, input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const data = String(reader.result || '');
+    const hidden = document.getElementById(`edit-${scope}-image-data-${id}`);
+    const preview = document.getElementById(`edit-${scope}-image-preview-${id}`);
+    const removeButton = document.getElementById(`edit-${scope}-image-remove-${id}`);
+    if (hidden) hidden.value = data;
+    if (preview) preview.outerHTML = `<img id="edit-${scope}-image-preview-${id}" class="character-image-preview" src="${escapeHtml(data)}" alt="Selected picture" />`;
+    if (removeButton) removeButton.disabled = !data;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeEditableImage(scope, id) {
+  const hidden = document.getElementById(`edit-${scope}-image-data-${id}`);
+  const fileInput = document.getElementById(`edit-${scope}-image-${id}`);
+  const preview = document.getElementById(`edit-${scope}-image-preview-${id}`);
+  const removeButton = document.getElementById(`edit-${scope}-image-remove-${id}`);
+  if (hidden) hidden.value = '';
+  if (fileInput) fileInput.value = '';
+  if (preview) preview.outerHTML = `<div id="edit-${scope}-image-preview-${id}" class="character-image-preview placeholder">✦</div>`;
+  if (removeButton) removeButton.disabled = true;
+}
+
+function getEditableImageValue(scope, id) {
+  return document.getElementById(`edit-${scope}-image-data-${id}`)?.value || '';
 }
 
   /* ===================== NPCS & GROUPED FACTIONS ===================== */
@@ -4428,6 +4548,7 @@ function removeCharacterImage(charId) {
           return `
             <article class="card" id="npc-card-${npcCardId}">
               <div class="npc-view-mode">
+                ${npc.image_url ? `<img class="character-card-portrait" src="${escapeHtml(npc.image_url)}" alt="Picture of ${escapeHtml(name)}" />` : ''}
                 <div class="npc-card-header${deathSaveWidget ? ' has-death-saves' : ''}">
                   ${hpWidget}
                   ${deathSaveWidget}
@@ -4770,7 +4891,7 @@ function removeCharacterImage(charId) {
 
   function renderNpcEditForm(npc, cardId) {
     const editableFields = Object.entries(npc)
-      .filter(([key]) => !/^(id|created_at|updated_at|tags|death_save_successes|death_save_failures)$/i.test(key));
+      .filter(([key]) => !/^(id|created_at|updated_at|tags|image_url|death_save_successes|death_save_failures)$/i.test(key));
     const fieldsHtml = editableFields.map(([key, value], index) => {
       const displayValue = value === null || value === undefined
         ? ''
@@ -4798,6 +4919,7 @@ function removeCharacterImage(charId) {
       <div class="npc-edit-mode" style="display:none; margin-top:12px;">
         <div class="card-edit-form">
           <h4 style="margin:0 0 10px; color:var(--gold);">Edit NPC</h4>
+          ${renderEditableImageField('npc', cardId, npc.image_url, 'NPC Picture', 'Upload a picture for this NPC.')}
           ${fieldsHtml}
           <label for="edit-npc-secret-${cardId}" style="color:var(--rose);">DM Secret</label>
           ${markdownEditor(`edit-npc-secret-${cardId}`, secretEntry.secret || '', 4)}
@@ -4860,7 +4982,7 @@ function removeCharacterImage(charId) {
     const errorEl = document.getElementById(`npc-edit-error-${encodedId}`);
     if (!original || !card) return;
 
-    const updatedNpc = {};
+    const updatedNpc = { image_url: getEditableImageValue('npc', encodedId) || null };
     try {
       card.querySelectorAll('[data-npc-field]').forEach(field => {
         const key = field.dataset.npcField;

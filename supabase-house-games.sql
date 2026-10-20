@@ -375,6 +375,9 @@ REVOKE INSERT, UPDATE, DELETE ON public.matches, public.match_players, public.ru
 REVOKE INSERT, UPDATE, DELETE ON public.house_points FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON public.house_point_awards FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON SEQUENCE public.house_point_awards_id_seq FROM PUBLIC, anon, authenticated;
+-- REVOKE ALL above also removes SELECT. Restore the table privilege needed by
+-- the authenticated DM points-history query.
+GRANT SELECT ON public.house_point_awards TO authenticated;
 
 DROP POLICY IF EXISTS matches_read_access ON public.matches;
 CREATE POLICY matches_read_access
@@ -916,18 +919,82 @@ BEGIN
 END
 $$;
 
+CREATE OR REPLACE FUNCTION public.award_constellation_points(match_id uuid)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_match public.matches;
+  v_house text;
+  v_now timestamptz;
+  v_cycle_start timestamptz;
+BEGIN
+  SELECT p.house INTO v_house
+  FROM public.profiles AS p
+  WHERE p.id = auth.uid();
+  IF auth.uid() IS NULL OR v_house IS NULL OR v_house NOT IN ('phoenix', 'fox', 'selkie') THEN
+    RAISE EXCEPTION 'Assign a house before completing the constellation.';
+  END IF;
+
+  SELECT * INTO v_match
+  FROM public.matches AS m
+  WHERE m.id = award_constellation_points.match_id
+  FOR UPDATE;
+  IF NOT FOUND OR v_match.mode <> 'common_room'
+    OR v_match.game <> 'shared_constellation'
+    OR v_match.house_a <> v_house OR v_match.status <> 'active' THEN
+    RAISE EXCEPTION 'This is not an active constellation for your house.';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.match_players AS mp
+    WHERE mp.match_id = v_match.id AND mp.user_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Join your house room before completing the constellation.';
+  END IF;
+
+  -- The weekly window is Monday 06:00 through the following Monday 05:59
+  -- in the academy's Eastern time zone.
+  v_now := clock_timestamp();
+  v_cycle_start := (
+    date_trunc('week', (v_now AT TIME ZONE 'America/New_York') - interval '6 hours')
+    + interval '6 hours'
+  ) AT TIME ZONE 'America/New_York';
+  PERFORM pg_advisory_xact_lock(hashtext(v_house), hashtext(v_match.game), 20261020);
+
+  IF EXISTS (
+    SELECT 1 FROM public.house_point_awards AS a
+    WHERE a.house = v_house
+      AND a.game = v_match.game
+      AND a.created_at >= v_cycle_start
+  ) THEN
+    RETURN 0;
+  END IF;
+
+  INSERT INTO public.house_point_awards (house, match_id, game, amount, created_at)
+  VALUES (v_house, v_match.id, v_match.game, 5, v_now);
+  INSERT INTO public.house_points (house, points)
+  VALUES (v_house, 5)
+  ON CONFLICT (house) DO UPDATE SET points = public.house_points.points + 5;
+  RETURN 5;
+END
+$$;
+
 REVOKE ALL ON FUNCTION public.create_tournament_match(text) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.join_tournament_match(uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.join_common_room(text) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.submit_rune_pick(uuid, text) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.finish_match(uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.award_common_room_points(uuid, integer) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.award_constellation_points(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_tournament_match(text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.join_tournament_match(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.join_common_room(text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.submit_rune_pick(uuid, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.finish_match(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.award_common_room_points(uuid, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.award_constellation_points(uuid) TO authenticated;
 
 DO $$
 BEGIN

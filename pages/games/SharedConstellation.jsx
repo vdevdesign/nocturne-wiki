@@ -4,12 +4,44 @@ window.SharedConstellation = function SharedConstellation({ matchId, house, play
   const [stars, setStars] = React.useState([]);
   const [cursors, setCursors] = React.useState([]);
   const [connection, setConnection] = React.useState('connecting');
-  const [message, setMessage] = React.useState('');
-  const [awarded, setAwarded] = React.useState(false);
+  const [message, setMessage] = React.useState('Place one dot anywhere on the constellation today.');
+  const [hasPlacedToday, setHasPlacedToday] = React.useState(false);
+  const [completed, setCompleted] = React.useState(false);
   const [canvasRevision, setCanvasRevision] = React.useState(0);
-  const awardingRef = React.useRef(false);
   const lastPresenceUpdate = React.useRef(0);
   const targets = [[0.5, 0.18], [0.72, 0.35], [0.64, 0.68], [0.36, 0.68], [0.28, 0.35]];
+  const todayKey = `nocturne-constellation-${house}-${window.currentUserId}-${new Date().toISOString().slice(0, 10)}`;
+  const getCycleKey = (date = new Date()) => {
+    const shifted = new Date(date);
+    shifted.setHours(shifted.getHours() - 6);
+    const daysSinceMonday = (shifted.getDay() + 6) % 7;
+    shifted.setDate(shifted.getDate() - daysSinceMonday);
+    return `${shifted.getFullYear()}-${shifted.getMonth() + 1}-${shifted.getDate()}`;
+  };
+  const cycleKey = getCycleKey();
+  const weeklyKey = `nocturne-constellation-complete-${house}-${window.currentUserId}-${cycleKey}`;
+  const completionRef = React.useRef(false);
+  const cycleRef = React.useRef(cycleKey);
+
+  React.useEffect(() => {
+    setHasPlacedToday(window.localStorage.getItem(todayKey) === '1');
+    setCompleted(window.localStorage.getItem(weeklyKey) === '1');
+    completionRef.current = window.localStorage.getItem(weeklyKey) === '1';
+  }, [todayKey, weeklyKey]);
+
+  React.useEffect(() => {
+    const interval = window.setInterval(() => {
+      const currentCycleKey = getCycleKey();
+      if (currentCycleKey === cycleRef.current) return;
+      cycleRef.current = currentCycleKey;
+      setCompleted(false);
+      completionRef.current = false;
+      setStars([]);
+      setMessage('A new constellation week has begun. Add the first dot.');
+      channelRef.current?.send({ type: 'broadcast', event: 'weekly_reset', payload: {} });
+    }, 30000);
+    return () => window.clearInterval(interval);
+  }, [cycleKey]);
 
   React.useEffect(() => {
     let active = true;
@@ -21,11 +53,11 @@ window.SharedConstellation = function SharedConstellation({ matchId, house, play
       .on('broadcast', { event: 'star' }, ({ payload }) => {
         if (active && payload?.star) setStars(previous => previous.some(star => star.id === payload.star.id) ? previous : [...previous, payload.star]);
       })
-      .on('broadcast', { event: 'pattern_reset' }, () => {
+      .on('broadcast', { event: 'weekly_reset' }, () => {
         if (active) {
           setStars([]);
-          setAwarded(false);
-          awardingRef.current = false;
+          setCompleted(false);
+          completionRef.current = false;
         }
       })
       .on('presence', { event: 'sync' }, () => {
@@ -117,35 +149,23 @@ window.SharedConstellation = function SharedConstellation({ matchId, house, play
   }, [stars, cursors, canvasRevision]);
 
   React.useEffect(() => {
-    if (awarded || awardingRef.current || stars.length !== targets.length) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    const closeToTarget = targets.every(([x, y]) => stars.some(star => (
-      Math.hypot((star.x - x) * width, (star.y - y) * height) < 22
-    )));
-    if (!closeToTarget) return;
-
-    awardingRef.current = true;
-    setMessage('The constellation is complete. Recording house points...');
-    sb.rpc('award_common_room_points', { match_id: matchId, amount: 10 }).then(({ data, error }) => {
+    if (completed || completionRef.current || stars.length < targets.length) return;
+    completionRef.current = true;
+    setMessage('The constellation is complete. Recording 5 house points...');
+    sb.rpc('award_constellation_points', { match_id: matchId }).then(({ data, error }) => {
       if (error) {
-        setMessage(`The pattern was completed, but points could not be recorded: ${error.message}`);
-        awardingRef.current = false;
+        completionRef.current = false;
+        setMessage(`The constellation is complete, but points could not be recorded: ${error.message}`);
         return;
       }
-      setAwarded(true);
-      setMessage(data > 0
-        ? `The constellation shines. House ${house} earned ${data} points.`
-        : `House ${house} has reached its 50 point daily limit.`);
+      setCompleted(true);
+      window.localStorage.setItem(weeklyKey, '1');
       window.dispatchEvent(new CustomEvent('nocturne-games-refresh'));
-      channelRef.current?.send({ type: 'broadcast', event: 'pattern_reset', payload: {} });
-      setStars([]);
-      setAwarded(false);
-      awardingRef.current = false;
+      setMessage(data > 0
+        ? `Constellation complete. House ${house} earned 5 points. It resets Monday at 6:00 AM Eastern.`
+        : `This week's constellation is already complete. It resets Monday at 6:00 AM Eastern.`);
     });
-  }, [awarded, house, matchId, stars]);
+  }, [completed, house, matchId, stars, weeklyKey]);
 
   function publishPresence(cursor, currentStars = stars) {
     const channel = channelRef.current;
@@ -153,7 +173,11 @@ window.SharedConstellation = function SharedConstellation({ matchId, house, play
   }
 
   function handlePlaceStar(event) {
-    if (awarded || connection !== 'connected') return;
+    if (connection !== 'connected' || completed) return;
+    if (hasPlacedToday) {
+      setMessage('You have already placed your daily dot. Come back tomorrow; your housemates can still add theirs today.');
+      return;
+    }
     const bounds = event.currentTarget.getBoundingClientRect();
     const star = {
       id: window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
@@ -162,6 +186,9 @@ window.SharedConstellation = function SharedConstellation({ matchId, house, play
     };
     const nextStars = [...stars, star];
     setStars(nextStars);
+    window.localStorage.setItem(todayKey, '1');
+    setHasPlacedToday(true);
+    setMessage('Your dot is part of the shared constellation. You can place another one tomorrow.');
     channelRef.current?.send({ type: 'broadcast', event: 'star', payload: { star } });
     publishPresence(null, nextStars);
   }
@@ -183,7 +210,7 @@ window.SharedConstellation = function SharedConstellation({ matchId, house, play
         <div><span className="games-kicker">Common room</span><h3>Shared Constellation</h3></div>
         <span className={`games-connection ${connection}`}>{connection}</span>
       </div>
-      <p className="games-rule">Place five stars on the faint constellation to earn points for House {house}. Each house can earn up to 5 constellation points per UTC day.</p>
+      <p className="games-rule">Add one dot to your house constellation each day. One person can play alone, and any number of housemates can add their own dot to the same shared sky. Complete the constellation once per week for 5 house points; it resets every Monday at 6:00 AM Eastern.</p>
       <canvas
         className="constellation-canvas"
         ref={canvasRef}
@@ -192,17 +219,9 @@ window.SharedConstellation = function SharedConstellation({ matchId, house, play
         onPointerMove={handleMoveCursor}
       />
       <div className="constellation-footer">
-        <span>{stars.length}/5 stars placed</span>
+        <span>{completed ? 'Constellation complete this week' : `${stars.length}/5 dots in the shared sky`}</span>
         <span>{cursors.length} player{cursors.length === 1 ? '' : 's'} here</span>
       </div>
-      {stars.length ? (
-        <button
-          className="btn btn-secondary"
-          type="button"
-          disabled={connection !== 'connected'}
-          onClick={() => channelRef.current?.send({ type: 'broadcast', event: 'pattern_reset', payload: {} })}
-        >Clear the shared stars</button>
-      ) : null}
       {connection === 'disconnected' ? <p className="games-error" role="alert">The constellation connection was lost. Reopen this page to reconnect.</p> : null}
       {message ? <p className="games-note" aria-live="polite">{message}</p> : null}
     </article>
