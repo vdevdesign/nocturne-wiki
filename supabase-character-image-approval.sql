@@ -18,7 +18,7 @@ BEGIN
   -- DMs can approve or set an active portrait directly.
   IF EXISTS (
     SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'dm'
+    WHERE id = auth.uid() AND lower(trim(role)) = 'dm'
   ) THEN
     RETURN NEW;
   END IF;

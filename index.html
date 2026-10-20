@@ -64,6 +64,7 @@
   .password-request-actions { display: flex; gap: 6px; margin-top: 8px; }
   .password-request input { width: 100%; margin-top: 8px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font: 12px var(--font-body); }
   .password-request input:focus { border-color: var(--purple); outline: none; }
+  .dm-image-request-preview { display: block; width: 100%; max-width: 180px; max-height: 220px; object-fit: cover; margin: 8px 0; border: 1px solid var(--gold-dim); border-radius: 6px; background: var(--surface-2); }
   .inline-status { margin-top: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--text-dim); font-size: 12px; }
   .inline-status.error { color: var(--rose); border-color: var(--rose-dim); }
   .brand h1 { font-family: var(--font-title); font-weight: 600; font-size: 26px; letter-spacing: 0.5px; margin: 0; color: var(--text); }
@@ -1542,6 +1543,10 @@
       .select('*').eq('status', 'pending').order('created_at', { ascending: false });
     const { data: suggestions, error: suggestionError } = await sb.from('player_suggestions')
       .select('*').eq('status', 'pending').order('created_at', { ascending: false });
+    const { data: imageRequests, error: imageRequestError } = await sb.from('characters')
+      .select('id, name, image_url_pending, image_approval_status')
+      .not('image_url_pending', 'is', null)
+      .neq('image_url_pending', '');
     if (error || suggestionError) {
       inbox.innerHTML = `<div class="inline-status error">Could not load DM requests: ${escapeHtml((error || suggestionError).message)}</div>`;
       count.style.display = 'none';
@@ -1550,9 +1555,20 @@
 
     const requests = data || [];
     const pendingSuggestions = suggestions || [];
-    count.textContent = String(requests.length + pendingSuggestions.length);
-    count.style.display = requests.length + pendingSuggestions.length ? 'block' : 'none';
-    inbox.innerHTML = requests.length || pendingSuggestions.length ? `${pendingSuggestions.map(suggestion => `
+    const pendingImages = imageRequestError ? [] : (imageRequests || []).filter(character => character.image_url_pending);
+    const requestCount = requests.length + pendingSuggestions.length + pendingImages.length;
+    count.textContent = String(requestCount);
+    count.style.display = requestCount ? 'block' : 'none';
+    inbox.innerHTML = requestCount ? `${pendingImages.map(character => `
+      <div class="password-request character-image-request" id="character-image-request-${escapeHtml(character.id)}">
+        <strong>Portrait approval: ${escapeHtml(character.name || 'Unnamed character')}</strong><br>
+        <img class="dm-image-request-preview" src="${escapeHtml(character.image_url_pending)}" alt="Pending portrait for ${escapeHtml(character.name || 'character')}">
+        <span>Review this portrait before it appears on the character card.</span>
+        <div class="password-request-actions">
+          <button class="btn btn-sm" onclick="approveCharacterImage('${escapeHtml(character.id)}')">Approve image</button>
+          <button class="btn btn-sm btn-secondary" onclick="rejectCharacterImage('${escapeHtml(character.id)}')">Disapprove image</button>
+        </div>
+      </div>`).join('')}${pendingSuggestions.map(suggestion => `
       <div class="password-request" id="suggestion-request-${suggestion.id}">
         <strong>Suggestion from ${escapeHtml(suggestion.requester_name)}</strong><br>
         <span>${escapeHtml(suggestion.message)}</span><br>
@@ -1576,6 +1592,7 @@
     passwordRequestSubscription = sb.channel('password_reset_notifications')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'password_reset_requests' }, () => loadPasswordRequests())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'player_suggestions' }, () => loadPasswordRequests())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'characters' }, () => loadPasswordRequests())
       .subscribe();
   }
 
@@ -4022,11 +4039,9 @@ function renderCharacterCard(char) {
     ? `<img class="character-card-portrait" src="${escapeHtml(char.image_url)}" alt="Portrait of ${escapeHtml(char.name || 'character')}" />`
     : `<div class="character-card-portrait character-card-portrait-placeholder" aria-label="No character portrait">✦</div>`;
 
-  const pendingImageReview = isDM && hasPendingCharacterImage(char)
-    ? `<div class="character-image-review"><span>Pending image for DM approval</span><img src="${escapeHtml(char.image_url_pending)}" alt="Pending portrait for ${escapeHtml(char.name || 'character')}" /></div>`
-    : (!isDM && characterBelongsToCurrentUser(char) && hasPendingCharacterImage(char)
+  const pendingImageReview = !isDM && characterBelongsToCurrentUser(char) && hasPendingCharacterImage(char)
       ? `<p class="empty-note">Your portrait is pending DM approval.</p>`
-      : '');
+      : '';
   const editableImageUrl = getEditableCharacterImage(char);
 
   return `
@@ -4169,11 +4184,9 @@ async function saveInlineCharacterEdit(charId) {
     if (!imageData) {
       updateData.image_url = null;
       updateData.image_url_pending = null;
-      updateData.image_approval_status = 'approved';
     } else {
       updateData.image_url = approvedImage || null;
       updateData.image_url_pending = imageData;
-      updateData.image_approval_status = 'pending';
     }
   }
 
@@ -4210,7 +4223,18 @@ async function saveInlineCharacterEdit(charId) {
 
 async function approveCharacterImage(charId) {
   if (!isDM) return;
-  const character = characterDirectoryRows.find(row => String(row.id) === String(charId));
+  let character = characterDirectoryRows.find(row => String(row.id) === String(charId));
+  if (!character || !hasPendingCharacterImage(character)) {
+    const { data, error: loadError } = await sb.from('characters')
+      .select('id, image_url_pending')
+      .eq('id', charId)
+      .maybeSingle();
+    if (loadError) {
+      alert(`Failed to load the pending character image: ${loadError.message}`);
+      return;
+    }
+    character = data;
+  }
   if (!character || !hasPendingCharacterImage(character)) return;
 
   const { error } = await sb.from('characters').update({
@@ -4224,6 +4248,7 @@ async function approveCharacterImage(charId) {
     return;
   }
   await loadCharacters();
+  await loadPasswordRequests();
 }
 
 async function rejectCharacterImage(charId) {
@@ -4238,6 +4263,7 @@ async function rejectCharacterImage(charId) {
     return;
   }
   await loadCharacters();
+  await loadPasswordRequests();
 }
 
 let characterDirectoryRows = [];
