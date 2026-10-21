@@ -1503,8 +1503,12 @@
   async function persistNocturneTheme(theme) {
     if (!currentUser || currentUser.id === 'dev-user' || !window.currentUserId) return;
     const requestId = ++themeSaveRequest;
-    const { error } = await sb.from('profiles').update({ theme }).eq('id', window.currentUserId);
-    if (error && requestId === themeSaveRequest) console.warn('Could not save theme preference:', error.message);
+    try {
+      const { error } = await sb.from('profiles').update({ theme }).eq('id', window.currentUserId);
+      if (error && requestId === themeSaveRequest) console.warn('Could not save theme preference:', error.message);
+    } catch (error) {
+      if (requestId === themeSaveRequest) console.warn('Could not save theme preference:', error?.message || error);
+    }
   }
   window.persistNocturneTheme = persistNocturneTheme;
 
@@ -1572,22 +1576,27 @@
     
     const email = `${username}@campaign.local`;
 
-    let result;
-    if (authMode === 'signin') {
-      result = await sb.auth.signInWithPassword({ email, password });
-    } else {
-      result = await sb.auth.signUp({ 
-        email, 
-        password,
-        options: { data: { username: username } }
-      });
+    try {
+      let result;
+      if (authMode === 'signin') {
+        result = await sb.auth.signInWithPassword({ email, password });
+      } else {
+        result = await sb.auth.signUp({
+          email,
+          password,
+          options: { data: { username: username } }
+        });
+      }
+
+      if (result.error) {
+        document.getElementById('authError').textContent = result.error.message;
+        return;
+      }
+      await onSignedIn();
+    } catch (error) {
+      console.error('Authentication failed:', error);
+      document.getElementById('authError').textContent = error?.message || 'Could not complete sign in. Please try again.';
     }
-    
-    if (result.error) {
-      document.getElementById('authError').textContent = result.error.message;
-      return;
-    }
-    await onSignedIn();
   }
 
   async function handleForgotPassword() {
@@ -1778,17 +1787,29 @@
   }
 
   async function checkSession() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      await onSignedIn();
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) {
+        await onSignedIn();
+      }
+    } catch (error) {
+      console.warn('Could not restore the saved session:', error);
     }
   }
 
   async function onSignedIn() {
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return;
+    const { data: { user }, error: userError } = await sb.auth.getUser();
+    if (userError) throw userError;
+    if (!user) throw new Error('Your session could not be restored. Please sign in again.');
     currentUser = user;
-    let { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    let profile = null;
+    try {
+      const profileResult = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+      if (profileResult.error) console.warn('Could not load profile settings:', profileResult.error.message);
+      profile = profileResult.data;
+    } catch (error) {
+      console.warn('Could not load profile settings:', error?.message || error);
+    }
     isDM = !!profile && String(profile.role || '').trim().toLowerCase() === 'dm';
     window.currentUserIsDM = isDM;
     window.currentUserId = user.id;
