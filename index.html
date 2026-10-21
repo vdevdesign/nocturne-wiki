@@ -1815,9 +1815,19 @@
     window.currentUserId = user.id;
     window.currentPlayerName = (user.email || '').split('@')[0] || 'Player';
     window.currentHouse = profile?.house || '';
-    window.setNocturneTheme(profile?.theme || 'nocturne');
+    const profileTheme = profile?.theme || 'nocturne';
+    if (typeof window.setNocturneTheme === 'function') {
+      window.setNocturneTheme(profileTheme);
+    } else {
+      // App.jsx is loaded as an external Babel script and may not have
+      // initialized its theme helper when session restoration runs.
+      const supportedThemes = ['nocturne', 'dracula', 'alucard', 'sylvan', 'steampunk', 'frost', 'starlight', 'lush', 'mystic', 'potion', 'underdark'];
+      const fallbackTheme = supportedThemes.includes(profileTheme) ? profileTheme : 'nocturne';
+      document.documentElement.dataset.theme = fallbackTheme;
+      try { window.localStorage.setItem('nocturne-theme', fallbackTheme); } catch (_) { /* private browsing */ }
+    }
     const themeSelect = document.getElementById('themeSelect');
-    if (themeSelect) themeSelect.value = profile?.theme || 'nocturne';
+    if (themeSelect) themeSelect.value = profileTheme;
     window.dispatchEvent(new CustomEvent('nocturne-auth-changed'));
 
     document.getElementById('authScreen').classList.add('hidden');
