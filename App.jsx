@@ -1,5 +1,65 @@
 const { createElement: h } = React;
 
+const nocturneThemes = ['nocturne', 'dracula', 'alucard', 'sylvan', 'steampunk', 'frost', 'starlight', 'lush', 'mystic', 'potion', 'underdark'];
+const savedTheme = (() => {
+  try { return window.localStorage.getItem('nocturne-theme'); } catch (_) { return null; }
+})();
+const savedSidebarWidth = (() => {
+  try { return Number(window.localStorage.getItem('nocturne-sidebar-width')) || 260; } catch (_) { return 260; }
+})();
+const savedSidebarCollapsed = (() => {
+  try { return window.localStorage.getItem('nocturne-sidebar-collapsed') === 'true'; } catch (_) { return false; }
+})();
+
+function applySidebarWidth(width) {
+  const nextWidth = Math.min(420, Math.max(220, Number(width) || 260));
+  document.documentElement.style.setProperty('--sidebar-width', `${nextWidth}px`);
+  try { window.localStorage.setItem('nocturne-sidebar-width', String(nextWidth)); } catch (_) { /* private browsing */ }
+}
+
+applySidebarWidth(savedSidebarWidth);
+
+function setSidebarCollapsed(collapsed) {
+  const sidebar = document.getElementById('appSidebar');
+  if (!sidebar) return;
+  sidebar.classList.toggle('collapsed', collapsed);
+  const toggle = document.getElementById('sidebarCollapseToggle');
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.setAttribute('aria-label', collapsed ? 'Expand navigation menu' : 'Collapse navigation menu');
+    toggle.textContent = collapsed ? '›' : '‹';
+  }
+  try { window.localStorage.setItem('nocturne-sidebar-collapsed', String(collapsed)); } catch (_) { /* private browsing */ }
+}
+
+function startSidebarResize(event) {
+  if (window.matchMedia('(max-width: 560px)').matches) return;
+  event.preventDefault();
+  const sidebar = document.getElementById('appSidebar');
+  if (!sidebar) return;
+  const startX = event.clientX;
+  const startWidth = sidebar.getBoundingClientRect().width;
+  const handleMove = moveEvent => applySidebarWidth(startWidth + moveEvent.clientX - startX);
+  const stopResize = () => {
+    document.body.classList.remove('sidebar-resizing');
+    window.removeEventListener('pointermove', handleMove);
+    window.removeEventListener('pointerup', stopResize);
+  };
+  document.body.classList.add('sidebar-resizing');
+  window.addEventListener('pointermove', handleMove);
+  window.addEventListener('pointerup', stopResize, { once: true });
+}
+
+function setNocturneTheme(theme) {
+  const nextTheme = nocturneThemes.includes(theme) ? theme : 'nocturne';
+  document.documentElement.dataset.theme = nextTheme;
+  try { window.localStorage.setItem('nocturne-theme', nextTheme); } catch (_) { /* private browsing */ }
+  if (typeof window.persistNocturneTheme === 'function') window.persistNocturneTheme(nextTheme);
+}
+
+setNocturneTheme(savedTheme || 'nocturne');
+window.setNocturneTheme = setNocturneTheme;
+
 function Sigil({ size = 40 }) {
   return h('svg', { width: size, height: size, viewBox: '0 0 40 40', fill: 'none', 'aria-hidden': true },
     h('circle', { cx: 20, cy: 20, r: 17, stroke: 'var(--gold-dim)', strokeWidth: 1.2 }),
@@ -135,9 +195,10 @@ window.addEventListener('resize', () => {
 });
 
 function Sidebar() {
-  return h('nav', { className: 'sidebar', id: 'appSidebar', style: { display: 'none' } },
+  return h('nav', { className: `sidebar${savedSidebarCollapsed ? ' collapsed' : ''}`, id: 'appSidebar', style: { display: 'none' } },
     h('button', { type: 'button', className: 'mobile-nav-close', 'aria-label': 'Close navigation menu', onClick: () => window.setMobileNavOpen(false) }, '×'),
-    h('div', { className: 'brand' }, h('div', { className: 'brand-title-row' }, h(Sigil), h('div', null, h('h1', null, 'Nocturne'), h('p', null, 'Campaign Hub'))), h('div', { className: 'brand-meta-row' }, h('span', { className: 'role-pill', id: 'rolePill' }, 'player'), h('button', { className: 'inbox-button', id: 'inboxButton', title: 'DM requests', onClick: () => window.togglePasswordInbox() }, h('span', { className: 'email-icon', 'aria-hidden': true }, '✉'), h('span', { className: 'notification-bubble', id: 'inboxCount', style: { display: 'none' } }, '0'))), h('div', { className: 'password-inbox', id: 'passwordInbox', style: { display: 'none' } })),
+    h('div', { className: 'brand' }, h('div', { className: 'brand-title-row' }, h(Sigil), h('div', { className: 'brand-title-copy' }, h('h1', null, 'Nocturne'), h('p', null, 'Campaign Hub')), h('button', { type: 'button', className: 'sidebar-collapse-toggle', id: 'sidebarCollapseToggle', 'aria-expanded': String(!savedSidebarCollapsed), 'aria-label': savedSidebarCollapsed ? 'Expand navigation menu' : 'Collapse navigation menu', onClick: () => setSidebarCollapsed(!document.getElementById('appSidebar')?.classList.contains('collapsed')) }, savedSidebarCollapsed ? '›' : '‹')), h('div', { className: 'brand-meta-row' }, h('div', { className: 'brand-meta-actions' }, h('span', { className: 'role-pill', id: 'rolePill' }, 'player'), h('select', { className: 'theme-select', id: 'themeSelect', 'aria-label': 'Choose site theme', defaultValue: savedTheme || 'nocturne', onChange: event => window.setNocturneTheme(event.target.value) }, h('option', { value: 'nocturne' }, 'Nocturne'), h('option', { value: 'dracula' }, 'Dracula'), h('option', { value: 'alucard' }, 'Alucard'), h('option', { value: 'sylvan' }, 'Sylvan'), h('option', { value: 'steampunk' }, 'Steampunk'), h('option', { value: 'frost' }, 'Frost'), h('option', { value: 'starlight' }, 'Starlight'), h('option', { value: 'lush' }, 'Lush'), h('option', { value: 'mystic' }, 'Mystic'), h('option', { value: 'potion' }, 'Potion'), h('option', { value: 'underdark' }, 'Underdark'))), h('button', { className: 'inbox-button', id: 'inboxButton', title: 'DM requests', onClick: () => window.togglePasswordInbox() }, h('span', { className: 'email-icon', 'aria-hidden': true }, '✉'), h('span', { className: 'notification-bubble', id: 'inboxCount', style: { display: 'none' } }, '0'))), h('div', { className: 'password-inbox', id: 'passwordInbox', style: { display: 'none' } })),
+    h('div', { className: 'sidebar-resize-handle', role: 'separator', 'aria-label': 'Resize navigation menu', 'aria-orientation': 'vertical', onPointerDown: startSidebarResize }),
     h('ul', { className: 'navlist', id: 'navlist' },
       h('li', { style: { padding: '0 4px' } }, h('button', { className: 'nav-chat-btn', onClick: () => { window.setMobileNavOpen(false); window.openChatModal(); } },
         h('span', { className: 'nav-chat-label' }, h('span', { className: 'nav-icon', 'aria-hidden': true }, '◈'), h('span', null, 'Session Chats')),
@@ -155,7 +216,7 @@ function Sidebar() {
       ),
       h('div', { id: 'suggestionStatus', className: 'suggestion-status', role: 'status', 'aria-live': 'polite' })
     ),
-    h('button', { className: 'logout-btn', id: 'logoutBtn', onClick: () => window.handleLogout() }, 'Sign out')
+    h('button', { className: 'logout-btn', id: 'logoutBtn', title: 'Sign out', onClick: () => window.handleLogout() }, h('span', { className: 'logout-label' }, 'Sign out'))
   );
 }
 
