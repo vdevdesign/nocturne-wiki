@@ -18,8 +18,16 @@ CREATE TABLE IF NOT EXISTS public.campaign_dashboard (
   id smallint PRIMARY KEY CHECK (id = 1),
   next_session_date date,
   next_session_notes text NOT NULL DEFAULT '',
+  phoenix_goal integer NOT NULL DEFAULT 0 CHECK (phoenix_goal >= 0),
+  fox_goal integer NOT NULL DEFAULT 0 CHECK (fox_goal >= 0),
+  selkie_goal integer NOT NULL DEFAULT 0 CHECK (selkie_goal >= 0),
   updated_by uuid REFERENCES auth.users(id) ON DELETE SET NULL
 );
+
+ALTER TABLE public.campaign_dashboard
+  ADD COLUMN IF NOT EXISTS phoenix_goal integer NOT NULL DEFAULT 0 CHECK (phoenix_goal >= 0),
+  ADD COLUMN IF NOT EXISTS fox_goal integer NOT NULL DEFAULT 0 CHECK (fox_goal >= 0),
+  ADD COLUMN IF NOT EXISTS selkie_goal integer NOT NULL DEFAULT 0 CHECK (selkie_goal >= 0);
 
 INSERT INTO public.campaign_dashboard (id)
 VALUES (1)

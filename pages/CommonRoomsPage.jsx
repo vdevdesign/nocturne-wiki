@@ -445,6 +445,7 @@ function CommonRoomsPage() {
   const [sharedMatchId, setSharedMatchId] = React.useState(null);
   const [sharedGameLoading, setSharedGameLoading] = React.useState(false);
   const [sharedGameError, setSharedGameError] = React.useState('');
+  const isDevPreview = window.currentUserId === 'dev-user';
   window.setCommonRoomAssignment = setAssignment;
   window.setCommonRoomPreview = setPreviewHouse;
 
@@ -465,7 +466,18 @@ function CommonRoomsPage() {
     setSharedMatchId(null);
     setSharedGameError('');
 
-    if (assignment.dm || !assignment.house || !window.currentUserId) {
+    if ((!assignment.house && !assignment.dm) || !window.currentUserId) {
+      setSharedGameLoading(false);
+      return undefined;
+    }
+
+    if (isDevPreview && assignment.dm) {
+      setSharedMatchId('dev-constellation');
+      setSharedGameLoading(false);
+      return undefined;
+    }
+
+    if (assignment.dm) {
       setSharedGameLoading(false);
       return undefined;
     }
@@ -479,7 +491,7 @@ function CommonRoomsPage() {
     });
 
     return () => { active = false; };
-  }, [assignment.house, assignment.dm]);
+  }, [assignment.house, assignment.dm, isDevPreview]);
 
   async function chooseHouse(houseName) {
     if (savingHouse || !assignment.characterId || !commonRoomHouses[houseName]) return;
@@ -601,16 +613,17 @@ function CommonRoomsPage() {
               {!assignment.dm ? <span className="games-house-badge">Cooperative game</span> : null}
             </div>
             <p className="games-rule">Add one dot to your house constellation each day. Complete the constellation once per week for 5 house points; it resets every Monday at 6:00 AM Eastern.</p>
-            {assignment.dm ? (
-              <p className="empty-note">DM preview shows the room only. Join with a player account from this house to play its shared game.</p>
+            {assignment.dm && !isDevPreview ? (
+              <p className="empty-note">DM preview shows the room only. Use the offline Dev Preview sign-in to test the constellation game.</p>
             ) : null}
             {sharedGameLoading ? <p className="empty-note">Connecting to your house game...</p> : null}
             {sharedGameError ? <p className="games-error" role="alert">{sharedGameError}</p> : null}
-            {!assignment.dm && sharedMatchId ? (
+            {sharedMatchId ? (
               <window.SharedConstellation
                 matchId={sharedMatchId}
                 house={house.toLowerCase()}
                 playerName={window.currentPlayerName || assignment.characterName || 'Player'}
+                offline={isDevPreview}
               />
             ) : null}
           </div>

@@ -20,7 +20,7 @@
     --line: #33304a; --text: #e9e4f2; --text-dim: #a79fc0; --text-faint: #746c8f;
     --gold: #c9a24b; --gold-dim: #8a713a; --purple: #8a68d6; --purple-dim: #5b4590;
     --rose: #b1526b; --rose-dim: #6e3548;
-    --text-main: #1a1a1a; --symbol: #ffffff; --glow-primary: rgba(138,104,214,0.10); --glow-secondary: rgba(201,162,75,0.06);
+    --text-main: #1a1a1a; --symbol: #ffffff; --button-text: #ffffff; --session-note: var(--text-dim); --glow-primary: rgba(138,104,214,0.10); --glow-secondary: rgba(201,162,75,0.06);
     --font-title: 'Cormorant Garamond', serif; --font-body: 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace;
   }
   :root[data-theme="dracula"] {
@@ -34,7 +34,7 @@
     --bg: #f3eadc; --bg-alt: #e9ddce; --surface: #fff8ec; --surface-2: #e4d4c2;
     --line: #b8a492; --text: #2b2424; --text-dim: #4b403d; --text-faint: #625650;
     --gold: #7b3f32; --gold-dim: #9c705d; --purple: #59434f; --purple-dim: #80616b;
-    --rose: #a33f46; --rose-dim: #c98986; --text-main: #382d2c;
+    --rose: #a33f46; --rose-dim: #c98986; --text-main: #382d2c; --button-text: #ffffff; --session-note: #514744;
     --glow-primary: rgba(163,63,70,0.10); --glow-secondary: rgba(183,138,115,0.16);
   }
   :root[data-theme="sylvan"] {
@@ -55,7 +55,7 @@
     --bg: #e8f0fc; --bg-alt: #dce9f8; --surface: #f8fcff; --surface-2: #cddff2;
     --line: #86a4ca; --text: #213862; --text-dim: #365f93; --text-faint: #4f70a0;
     --gold: #496f9f; --gold-dim: #6d91bd; --purple: #3c76aa; --purple-dim: #4e679d;
-    --rose: #718bc1; --rose-dim: #9db8d8; --text-main: #29436f;
+    --rose: #718bc1; --rose-dim: #9db8d8; --text-main: #29436f; --button-text: #ffffff; --session-note: #3f6498;
     --glow-primary: rgba(79,143,199,0.19); --glow-secondary: rgba(157,184,216,0.24);
   }
   :root[data-theme="starlight"] {
@@ -75,8 +75,8 @@
   :root[data-theme="mystic"] {
     --bg: #09061f; --bg-alt: #1e1465; --surface: #382978; --surface-2: #473b95;
     --line: #604c99; --text: #eadcf7; --text-dim: #ded2f2; --text-faint: #cbbceb;
-    --gold: #c47ce4; --gold-dim: #8a72c3; --purple: #604c99; --purple-dim: #473b95;
-    --rose: #d7b7ef; --rose-dim: #8a72c3; --text-main: #070517; --symbol: #d7b7ef;
+    --gold: #c47ce4; --gold-dim: #8a72c3; --purple: #c7a5f0; --purple-dim: #604c99;
+    --rose: #d7b7ef; --rose-dim: #8a72c3; --text-main: #070517; --symbol: #d7b7ef; --session-note: #f0e6ff;
     --glow-primary: rgba(196,124,228,0.18); --glow-secondary: rgba(215,183,239,0.12);
   }
   :root[data-theme="potion"] {
@@ -89,8 +89,8 @@
   :root[data-theme="underdark"] {
     --bg: #100b1b; --bg-alt: #17152e; --surface: #201d3d; --surface-2: #272f50;
     --line: #3d496b; --text: #d9d5e4; --text-dim: #c1c6df; --text-faint: #aab2d0;
-    --gold: #86c83b; --gold-dim: #4d882c; --purple: #46557f; --purple-dim: #2c3155;
-    --rose: #a0609a; --rose-dim: #4c2c5c; --text-main: #090711; --symbol: #9aa8b9;
+    --gold: #86c83b; --gold-dim: #4d882c; --purple: #91a5d7; --purple-dim: #46557f;
+    --rose: #a0609a; --rose-dim: #4c2c5c; --text-main: #090711; --symbol: #9aa8b9; --session-note: #cbd9f5;
     --glow-primary: rgba(70,85,127,0.20); --glow-secondary: rgba(134,200,59,0.12);
   }
   * { box-sizing: border-box; }
@@ -111,6 +111,10 @@
   .auth-box label { display:block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); margin-bottom: 6px; text-align: left; }
   .auth-box input { width: 100%; padding: 11px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 7px; color: var(--text); font-family: var(--font-body); font-size: 14.5px; margin-bottom: 16px; outline: none; }
   .auth-box input:focus { border-color: var(--purple); }
+  .password-field { position: relative; display: flex; align-items: stretch; margin-bottom: 16px; }
+  .password-field input { flex: 1; min-width: 0; margin-bottom: 0; padding-right: 64px; }
+  .password-toggle { position: absolute; top: 1px; right: 1px; bottom: 1px; padding: 0 10px; border: 0; border-left: 1px solid var(--line); border-radius: 0 6px 6px 0; background: transparent; color: var(--text-faint); font: 11px var(--font-body); cursor: pointer; }
+  .password-toggle:hover, .password-toggle:focus-visible { color: var(--gold); outline: none; }
   .auth-box button[type="submit"] { width: 100%; }
   .auth-link { display: block; margin: 12px auto 0; padding: 0; background: none; border: 0; color: var(--text-faint); font: inherit; font-size: 12px; cursor: pointer; }
   .auth-link:hover { color: var(--gold); text-decoration: underline; }
@@ -285,10 +289,32 @@
   .campaign-dashboard-session { display: grid; gap: 4px; }
   .campaign-dashboard-session-content { display: grid; gap: 4px; }
   .campaign-dashboard-session-content p { margin: 0 !important; }
+  .campaign-dashboard-session-content > div,
+  .campaign-dashboard-session-content > div p,
+  .campaign-dashboard-session-content > div li { color: var(--session-note) !important; }
+  .campaign-dashboard-house { display: grid; gap: 12px; }
+  .campaign-dashboard-house-header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .campaign-dashboard-house-list { display: grid; gap: 8px; }
+  .campaign-dashboard-house-row { display: grid; grid-template-columns: minmax(90px, 1fr) auto; gap: 10px; align-items: center; }
+  .campaign-dashboard-house-label { display: flex; align-items: center; gap: 7px; font-size: 0.9rem; }
+  .campaign-dashboard-house-label img { width: 22px; height: 22px; object-fit: contain; }
+  .campaign-dashboard-house-score { color: var(--gold); font-family: var(--font-mono); font-size: 0.82rem; white-space: nowrap; }
+  .campaign-dashboard-house-track { grid-column: 1 / -1; height: 5px; background: var(--bg); border-radius: 99px; overflow: hidden; }
+  .campaign-dashboard-house-fill { height: 100%; border-radius: inherit; background: var(--house-accent, var(--gold)); min-width: 2px; }
+  .campaign-dashboard-house-row.house-phoenix { --house-accent: #e88356; }
+  .campaign-dashboard-house-row.house-fox { --house-accent: #d6a550; }
+  .campaign-dashboard-house-row.house-selkie { --house-accent: #72b9bd; }
+  .campaign-dashboard-latest-win { margin-top: 2px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .campaign-dashboard-latest-win p { margin: 4px 0 0; color: var(--text-dim); font-size: 0.88rem; }
+  .campaign-dashboard-goal-form { margin-top: 14px; }
+  .campaign-dashboard-goal-fields { display: grid; grid-template-columns: repeat(3, minmax(110px, 1fr)); gap: 10px; margin-top: 10px; }
+  .campaign-dashboard-goal-fields label { display: grid; gap: 4px; }
+  .campaign-dashboard-goal-fields input { width: 100%; }
   @container campaign-dashboard (min-width: 620px) {
-    .campaign-dashboard-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.8fr); grid-template-areas: "session session" "leads recap"; }
+    .campaign-dashboard-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.8fr); grid-template-areas: "session session" "leads house" "recap recap"; }
     .campaign-dashboard-session { grid-area: session; grid-template-columns: minmax(130px, 0.8fr) minmax(0, 2fr); align-items: center; gap: 12px; padding: 14px 18px; }
     .campaign-dashboard-leads { grid-area: leads; }
+    .campaign-dashboard-house { grid-area: house; }
     .campaign-dashboard-recap { grid-area: recap; }
     .campaign-dashboard-session-content { grid-template-columns: minmax(150px, 0.8fr) minmax(0, 2fr); align-items: center; gap: 12px; }
   }
@@ -299,7 +325,7 @@
   .block-actions { display:flex; gap:6px; flex-shrink:0; }
   .add-block-btn { margin: 4px 0 28px 0; }
 
-  .btn { background: var(--purple-dim); color: var(--text); border: 1px solid var(--purple); border-radius: 6px; padding: 0.6rem 1.25rem; font-family: var(--font-body); font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; }
+  .btn { background: var(--purple-dim); color: var(--button-text, #fff); border: 1px solid var(--purple); border-radius: 6px; padding: 0.6rem 1.25rem; font-family: var(--font-body); font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; }
   .btn:hover { background: var(--purple); color: #fff; }
   .btn-secondary { background: var(--surface-2); border-color: var(--line); color: var(--text-dim); }
   .btn-secondary:hover { background: var(--surface); color: var(--text); }
@@ -678,11 +704,17 @@
 .character-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .character-info-page { display: grid; gap: 16px; }
 .character-info-page > section { display: block; }
+.character-info-public { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--gold-dim); border-radius: 10px; background: rgba(201,160,80,0.04); }
+.character-info-public > .character-info-header { border: 0; padding: 4px; background: transparent; }
 .character-info-toolbar { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .character-info-header { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .character-info-portrait { width: 180px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 9px; border: 1px solid var(--gold-dim); background: var(--surface-2); }
 .character-info-header .character-public-appearance { max-width: 680px; }
 .character-info-private { margin-top: 0; }
+.character-info-editor { margin-top: 2px; }
+.character-info-editor .character-card { cursor: default; }
+.character-edit-public-details, .character-edit-public-bio { order: 1; }
+.character-edit-private-details, .character-edit-private-bio { order: 2; }
 .character-card-featured { grid-column: 1 / -1; }
 .character-card-portrait { width: 112px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; border: 1px solid var(--gold-dim); background: var(--surface-2); }
 .character-card-portrait-placeholder { display: grid; place-items: center; color: var(--text-faint); font-size: 2rem; }
@@ -701,6 +733,13 @@
   .character-roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .character-card-featured { grid-column: span 2; }
 }
+
+:root[data-theme="alucard"] .block-card,
+:root[data-theme="alucard"] .character-edit-section,
+:root[data-theme="frost"] .block-card,
+:root[data-theme="frost"] .character-edit-section { background: var(--bg-alt); }
+:root[data-theme="alucard"] .character-bio-section,
+:root[data-theme="frost"] .character-bio-section { background: var(--surface-2); }
 @media (max-width: 560px) {
   .character-roster-grid { grid-template-columns: 1fr; }
   .character-card-featured { grid-column: auto; }
@@ -1207,7 +1246,7 @@
 <script type="text/babel" src="pages/games/RuneDuel.jsx?v=20261006-rune-matchup-chart"></script>
 <script type="text/babel" src="pages/games/SharedConstellation.jsx"></script>
 <script type="text/babel" src="pages/games/GamesHub.jsx?v=20261007-completed-games"></script>
-<script type="text/babel" src="App.jsx?v=20261021-theme-labels"></script>
+<script type="text/babel" src="App.jsx?v=20261021-password-toggle"></script>
 <div id="legacy-app" style="display:none;">
 
 <!-- ================= AUTH SCREEN ================= -->
@@ -1504,8 +1543,14 @@
     if (!currentUser || currentUser.id === 'dev-user' || !window.currentUserId) return;
     const requestId = ++themeSaveRequest;
     try {
-      const { error } = await sb.from('profiles').update({ theme }).eq('id', window.currentUserId);
-      if (error && requestId === themeSaveRequest) console.warn('Could not save theme preference:', error.message);
+      const [profileResult, authResult] = await Promise.all([
+        sb.from('profiles').update({ theme }).eq('id', window.currentUserId),
+        sb.auth.updateUser({ data: { theme } })
+      ]);
+      const errors = [profileResult.error, authResult.error].filter(Boolean);
+      if (errors.length === 2 && requestId === themeSaveRequest) {
+        console.warn('Could not save theme preference:', errors.map(error => error.message).join(' | '));
+      }
     } catch (error) {
       if (requestId === themeSaveRequest) console.warn('Could not save theme preference:', error?.message || error);
     }
@@ -1524,6 +1569,18 @@
   document.addEventListener('click', function(e) {
     if (e.target.closest('#react-root #diceRollBtn')) toggleDiceMenu();
     if (e.target.closest('#react-root #rollConfiguredDiceBtn')) rollConfiguredDice();
+    const characterCard = e.target.closest('.character-card[data-character-id]');
+    if (characterCard && !e.target.closest('button, input, textarea, select, [contenteditable="true"], label, a')) {
+      openCharacterInfo(characterCard.dataset.characterId, e);
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const characterCard = e.target.closest('.character-card[data-character-id]');
+    if (!characterCard || e.target.closest('button, input, textarea, select, [contenteditable="true"], label, a')) return;
+    e.preventDefault();
+    openCharacterInfo(characterCard.dataset.characterId, e);
   });
 
   /* ===================== HELPER FUNCTIONS ===================== */
@@ -1547,6 +1604,18 @@
     document.getElementById('authSubmitBtn').innerText = mode === 'signin' ? 'Sign In' : 'Create Account';
     document.getElementById('authError').textContent = '';
   }
+
+  function toggleAuthPassword() {
+    const input = document.getElementById('authPass');
+    const button = document.getElementById('authPasswordToggle');
+    if (!input || !button) return;
+    const visible = input.type === 'text';
+    input.type = visible ? 'password' : 'text';
+    button.textContent = visible ? 'Show' : 'Hide';
+    button.setAttribute('aria-label', visible ? 'Show password' : 'Hide password');
+    button.setAttribute('aria-pressed', String(!visible));
+  }
+  window.toggleAuthPassword = toggleAuthPassword;
 
   function enterDevMode() {
     if (!DEV_MODE) return;
@@ -1779,6 +1848,7 @@
     window.currentUserId = null;
     window.currentPlayerName = '';
     window.currentHouse = '';
+    if (typeof window.setNocturneTheme === 'function') window.setNocturneTheme('nocturne');
     window.dispatchEvent(new CustomEvent('nocturne-auth-changed'));
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('appSidebar').style.display = 'none';
@@ -1815,13 +1885,16 @@
     window.currentUserId = user.id;
     window.currentPlayerName = (user.email || '').split('@')[0] || 'Player';
     window.currentHouse = profile?.house || '';
-    const profileTheme = profile?.theme || 'nocturne';
+    const supportedThemes = ['nocturne', 'dracula', 'alucard', 'sylvan', 'steampunk', 'frost', 'starlight', 'lush', 'mystic', 'potion', 'underdark'];
+    const accountTheme = user.user_metadata?.theme;
+    const profileTheme = supportedThemes.includes(accountTheme)
+      ? accountTheme
+      : (supportedThemes.includes(profile?.theme) ? profile.theme : 'nocturne');
     if (typeof window.setNocturneTheme === 'function') {
       window.setNocturneTheme(profileTheme);
     } else {
       // App.jsx is loaded as an external Babel script and may not have
       // initialized its theme helper when session restoration runs.
-      const supportedThemes = ['nocturne', 'dracula', 'alucard', 'sylvan', 'steampunk', 'frost', 'starlight', 'lush', 'mystic', 'potion', 'underdark'];
       const fallbackTheme = supportedThemes.includes(profileTheme) ? profileTheme : 'nocturne';
       document.documentElement.dataset.theme = fallbackTheme;
       try { window.localStorage.setItem('nocturne-theme', fallbackTheme); } catch (_) { /* private browsing */ }
@@ -2658,12 +2731,14 @@
       .limit(1);
     if (!isDM) summaryQuery = summaryQuery.eq('visible_to_players', true);
 
-    const [summaryResult, questResult, dashboardResult] = await Promise.all([
+    const [summaryResult, questResult, dashboardResult, pointsResult, latestWinResult] = await Promise.all([
       summaryQuery,
       sb.from('quest_board').select('entry_type, status'),
-      sb.from('campaign_dashboard').select('*').eq('id', 1).maybeSingle()
+      sb.from('campaign_dashboard').select('*').eq('id', 1).maybeSingle(),
+      sb.from('house_points').select('house, points').order('house'),
+      sb.from('matches').select('winner_house, created_at').eq('game', 'rune_duel').eq('mode', 'tournament').eq('status', 'finished').not('winner_house', 'is', null).order('created_at', { ascending: false }).limit(1)
     ]);
-    const errors = [summaryResult.error, questResult.error, dashboardResult.error].filter(Boolean);
+    const errors = [summaryResult.error, questResult.error, dashboardResult.error, pointsResult.error, latestWinResult.error].filter(Boolean);
     if (errors.length) {
       container.innerHTML = `<p class="error-msg">Failed to load campaign dashboard: ${escapeHtml(errors.map(error => error.message).join('; '))}</p>`;
       return;
@@ -2672,6 +2747,24 @@
     const summary = summaryResult.data?.[0];
     const quests = questResult.data || [];
     const dashboard = dashboardResult.data || {};
+    const housePoints = Object.fromEntries((pointsResult.data || []).map(row => [row.house, Number(row.points) || 0]));
+    const houseGoals = {
+      phoenix: Number(dashboard.phoenix_goal) || 0,
+      fox: Number(dashboard.fox_goal) || 0,
+      selkie: Number(dashboard.selkie_goal) || 0
+    };
+    const houseLabels = { phoenix: 'Phoenix', fox: 'Fox', selkie: 'Selkie' };
+    const latestWin = latestWinResult.data?.[0];
+    const housePointRows = ['phoenix', 'fox', 'selkie'].map(house => {
+      const points = housePoints[house] || 0;
+      const goal = houseGoals[house];
+      const progress = goal > 0 ? Math.min(100, Math.round((points / goal) * 100)) : 0;
+      return `<div class="campaign-dashboard-house-row house-${house}">
+        <div class="campaign-dashboard-house-label"><img src="assets/house-${house}.png" alt="" aria-hidden="true"><span>House ${houseLabels[house]}</span></div>
+        <span class="campaign-dashboard-house-score">${points}${goal ? ` / ${goal}` : ''} pts</span>
+        ${goal ? `<div class="campaign-dashboard-house-track" aria-label="${houseLabels[house]} goal progress"><div class="campaign-dashboard-house-fill" style="width:${progress}%"></div></div>` : ''}
+      </div>`;
+    }).join('');
     const activeQuests = quests.filter(entry => entry.entry_type === 'quest' && ['open', 'in_progress'].includes(entry.status)).length;
     const unresolvedRumors = quests.filter(entry => entry.entry_type === 'rumor' && entry.status === 'unverified').length;
     const sessionDate = dashboard.next_session_date
@@ -2699,6 +2792,14 @@
           <p style="margin:0;"><strong>${activeQuests}</strong> active ${activeQuests === 1 ? 'quest' : 'quests'} · <strong>${unresolvedRumors}</strong> unverified ${unresolvedRumors === 1 ? 'rumor' : 'rumors'}</p>
           <button class="btn btn-sm btn-secondary" style="margin-top:10px;" onclick="navigateTo('quest-board', true)">Open quest board</button>
         </div>
+        <div class="block-card campaign-dashboard-card campaign-dashboard-house">
+          <div class="campaign-dashboard-house-header"><div class="eyebrow">House Points</div><span class="role-tag">Campaign goal</span></div>
+          <div class="campaign-dashboard-house-list">${housePointRows}</div>
+          <div class="campaign-dashboard-latest-win">
+            <div class="eyebrow">Latest Wins</div>
+            <p>${latestWin ? `House ${escapeHtml(houseLabels[latestWin.winner_house] || latestWin.winner_house)} won Rune Duel · ${escapeHtml(new Date(latestWin.created_at).toLocaleDateString())}` : 'No Rune Duel wins recorded yet.'}</p>
+          </div>
+        </div>
         <div class="block-card campaign-dashboard-card campaign-dashboard-recap">
           <div class="eyebrow">Latest Recap</div>
           ${latestSummary}
@@ -2716,6 +2817,15 @@
               <input id="dashboard-session-notes" class="input-field" maxlength="500" value="${escapeHtml(dashboard.next_session_notes || '')}" placeholder="Bring your character sheets...">
             </label>
           </div>
+          <div class="campaign-dashboard-goal-form">
+            <strong>House point goals</strong>
+            <p class="empty-note" style="margin:4px 0 0;">Set an optional target for each house. Leave a goal at 0 to show points without a progress bar.</p>
+            <div class="campaign-dashboard-goal-fields">
+              ${['phoenix', 'fox', 'selkie'].map(house => `<label>House ${houseLabels[house]} goal
+                <input id="dashboard-${house}-goal" class="input-field" type="number" min="0" step="1" value="${houseGoals[house]}" aria-label="House ${houseLabels[house]} point goal">
+              </label>`).join('')}
+            </div>
+          </div>
           <button class="btn btn-sm" type="submit" style="margin-top:10px;">Save session details</button>
         </form>` : ''}`;
   }
@@ -2725,10 +2835,23 @@
     if (!isDM) return;
     const nextSessionDate = document.getElementById('dashboard-session-date').value || null;
     const nextSessionNotes = document.getElementById('dashboard-session-notes').value.trim();
+    const goals = ['phoenix', 'fox', 'selkie'].reduce((values, house) => {
+      if (!values) return null;
+      const rawGoal = document.getElementById(`dashboard-${house}-goal`)?.value.trim() || '0';
+      const goal = Number(rawGoal);
+      if (!Number.isSafeInteger(goal) || goal < 0) {
+        alert(`House ${house} goal must be a whole number of 0 or more.`);
+        return null;
+      }
+      values[`${house}_goal`] = goal;
+      return values;
+    }, {});
+    if (!goals) return;
     const { error } = await sb.from('campaign_dashboard').upsert({
       id: 1,
       next_session_date: nextSessionDate,
       next_session_notes: nextSessionNotes,
+      ...goals,
       updated_by: currentUser.id
     }, { onConflict: 'id' });
 
@@ -3412,6 +3535,15 @@ function toggleInlineEdit(type, id) {
   const isEditing = editMode.style.display !== 'none';
   viewMode.style.display = isEditing ? 'block' : 'none';
   editMode.style.display = isEditing ? 'none' : 'block';
+  if (type === 'character' && !isEditing) {
+    editMode.querySelectorAll('.character-edit-section').forEach(section => {
+      const heading = section.querySelector('h5')?.textContent.trim() || '';
+      if (heading === 'Public Character Details') section.classList.add('character-edit-public-details');
+      if (heading === 'Public Character Bio') section.classList.add('character-edit-public-bio');
+      if (heading === 'Private Character Details') section.classList.add('character-edit-private-details');
+      if (heading === 'Private Bio') section.classList.add('character-edit-private-bio');
+    });
+  }
 }
 
   /* ===================== RESTRICTED ARCHIVES HUB ===================== */
@@ -4195,7 +4327,7 @@ function renderCharacterCard(char) {
   const editableImageUrl = getEditableCharacterImage(char);
 
   return `
-    <div class="block-card character-card${isFeaturedCharacter ? ' character-card-featured' : ''}" id="character-card-${char.id}" onclick="openCharacterInfo('${char.id}', event)" onkeydown="if(event.key === 'Enter' || event.key === ' '){event.preventDefault(); openCharacterInfo('${char.id}', event);}" role="link" tabindex="0" aria-label="Open ${escapeHtml(char.name || 'character')} information">
+    <div class="block-card character-card${isFeaturedCharacter ? ' character-card-featured' : ''}" id="character-card-${char.id}" data-character-id="${escapeHtml(char.id)}" role="link" tabindex="0" aria-label="Open ${escapeHtml(char.name || 'character')} information">
       <!-- View Mode -->
       <div class="character-view-mode">
         <div class="character-card-identity">
@@ -4272,7 +4404,7 @@ function renderCharacterCard(char) {
               </div>
             </div>` : ''}
 
-            <div class="character-edit-section">
+            <div class="character-edit-section character-edit-public-details">
               <h5>Public Character Details</h5>
               <p>These fields are visible to everyone who can view this character.</p>
               <div class="form-group"><label for="edit-char-appearance-${char.id}">Appearance</label><textarea id="edit-char-appearance-${char.id}" class="input-field" rows="3">${escapeHtml(char.appearance || '')}</textarea></div>
@@ -4280,13 +4412,13 @@ function renderCharacterCard(char) {
 
             ${isDM ? `<div class="character-edit-section private"><h5>Private Character Details</h5><p>These template fields are visible only to the character owner and DM.</p><div class="form-group"><label>Background</label>${markdownEditor(`edit-char-background-${char.id}`, char.background || '', 3)}</div><div class="form-group"><label>Goals</label>${markdownEditor(`edit-char-goals-${char.id}`, char.goals || '', 2)}</div><div class="form-group"><label>Fears</label>${markdownEditor(`edit-char-fears-${char.id}`, char.fears || '', 2)}</div><div class="form-group"><label>Bonds</label>${markdownEditor(`edit-char-bonds-${char.id}`, char.bonds || '', 2)}</div></div>` : ''}
 
-            <div class="character-edit-section">
+            <div class="character-edit-section character-edit-public-bio">
               <h5>Public Character Bio</h5>
               <p>Visible to everyone who can view this character. Supports Markdown.</p>
               ${markdownEditor(`edit-char-public-bio-${char.id}`, publicBio, 5)}
             </div>
 
-            <div class="character-edit-section private">
+            <div class="character-edit-section private character-edit-private-bio">
               <h5>Private Bio</h5>
               <p>Only you and the DM can see these notes. Supports Markdown.</p>
               ${markdownEditor(`edit-char-bio-${char.id}`, privateBio, 5)}
@@ -4450,8 +4582,12 @@ function closeCharacterInfo() {
 }
 
 async function editCharacterFromInfo(charId) {
-  await loadCharacters();
+  const character = characterDirectoryRows.find(row => String(row.id) === String(charId));
+  const host = document.getElementById(`character-info-editor-${charId}`);
+  if (!character || !host) return;
+  host.innerHTML = renderCharacterCard(character);
   toggleInlineEdit('character', charId);
+  host.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderCharacterInfoPage(char) {
@@ -4478,12 +4614,15 @@ function renderCharacterInfoPage(char) {
     </section>` : '';
   return `<div class="character-info-page">
     <div class="character-info-toolbar"><button class="btn btn-sm btn-secondary" type="button" onclick="closeCharacterInfo()">← Back to Players</button>${canManagePrivateBio ? `<button class="btn btn-sm btn-secondary" type="button" onclick="editCharacterFromInfo('${char.id}')">Edit</button>` : ''}</div>
-    <div class="character-info-header">
-      ${portrait}
-      <div><h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>${house ? `<span class="character-house-badge house-${house.toLowerCase()}">${houseEmblems[house]} House ${escapeHtml(house)}</span>` : ''}${char.appearance ? `<div class="character-public-appearance"><strong>Appearance</strong><br>${renderMarkdown(char.appearance, '')}</div>` : ''}</div>
+    <div class="character-info-public">
+      <div class="character-info-header">
+        ${portrait}
+        <div><h3 class="card-title">${escapeHtml(char.name || 'Unnamed Character')}</h3>${house ? `<span class="character-house-badge house-${house.toLowerCase()}">${houseEmblems[house]} House ${escapeHtml(house)}</span>` : ''}${char.appearance ? `<div class="character-public-appearance"><strong>Appearance</strong><br>${renderMarkdown(char.appearance, '')}</div>` : ''}</div>
+      </div>
+      <section class="character-bio-section public"><h4>Public Character Bio</h4><div class="block-body">${renderMarkdown(publicBio, 'No public character bio yet.')}</div></section>
     </div>
-    <section class="character-bio-section public"><h4>Public Character Bio</h4><div class="block-body">${renderMarkdown(publicBio, 'No public character bio yet.')}</div></section>
     ${privateSection}
+    ${canManagePrivateBio ? `<div id="character-info-editor-${char.id}" class="character-info-editor"></div>` : ''}
   </div>`;
 }
 

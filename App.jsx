@@ -57,7 +57,9 @@ function setNocturneTheme(theme) {
   if (typeof window.persistNocturneTheme === 'function') window.persistNocturneTheme(nextTheme);
 }
 
-setNocturneTheme(savedTheme || 'nocturne');
+// Signed-out screens always use the standard theme. The account preference is
+// loaded after authentication by onSignedIn().
+setNocturneTheme('nocturne');
 window.setNocturneTheme = setNocturneTheme;
 
 function Sigil({ size = 40 }) {
@@ -84,7 +86,10 @@ function AuthScreen() {
         h('label', { htmlFor: 'authUsername' }, 'Username'),
         h('input', { type: 'text', id: 'authUsername', placeholder: 'Character First Name', required: true }),
         h('label', { htmlFor: 'authPass' }, 'Password'),
-        h('input', { type: 'password', id: 'authPass', autoComplete: 'current-password', placeholder: '•••••••••' }),
+        h('div', { className: 'password-field' },
+          h('input', { type: 'password', id: 'authPass', autoComplete: 'current-password', placeholder: '•••••••••' }),
+          h('button', { type: 'button', className: 'password-toggle', id: 'authPasswordToggle', 'aria-label': 'Show password', 'aria-pressed': 'false', onClick: () => window.toggleAuthPassword() }, 'Show')
+        ),
         h('button', { type: 'submit', className: 'btn', id: 'authSubmitBtn' }, 'Sign In'),
         h('div', { className: 'auth-error', id: 'authError' })
       ),
@@ -197,7 +202,7 @@ window.addEventListener('resize', () => {
 function Sidebar() {
   return h('nav', { className: `sidebar${savedSidebarCollapsed ? ' collapsed' : ''}`, id: 'appSidebar', style: { display: 'none' } },
     h('button', { type: 'button', className: 'mobile-nav-close', 'aria-label': 'Close navigation menu', onClick: () => window.setMobileNavOpen(false) }, '×'),
-    h('div', { className: 'brand' }, h('div', { className: 'brand-title-row' }, h(Sigil), h('div', { className: 'brand-title-copy' }, h('h1', null, 'Nocturne'), h('p', null, 'Campaign Hub')), h('button', { type: 'button', className: 'sidebar-collapse-toggle', id: 'sidebarCollapseToggle', 'aria-expanded': String(!savedSidebarCollapsed), 'aria-label': savedSidebarCollapsed ? 'Expand navigation menu' : 'Collapse navigation menu', onClick: () => setSidebarCollapsed(!document.getElementById('appSidebar')?.classList.contains('collapsed')) }, savedSidebarCollapsed ? '›' : '‹')), h('div', { className: 'brand-meta-row' }, h('div', { className: 'brand-meta-actions' }, h('span', { className: 'role-pill', id: 'rolePill' }, 'player'), h('select', { className: 'theme-select', id: 'themeSelect', 'aria-label': 'Choose site theme', defaultValue: savedTheme || 'nocturne', onChange: event => window.setNocturneTheme(event.target.value) }, h('option', { value: 'nocturne' }, 'Nocturne (Dark)'), h('option', { value: 'dracula' }, 'Dracula (Dark)'), h('option', { value: 'alucard' }, 'Alucard (Light)'), h('option', { value: 'sylvan' }, 'Sylvan (Dark)'), h('option', { value: 'steampunk' }, 'Steampunk (Dark)'), h('option', { value: 'frost' }, 'Frost (Light)'), h('option', { value: 'starlight' }, 'Starlight (Medium)'), h('option', { value: 'lush' }, 'Lush (Dark)'), h('option', { value: 'mystic' }, 'Mystic (Dark)'), h('option', { value: 'potion' }, 'Potion (Dark)'), h('option', { value: 'underdark' }, 'Underdark (Dark)'))), h('button', { className: 'inbox-button', id: 'inboxButton', title: 'DM requests', onClick: () => window.togglePasswordInbox() }, h('span', { className: 'email-icon', 'aria-hidden': true }, '✉'), h('span', { className: 'notification-bubble', id: 'inboxCount', style: { display: 'none' } }, '0'))), h('div', { className: 'password-inbox', id: 'passwordInbox', style: { display: 'none' } })),
+    h('div', { className: 'brand' }, h('div', { className: 'brand-title-row' }, h(Sigil), h('div', { className: 'brand-title-copy' }, h('h1', null, 'Nocturne'), h('p', null, 'Campaign Hub')), h('button', { type: 'button', className: 'sidebar-collapse-toggle', id: 'sidebarCollapseToggle', 'aria-expanded': String(!savedSidebarCollapsed), 'aria-label': savedSidebarCollapsed ? 'Expand navigation menu' : 'Collapse navigation menu', onClick: () => setSidebarCollapsed(!document.getElementById('appSidebar')?.classList.contains('collapsed')) }, savedSidebarCollapsed ? '›' : '‹')), h('div', { className: 'brand-meta-row' }, h('div', { className: 'brand-meta-actions' }, h('span', { className: 'role-pill', id: 'rolePill' }, 'player'), h('select', { className: 'theme-select', id: 'themeSelect', 'aria-label': 'Choose site theme', defaultValue: 'nocturne', onChange: event => window.setNocturneTheme(event.target.value) }, h('option', { value: 'nocturne' }, 'Nocturne (Dark)'), h('option', { value: 'dracula' }, 'Dracula (Dark)'), h('option', { value: 'alucard' }, 'Alucard (Light)'), h('option', { value: 'sylvan' }, 'Sylvan (Dark)'), h('option', { value: 'steampunk' }, 'Steampunk (Dark)'), h('option', { value: 'frost' }, 'Frost (Light)'), h('option', { value: 'starlight' }, 'Starlight (Medium)'), h('option', { value: 'lush' }, 'Lush (Dark)'), h('option', { value: 'mystic' }, 'Mystic (Dark)'), h('option', { value: 'potion' }, 'Potion (Dark)'), h('option', { value: 'underdark' }, 'Underdark (Dark)'))), h('button', { className: 'inbox-button', id: 'inboxButton', title: 'DM requests', onClick: () => window.togglePasswordInbox() }, h('span', { className: 'email-icon', 'aria-hidden': true }, '✉'), h('span', { className: 'notification-bubble', id: 'inboxCount', style: { display: 'none' } }, '0'))), h('div', { className: 'password-inbox', id: 'passwordInbox', style: { display: 'none' } })),
     h('div', { className: 'sidebar-resize-handle', role: 'separator', 'aria-label': 'Resize navigation menu', 'aria-orientation': 'vertical', onPointerDown: startSidebarResize }),
     h('ul', { className: 'navlist', id: 'navlist' },
       h('li', { style: { padding: '0 4px' } }, h('button', { className: 'nav-chat-btn', onClick: () => { window.setMobileNavOpen(false); window.openChatModal(); } },
