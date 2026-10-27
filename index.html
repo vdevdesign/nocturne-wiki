@@ -448,21 +448,83 @@
     padding: 16px;
     overflow-y: auto;
   }
-  .chat-menu-drawer.open { left: 0; }
-  .chat-drawer-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .chat-drawer-header strong { font-size: 12px; text-transform: uppercase; color: var(--text-faint); }
+  .chat-menu-drawer.open { left: 0; box-shadow: 6px 0 18px rgba(0,0,0,0.35); }
+  .chat-drawer-scrim {
+    position: absolute;
+    inset: 55px 0 0 0;
+    background: rgba(0,0,0,0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 9;
+  }
+  .chat-drawer-scrim.open { opacity: 1; pointer-events: auto; }
+  .chat-drawer-toggle[aria-expanded="true"] { color: var(--gold); border-color: var(--gold); }
+
+  .new-session-btn { width: 100%; margin: 6px 0 10px 0; }
+  .new-session-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    margin: 0 0 14px 0;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .chat-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .chat-item-action { opacity: 0; transition: opacity 0.15s ease; }
+  .chat-item:hover .chat-item-action { opacity: 1; }
+  @media (hover: none) { .chat-item-action { opacity: 1; } }
+  .rename-session-form { flex: 1; min-width: 0; }
+  .rename-input { width: 100%; padding: 5px 8px; font-size: 13px; }
+  .chat-drawer-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .chat-drawer-header strong { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
+  .new-session-label { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+  .new-session-hint { font-size: 11px; color: var(--text-faint); margin: 0; }
+  .new-session-actions { display: flex; gap: 8px; }
+
+  .chat-list-empty { font-size: 12px; color: var(--text-faint); padding: 8px 10px; }
 
   .chat-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 10px;
-    border-radius: 4px;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 6px;
+    border: 1px solid transparent;
     cursor: pointer;
     margin-bottom: 4px;
     font-size: 13px;
+    transition: background 0.15s ease, border-color 0.15s ease;
   }
-  .chat-item:hover, .chat-item.active { background: rgba(255,255,255,0.08); }
+  .chat-item:hover { background: rgba(255,255,255,0.06); }
+  .chat-item.active {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--line);
+  }
+  .chat-item.active .chat-item-name { color: var(--gold); }
+  .chat-item-name { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+  .chat-item-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-item-live {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    border-radius: 999px;
+    padding: 1px 7px;
+    text-transform: uppercase;
+  }
+  .chat-item-delete {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .chat-item:hover .chat-item-delete { opacity: 1; }
+  @media (hover: none) { .chat-item-delete { opacity: 1; } }
+  .chat-item.editing { background: rgba(255,255,255,0.06); cursor: default; }
   .chat-body { flex: 1; display: flex; flex-direction: column; padding: 16px; overflow: hidden; }
   .chat-dm-controls { margin-bottom: 12px; }
   .chat-control-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -892,6 +954,9 @@
 .md-live-preview-content > :first-child { margin-top: 0; }
 .md-live-preview-content > :last-child { margin-bottom: 0; }
 .md-toolbar button { user-select: none; }
+.md-color-picker-wrap { display: inline-flex; align-items: center; position: relative; width: 26px; height: 26px; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); }
+.md-color-picker-wrap:hover { border-color: var(--purple-dim); }
+.md-color-picker { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); border: none; padding: 0; cursor: pointer; background: transparent; }
 
 .mobile-nav-bar,
 .mobile-nav-backdrop,
@@ -1472,7 +1537,7 @@
     <!-- Header -->
     <div class="chat-header">
       <div style="display:flex; align-items:center; gap:10px;">
-        <button class="btn btn-sm btn-secondary" onclick="toggleChatDrawer()" title="Toggle Session List">☰</button>
+        <button class="btn btn-sm btn-secondary chat-drawer-toggle" onclick="toggleChatDrawer()" title="Toggle Session List" aria-expanded="false">☰</button>
         <h4 id="modalChatTitle" style="margin:0; font-family:var(--font-title); font-size:20px; color:var(--text);">Session Chat</h4>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
@@ -1483,14 +1548,24 @@
 
     <!-- Slide-out Hamburger Menu for Stored Chats -->
     <div id="chatMenuDrawer" class="chat-menu-drawer">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <strong style="font-size:12px; text-transform:uppercase; color:var(--text-faint);">Past Sessions</strong>
-        <span id="dmNewChatBtn"></span>
+      <button id="newSessionChatBtn" class="btn btn-sm new-session-btn" type="button" onclick="showNewSessionChatForm()" style="display:none;">＋ New Session</button>
+      <form id="newSessionChatPanel" class="new-session-panel" style="display:none;" onsubmit="createNewSessionChat(event)">
+        <label class="new-session-label" for="newSessionChatName">Session name</label>
+        <input id="newSessionChatName" class="input-control" type="text" maxlength="60" placeholder="e.g. Session 4 — The Vaults" autocomplete="off" />
+        <p id="newSessionChatError" class="inline-status error" style="display:none;"></p>
+        <div class="new-session-actions">
+          <button class="btn btn-sm" type="submit">Create</button>
+          <button class="btn btn-sm btn-secondary" type="button" onclick="cancelNewSessionChat()">Cancel</button>
+        </div>
+      </form>
+      <div class="chat-drawer-header">
+        <strong>Past Sessions</strong>
       </div>
       <div id="previousChatsList">
         <!-- Rendered dynamically -->
       </div>
     </div>
+    <div id="chatDrawerScrim" class="chat-drawer-scrim" onclick="closeChatDrawer()"></div>
 
     <!-- Chat Body -->
     <div style="flex:1; display:flex; flex-direction:column; padding:16px; overflow:hidden;">
@@ -1535,6 +1610,7 @@
   
   let currentSessionId = "session_1";
   let isSessionOpen = false;
+  let liveSessionId = null;
   let chatSubscription = null;
   let passwordRequestSubscription = null;
 
@@ -1980,8 +2056,14 @@
   }
 
   /* ===================== SESSION CHAT SYSTEM ===================== */
+  function updateNewSessionButtonVisibility() {
+    const btn = document.getElementById('newSessionChatBtn');
+    if (btn) btn.style.display = isDM ? 'block' : 'none';
+  }
+
   async function openChatModal() {
     document.getElementById('chatModalOverlay').classList.add('open');
+    updateNewSessionButtonVisibility();
     await loadPreviousChatsMenu(true);
     document.getElementById('modalChatTitle').innerText = currentSessionId.replace('_', ' ').toUpperCase();
     initSessionChat(currentSessionId);
@@ -1989,19 +2071,67 @@
 
   function closeChatModal() {
     document.getElementById('chatModalOverlay').classList.remove('open');
+    closeChatDrawer();
+  }
+
+  function setChatDrawerOpen(open) {
+    const drawer = document.getElementById('chatMenuDrawer');
+    const scrim = document.getElementById('chatDrawerScrim');
+    const toggle = document.querySelector('.chat-drawer-toggle');
+    if (!drawer) return;
+    drawer.classList.toggle('open', open);
+    if (scrim) scrim.classList.toggle('open', open);
+    if (toggle) toggle.setAttribute('aria-expanded', String(open));
+    if (open) {
+      updateNewSessionButtonVisibility();
+      loadPreviousChatsMenu();
+    } else {
+      cancelNewSessionChat();
+    }
   }
 
   function toggleChatDrawer() {
-    document.getElementById('chatMenuDrawer').classList.toggle('open');
+    setChatDrawerOpen(!document.getElementById('chatMenuDrawer')?.classList.contains('open'));
   }
+
+  function closeChatDrawer() {
+    setChatDrawerOpen(false);
+  }
+
+  function cancelNewSessionChat() {
+    const panel = document.getElementById('newSessionChatPanel');
+    if (panel) panel.style.display = 'none';
+  }
+
+  function showNewSessionChatForm() {
+    if (!isDM) return;
+    const panel = document.getElementById('newSessionChatPanel');
+    if (!panel) return;
+    panel.style.display = 'flex';
+    const err = document.getElementById('newSessionChatError');
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+    document.getElementById('newSessionChatName').focus();
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const drawer = document.getElementById('chatMenuDrawer');
+      if (drawer?.classList.contains('open')) { closeChatDrawer(); return; }
+      const overlay = document.getElementById('chatModalOverlay');
+      if (overlay?.classList.contains('open')) closeChatModal();
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    const drawer = document.getElementById('chatMenuDrawer');
+    if (!drawer?.classList.contains('open')) return;
+    if (e.target.closest('#chatMenuDrawer') || e.target.closest('.chat-drawer-toggle')) return;
+    closeChatDrawer();
+  }, true);
 
   async function loadPreviousChatsMenu(selectDefault = false) {
     const container = document.getElementById('previousChatsList');
-    const dmBtnContainer = document.getElementById('dmNewChatBtn');
-    
-    if (isDM) {
-      dmBtnContainer.innerHTML = `<button class="btn btn-sm" onclick="showNewSessionChatForm()">+ New</button>`;
-    }
+    updateNewSessionButtonVisibility();
 
     const [{ data, error }, { data: sessionState }] = await Promise.all([
       sb.from('session_messages').select('session_id, created_at').order('created_at', { ascending: true }),
@@ -2013,7 +2143,7 @@
     // The first message in a session establishes its creation order. Reverse that
     // order so the newest-created chat is the default when no session is live.
     const createdOrder = Array.from(new Set((data || []).map(m => m.session_id))).reverse();
-    const liveSessionId = sessionState?.is_open ? sessionState.active_session_id : null;
+    liveSessionId = sessionState?.is_open ? sessionState.active_session_id : null;
     if (selectDefault) currentSessionId = liveSessionId || createdOrder[0] || currentSessionId;
 
     const uniqueSessions = [...createdOrder];
@@ -2025,33 +2155,76 @@
 
   function renderPreviousChatsList(uniqueSessions) {
     const container = document.getElementById('previousChatsList');
+    if (!uniqueSessions.length) {
+      container.innerHTML = `<p class="chat-list-empty">No sessions yet.</p>`;
+      return;
+    }
     container.innerHTML = uniqueSessions.map(sessId => `
-      <div class="chat-item ${sessId === currentSessionId ? 'active' : ''}" onclick="switchSessionChat('${sessId}')">
-        <span>${escapeHtml(sessId.replace('_', ' ').toUpperCase())}</span>
-        ${isDM ? `<button class="btn btn-sm btn-secondary" onclick="confirmDeleteChat(event, '${sessId}')" style="padding:2px 6px; font-size:10px;">🗑</button>` : ''}
+      <div class="chat-item ${sessId === currentSessionId ? 'active' : ''}" data-session-id="${escapeHtml(sessId)}" onclick="switchSessionChat('${sessId}')">
+        <span class="chat-item-name">
+          <span class="chat-item-title">${escapeHtml(sessId.replace('_', ' ').toUpperCase())}</span>
+          ${sessId === liveSessionId ? '<span class="chat-item-live">Live</span>' : ''}
+        </span>
+        ${isDM ? `
+          <span class="chat-item-actions">
+            <button class="btn btn-sm btn-secondary chat-item-action" title="Rename session" onclick="startRenameSession(event, '${sessId}')" style="padding:2px 7px; font-size:11px;">✎</button>
+            <button class="btn btn-sm btn-secondary chat-item-action chat-item-delete" title="Delete session" onclick="confirmDeleteChat(event, '${sessId}')" style="padding:2px 7px; font-size:11px;">🗑</button>
+          </span>` : ''}
       </div>
     `).join('');
   }
 
-  function showNewSessionChatForm() {
+  function startRenameSession(event, sessionId) {
+    event.stopPropagation();
     if (!isDM) return;
-    const container = document.getElementById('dmNewChatBtn');
-    if (!container) return;
-    container.innerHTML = `
-      <form onsubmit="createNewSessionChat(event)" style="display:flex; gap:6px; margin-top:8px;">
-        <input id="newSessionChatName" class="input-control" type="text" maxlength="60" placeholder="Session name" required style="min-width:0; padding:5px 8px;" />
-        <button class="btn btn-sm" type="submit">Create</button>
-        <button class="btn btn-sm btn-secondary" type="button" onclick="loadPreviousChatsMenu()">Cancel</button>
-      </form>
-      <p id="newSessionChatError" class="inline-status error" style="display:none;"></p>
-    `;
-    document.getElementById('newSessionChatName').focus();
+    const item = document.querySelector(`.chat-item[data-session-id="${CSS.escape(sessionId)}"]`);
+    if (!item) return;
+    item.innerHTML = `
+      <form class="rename-session-form" onsubmit="submitRenameSession(event, '${sessIdRepl(sessionId)}')">
+        <input class="input-control rename-input" type="text" maxlength="60" value="${escapeHtml(sessionId.replace(/_/g, ' '))}" />
+      </form>`;
+    const input = item.querySelector('.rename-input');
+    input.focus();
+    input.select();
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.stopPropagation(); loadPreviousChatsMenu(); }
+    });
+    input.addEventListener('click', e => e.stopPropagation());
+  }
+
+  function sessIdRepl(id) { return id.replace(/'/g, "\\'"); }
+
+  async function submitRenameSession(event, oldId) {
+    event.preventDefault();
+    if (!isDM) return;
+    const input = event.target.querySelector('.rename-input');
+    const newName = (input?.value || '').trim();
+    const newId = newName.toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!newId) { alert('Enter a session name using letters or numbers.'); return; }
+    if (newId === oldId) { loadPreviousChatsMenu(); return; }
+
+    const { data: existing } = await sb.from('session_messages').select('id').eq('session_id', newId).limit(1);
+    if (existing?.length) { alert(`A session named "${newName}" already exists.`); return; }
+
+    const { error } = await sb.from('session_messages').update({ session_id: newId }).eq('session_id', oldId);
+    if (error) { alert('Failed to rename session: ' + error.message); loadPreviousChatsMenu(); return; }
+
+    if (liveSessionId === oldId) {
+      await sb.from('active_session').update({ active_session_id: newId }).eq('id', 1);
+      liveSessionId = newId;
+    }
+    if (currentSessionId === oldId) {
+      currentSessionId = newId;
+      document.getElementById('modalChatTitle').innerText = newId.replace('_', ' ').toUpperCase();
+      initSessionChat(currentSessionId);
+    }
+    loadPreviousChatsMenu();
   }
 
   function switchSessionChat(sessionId) {
     currentSessionId = sessionId;
     document.getElementById('modalChatTitle').innerText = sessionId.replace('_', ' ').toUpperCase();
-    document.getElementById('chatMenuDrawer').classList.remove('open');
+    closeChatDrawer();
     initSessionChat(currentSessionId);
     loadPreviousChatsMenu();
   }
@@ -2121,6 +2294,7 @@
     switchSessionChat(newId);
     if (data && data.length > 0) appendMessageUI(data[0]);
     loadPreviousChatsMenu();
+    closeChatDrawer();
   }
 
   async function initSessionChat(sessionId) {
@@ -3654,7 +3828,7 @@ function toggleInlineEdit(type, id) {
       <div id="npc-relationships-container"><p class="empty-note">Loading…</p></div>`;
     const target = document.getElementById('npc-relationships-container');
     const [{ data: npcs, error: npcError }, { data: players, error: playerError }, { data: points, error: pointsError }] = await Promise.all([
-      sb.from('npcs').select('id, name, npc_name, title').order('name'),
+      sb.from('npcs').select('id, name').order('name'),
       sb.from('profiles').select('id, email').neq('role', 'dm').order('email'),
       sb.from('npc_friendship_points').select('npc_id, player_id, points, updated_at').order('updated_at', { ascending: false })
     ]);
@@ -3667,7 +3841,7 @@ function toggleInlineEdit(type, id) {
       target.innerHTML = '<p class="empty-note">No NPC friendship points have been recorded yet.</p>';
       return;
     }
-    const npcNames = new Map((npcs || []).map(npc => [String(npc.id), npc.name || npc.npc_name || npc.title || 'Unnamed NPC']));
+    const npcNames = new Map((npcs || []).map(npc => [String(npc.id), npc.name || 'Unnamed NPC']));
     const playerNames = new Map((players || []).map(player => [String(player.id), player.email || player.id]));
     target.innerHTML = `<div class="points-history-list">${points.map(row => `
       <div class="points-history-row">
@@ -3941,6 +4115,9 @@ function markdownEditor(id, value, rows = 6, className = '', sourceAttributes = 
         <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'h3')">H3</button>
         <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'bold')" aria-label="Bold"><strong>B</strong></button>
         <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'italic')" aria-label="Italic"><em>I</em></button>
+        <span class="md-color-picker-wrap" title="Text colour">
+          <input type="color" class="md-color-picker" onmousedown="saveMdSelection('${id}'); event.preventDefault()" oninput="applyMdColor('${id}', this.value)" onchange="this.blur()" aria-label="Text colour">
+        </span>
         <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'clear')" aria-label="Clear formatting">Clear</button>
         <span class="md-toolbar-spacer"></span>
         <button type="button" onmousedown="saveMdSelection('${id}'); event.preventDefault()" onclick="insertMdFormat('${id}', 'undo')" aria-label="Undo">↶</button>
@@ -3959,6 +4136,20 @@ function syncMarkdownSource(editor) {
   const sourceId = editor.dataset.markdownEditorFor;
   const source = document.getElementById(sourceId);
   if (source) source.value = markdownFromHtml(editor);
+}
+
+// Applies the chosen colour to the current selection. Browsers emit <font
+// color="…"> for foreColor; markdownFromHtml converts those to inline HTML
+// spans when serialising so the colour survives save → markdown → render.
+function applyMdColor(id, color) {
+  const editor = document.getElementById(`${id}-editor`);
+  if (!editor || !color) return;
+  saveMdSelection(id);
+  restoreMdSelection(id, editor);
+  const selection = window.getSelection();
+  if (!selection || !selection.rangeCount || selection.isCollapsed) return;
+  document.execCommand('foreColor', false, color);
+  syncMarkdownSource(editor);
 }
 
 // Toolbar clicks move focus away from contenteditable. Preserve the exact
@@ -3994,6 +4185,18 @@ function markdownFromHtml(root) {
     if (tag === 'code') return `\`${content}\``;
     if (tag === 'a') return `[${content}](${node.getAttribute('href') || ''})`;
     if (tag === 'img') return `![${node.getAttribute('alt') || ''}](${node.getAttribute('src') || ''})`;
+    // Preserve coloured text as inline HTML so it round-trips through save/load.
+    if (tag === 'font') {
+      const color = node.getAttribute('color');
+      if (color) return `<span style="color:${escapeHtml(color)}">${content}</span>`;
+      return content;
+    }
+    if (tag === 'span') {
+      const style = node.getAttribute('style') || '';
+      const colorMatch = style.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i);
+      if (colorMatch) return `<span style="color:${escapeHtml(colorMatch[1].trim())}">${content}</span>`;
+      return content;
+    }
     return content;
   }
 
@@ -4024,7 +4227,7 @@ function markdownFromHtml(root) {
       ).join('');
       return content.trim() ? `${content}\n\n` : '';
     }
-    return Array.from(node.childNodes).map(block).join('');
+    return inline(node);
   }
 
   return Array.from(root.childNodes).map(block).join('')
@@ -4770,7 +4973,7 @@ function getEditableImageValue(scope, id) {
       <div class="faction-group">
         <h3 class="faction-title">${escapeHtml(faction)}</h3>
         ${factionNPCs.map(npc => {
-          const name = npc.name || npc.npc_name || npc.title || 'Unnamed NPC';
+          const name = npc.name || 'Unnamed NPC';
           const raceValue = String(npc.race || '').trim();
           const characterClass = String(npc.class || '').trim();
           const race = !characterClass && /\s+[—–-]\s+/.test(raceValue) ? '' : raceValue;

@@ -234,8 +234,22 @@ function ContentSections() {
 
 function ChatModal() {
   return h('div', { id: 'chatModalOverlay', className: 'chat-modal-overlay' }, h('div', { className: 'chat-modal' },
-    h('div', { className: 'chat-header' }, h('div', { className: 'chat-header-left' }, h('button', { className: 'btn btn-sm btn-secondary', onClick: () => window.toggleChatDrawer() }, '☰'), h('h4', { id: 'modalChatTitle' }, 'Session Chat')), h('div', { className: 'chat-header-actions' }, h('span', { id: 'chatStatusBadge', className: 'status-badge' }, 'Locked'), h('button', { className: 'btn btn-sm btn-secondary', onClick: () => window.closeChatModal() }, '✕'))),
-    h('div', { id: 'chatMenuDrawer', className: 'chat-menu-drawer' }, h('div', { className: 'chat-drawer-header' }, h('strong', null, 'Past Sessions'), h('span', { id: 'dmNewChatBtn' })), h('div', { id: 'previousChatsList' })),
+    h('div', { className: 'chat-header' }, h('div', { className: 'chat-header-left' }, h('button', { className: 'btn btn-sm btn-secondary chat-drawer-toggle', onClick: () => window.toggleChatDrawer(), title: 'Toggle Session List', 'aria-expanded': 'false' }, '☰'), h('h4', { id: 'modalChatTitle' }, 'Session Chat')), h('div', { className: 'chat-header-actions' }, h('span', { id: 'chatStatusBadge', className: 'status-badge' }, 'Locked'), h('button', { className: 'btn btn-sm btn-secondary', onClick: () => window.closeChatModal() }, '✕'))),
+    h('div', { id: 'chatDrawerScrim', className: 'chat-drawer-scrim', onClick: () => window.closeChatDrawer() }),
+    h('div', { id: 'chatMenuDrawer', className: 'chat-menu-drawer' },
+      h('button', { id: 'newSessionChatBtn', className: 'btn btn-sm new-session-btn', type: 'button', onClick: () => window.showNewSessionChatForm(), style: { display: 'none' } }, '＋ New Session'),
+      h('form', { id: 'newSessionChatPanel', className: 'new-session-panel', style: { display: 'none' }, onSubmit: e => window.createNewSessionChat(e) },
+        h('label', { className: 'new-session-label', htmlFor: 'newSessionChatName' }, 'Session name'),
+        h('input', { id: 'newSessionChatName', className: 'input-control', type: 'text', maxLength: 60, placeholder: 'e.g. Session 4 — The Vaults', autoComplete: 'off' }),
+        h('p', { id: 'newSessionChatError', className: 'inline-status error', style: { display: 'none' } }),
+        h('div', { className: 'new-session-actions' },
+          h('button', { className: 'btn btn-sm', type: 'submit' }, 'Create'),
+          h('button', { className: 'btn btn-sm btn-secondary', type: 'button', onClick: () => window.cancelNewSessionChat() }, 'Cancel')
+        )
+      ),
+      h('div', { className: 'chat-drawer-header' }, h('strong', null, 'Past Sessions')),
+      h('div', { id: 'previousChatsList' })
+    ),
     h('div', { className: 'chat-body' },
       h('div', { id: 'dmChatControls', className: 'chat-dm-controls', style: { display: 'none' } },
         h('div', { className: 'chat-control-row' },
