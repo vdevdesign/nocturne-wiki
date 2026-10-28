@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nocturne - Candelabra Pattern Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        nocturne: {
+                            50: '#f4f4f6',
+                            100: '#e6e6eb',
+                            800: '#1e1a29',
+                            900: '#0f0c1b',
+                            gold: '#d4af37',
+                            velvet: '#58111a',
+                            midnight: '#0b1021',
+                            gothic: '#121212'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Cinzel', 'Georgia', 'serif'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* CSS Theme Variables applied to SVG Pattern Elements */
+        :root, [data-theme="midnight"] {
+            --nocturne-bg: #0b1021;
+            --nocturne-card-bg: rgba(18, 26, 51, 0.85);
+            --nocturne-border: rgba(212, 175, 55, 0.25);
+            --candelabra-stroke: #d4af37;
+            --candelabra-fill: #192342;
+            --flame-color: #ff9d00;
+            --flame-glow: #ff4500;
+            --accent-glow: rgba(212, 175, 55, 0.15);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+        }
+
+        [data-theme="gothic"] {
+            --nocturne-bg: #0d0d0d;
+            --nocturne-card-bg: rgba(24, 24, 27, 0.85);
+            --nocturne-border: rgba(113, 113, 122, 0.3);
+            --candelabra-stroke: #888888;
+            --candelabra-fill: #1f1f1f;
+            --flame-color: #e63946;
+            --flame-glow: #800020;
+            --accent-glow: rgba(230, 57, 70, 0.12);
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+        }
+
+        [data-theme="velvet"] {
+            --nocturne-bg: #2a0812;
+            --nocturne-card-bg: rgba(61, 14, 28, 0.85);
+            --nocturne-border: rgba(224, 169, 109, 0.3);
+            --candelabra-stroke: #e0a96d;
+            --candelabra-fill: #42101e;
+            --flame-color: #f7b05b;
+            --flame-glow: #c72c41;
+            --accent-glow: rgba(224, 169, 109, 0.15);
+            --text-primary: #fdf8f5;
+            --text-secondary: #d3b1b8;
+        }
+
+        [data-theme="gold"] {
+            --nocturne-bg: #1c1917;
+            --nocturne-card-bg: rgba(44, 36, 22, 0.85);
+            --nocturne-border: rgba(234, 179, 8, 0.4);
+            --candelabra-stroke: #facc15;
+            --candelabra-fill: #3b2d13;
+            --flame-color: #fef08a;
+            --flame-glow: #f59e0b;
+            --accent-glow: rgba(250, 204, 21, 0.2);
+            --text-primary: #fefce8;
+            --text-secondary: #ca8a04;
+        }
+
+        [data-theme="emerald"] {
+            --nocturne-bg: #062016;
+            --nocturne-card-bg: rgba(11, 48, 34, 0.85);
+            --nocturne-border: rgba(52, 211, 153, 0.3);
+            --candelabra-stroke: #34d399;
+            --candelabra-fill: #0d3827;
+            --flame-color: #a7f3d0;
+            --flame-glow: #10b981;
+            --accent-glow: rgba(52, 211, 153, 0.15);
+            --text-primary: #ecfdf5;
+            --text-secondary: #6ee7b7;
+        }
+
+        [data-theme="light"] {
+            --nocturne-bg: #f8fafc;
+            --nocturne-card-bg: rgba(255, 255, 255, 0.85);
+            --nocturne-border: rgba(71, 85, 105, 0.2);
+            --candelabra-stroke: #334155;
+            --candelabra-fill: #e2e8f0;
+            --flame-color: #f59e0b;
+            --flame-glow: #d97706;
+            --accent-glow: rgba(51, 65, 85, 0.08);
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+        }
+
+        /* Dynamic SVG Target styles using CSS Variables */
+        .candelabra-pattern-bg {
+            background-color: var(--nocturne-bg);
+            transition: background-color 0.4s ease;
+        }
+
+        .themed-card {
+            background-color: var(--nocturne-card-bg);
+            border-color: var(--nocturne-border);
+            color: var(--text-primary);
+            backdrop-filter: blur(12px);
+        }
+
+        .themed-text-secondary {
+            color: var(--text-secondary);
+        }
+
+        .themed-accent-border {
+            border-color: var(--candelabra-stroke);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--nocturne-border);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen candelabra-pattern-bg flex flex-col justify-between text-slate-100 transition-colors duration-500" data-theme="midnight">
+
+    <!-- Dynamic SVG Pattern Background Layer -->
+    <div id="patternContainer" class="fixed inset-0 pointer-events-none z-0 opacity-90 transition-all duration-300"></div>
+
+    <!-- Header / Navigation -->
+    <header class="relative z-10 w-full px-6 py-4 border-b themed-card">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center border themed-accent-border bg-opacity-20 bg-amber-500 shadow-lg">
+                    <i class="fa-solid fa-candle-holder text-amber-400 text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-serif text-xl font-bold tracking-wider uppercase text-amber-400">NOCTURNE</h1>
+                    <p class="text-xs themed-text-secondary tracking-widest uppercase">Candelabra Pattern Generator</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Controls -->
+            <div class="flex items-center space-x-3 text-sm">
+                <button onclick="toggleFlameAnimation()" id="flameAnimBtn" class="px-3 py-1.5 rounded-lg border themed-card hover:border-amber-400 transition flex items-center gap-2">
+                    <i class="fa-solid fa-fire text-amber-500 animate-pulse"></i>
+                    <span id="flameAnimText">Flame Flicker: ON</span>
+                </button>
+                <a href="#codeModal" onclick="openCodeExport()" class="px-4 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-code"></i>
+                    <span>Export Pattern</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="relative z-10 max-w-7xl w-full mx-auto px-4 py-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- Controls Side Panel -->
+        <section class="lg:col-span-4 space-y-6">
+            
+            <!-- Theme Selector -->
+            <div class="p-6 rounded-2xl border themed-card shadow-2xl space-y-4">
+                <h2 class="font-serif text-lg font-semibold flex items-center gap-2 text-amber-400">
+                    <i class="fa-solid fa-palette"></i> Site Themes
+                </h2>
+                <p class="text-xs themed-text-secondary">Select a Nocturne site theme to preview dynamic CSS variable recoloring.</p>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1" id="themeGrid">
+                    <button onclick="setTheme('midnight')" class="theme-btn p-3 rounded-xl border border-slate-700/60 bg-[#0b1021] text-left hover:scale-[1.02] transition flex flex-col justify-between h-20 shadow-md ring-2 ring-amber-400" data-t="midnight">
+                        <span class="text-xs font-semibold text-slate-200">Midnight</span>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-[#d4af37]"></span>
+                            <span class="w-3 h-3 rounded-full bg-[#ff9d00]"></span>
+                        </div>
+                    </button>
+
+                    <button onclick="setTheme('gothic')" class="theme-btn p-3 rounded-xl border border-slate-700/60 bg-[#0d0d0d] text-left hover:scale-[1.02] transition flex flex-col justify-between h-20 shadow-md" data-t="gothic">
+                        <span class="text-xs font-semibold text-slate-200">Gothic Dark</span>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-[#888888]"></span>
+                            <span class="w-3 h-3 rounded-full bg-[#e63946]"></span>
+                        </div>
+                    </button>
+
+                    <button onclick="setTheme('velvet')" class="theme-btn p-3 rounded-xl border border-slate-700/60 bg-[#2a0812] text-left hover:scale-[1.02] transition flex flex-col justify-between h-20 shadow-md" data-t="velvet">
+                        <span class="text-xs font-semibold text-slate-200">Royal Velvet</span>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-[#e0a96d]"></span>
+                            <span class="w-3 h-3 rounded-full bg-[#f7b05b]"></span>
+                        </div>
+                    </button>
+
+                    <button onclick="setTheme('gold')" class="theme-btn p-3 rounded-xl border border-slate-700/60 bg-[#1c1917] text-left hover:scale-[1.02] transition flex flex-col justify-between h-20 shadow-md" data-t="gold">
+                        <span class="text-xs font-semibold text-slate-200">Opulent Gold</span>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-[#facc15]"></span>
+                            <span class="w-3 h-3 rounded-full bg-[#fef08a]"></span>
+                        </div>
+                    </button>
+
+                    <button onclick="setTheme('emerald')" class="theme-btn p-3 rounded-xl border border-slate-700/60 bg-[#062016] text-left hover:scale-[1.02] transition flex flex-col justify-between h-20 shadow-md" data-t="emerald">
+                        <span class="text-xs font-semibold text-slate-200">Siren Emerald</span>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-[#34d399]"></span>
+                            <span class="w-3 h-3 rounded-full bg-[#a7f3d0]"></span>
+                        </div>
+                    </button>
+
+                    <button onclick="setTheme('light')" class="theme-btn p-3 rounded-xl border border-slate-300 bg-[#f8fafc] text-left hover:scale-[1.02] transition flex flex-col justify-between h-20 shadow-md" data-t="light">
+                        <span class="text-xs font-semibold text-slate-800">Parchment</span>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-[#334155]"></span>
+                            <span class="w-3 h-3 rounded-full bg-[#f59e0b]"></span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pattern Adjustments -->
+            <div class="p-6 rounded-2xl border themed-card shadow-2xl space-y-5">
+                <h2 class="font-serif text-lg font-semibold flex items-center gap-2 text-amber-400">
+                    <i class="fa-solid fa-sliders"></i> Pattern Geometry
+                </h2>
+
+                <!-- Tilt Angle Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-medium">
+                        <label for="tiltAngle" class="themed-text-secondary">Tilt Angle (Slight Tilt)</label>
+                        <span id="tiltAngleVal" class="text-amber-400 font-mono">-7.5°</span>
+                    </div>
+                    <input type="range" id="tiltAngle" min="-25" max="25" step="0.5" value="-7.5" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400" oninput="updatePattern()">
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>Left (-25°)</span>
+                        <span>Upright (0°)</span>
+                        <span>Right (25°)</span>
+                    </div>
+                </div>
+
+                <!-- Pattern Scale Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-medium">
+                        <label for="patternScale" class="themed-text-secondary">Pattern Tile Size</label>
+                        <span id="patternScaleVal" class="text-amber-400 font-mono">140px</span>
+                    </div>
+                    <input type="range" id="patternScale" min="80" max="260" step="10" value="140" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400" oninput="updatePattern()">
+                </div>
+
+                <!-- Stroke Width Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-medium">
+                        <label for="strokeWidth" class="themed-text-secondary">Line Thickness</label>
+                        <span id="strokeWidthVal" class="text-amber-400 font-mono">1.8px</span>
+                    </div>
+                    <input type="range" id="strokeWidth" min="0.8" max="4.0" step="0.2" value="1.8" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400" oninput="updatePattern()">
+                </div>
+
+                <!-- Opacity Control -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-medium">
+                        <label for="patternOpacity" class="themed-text-secondary">Pattern Opacity</label>
+                        <span id="patternOpacityVal" class="text-amber-400 font-mono">85%</span>
+                    </div>
+                    <input type="range" id="patternOpacity" min="10" max="100" step="5" value="85" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400" oninput="updatePattern()">
+                </div>
+
+                <!-- Stagger / Grid Style -->
+                <div class="space-y-2 pt-2">
+                    <label class="text-xs font-medium themed-text-secondary block">Arrangement Style</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="layoutStagger" onclick="setLayout('stagger')" class="px-3 py-2 text-xs rounded-xl border border-amber-500/50 bg-amber-500/20 text-amber-300 font-medium transition">
+                            <i class="fa-solid fa-border-all mr-1"></i> Offset Grid
+                        </button>
+                        <button id="layoutGrid" onclick="setLayout('grid')" class="px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800/40 themed-text-secondary hover:border-slate-500 transition">
+                            <i class="fa-solid fa-table-cells mr-1"></i> Regular Grid
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="resetControls()" class="w-full mt-2 py-2 text-xs text-slate-400 hover:text-amber-300 transition flex items-center justify-center gap-1.5 border border-dashed border-slate-700 rounded-xl">
+                    <i class="fa-solid fa-rotate-left"></i> Reset Defaults
+                </button>
+            </div>
+        </section>
+
+        <!-- Preview Showcase & Cards -->
+        <section class="lg:col-span-8 space-y-6">
+
+            <!-- Card Banner Preview -->
+            <div class="p-8 rounded-2xl border themed-card shadow-2xl relative overflow-hidden space-y-6">
+                <div class="max-w-xl relative z-10 space-y-3">
+                    <span class="px-3 py-1 text-[11px] uppercase tracking-widest font-semibold rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-400 inline-block">
+                        Nocturne Visual System
+                    </span>
+                    <h2 class="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-amber-300">
+                        Atmospheric Gothic Elegance
+                    </h2>
+                    <p class="text-sm leading-relaxed themed-text-secondary">
+                        This vector background uses CSS variables (<code class="text-amber-400 font-mono text-xs">var(--candelabra-stroke)</code>) to dynamically match Nocturne's site themes without reloading or duplicating SVG markup.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap gap-3 pt-2 relative z-10">
+                    <button onclick="openCodeExport()" class="px-5 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-semibold text-sm shadow-lg hover:bg-amber-400 transition flex items-center gap-2">
+                        <i class="fa-solid fa-code"></i> Copy SVG / CSS
+                    </button>
+                    <button onclick="downloadSVG()" class="px-5 py-2.5 rounded-xl border border-amber-500/40 bg-slate-900/40 hover:bg-amber-500/10 text-amber-300 font-medium text-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i> Download .svg
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tile Detail Preview Card -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Single Candelabra Vector Inspection -->
+                <div class="p-6 rounded-2xl border themed-card shadow-xl flex flex-col items-center text-center space-y-4">
+                    <span class="text-xs font-serif uppercase tracking-wider text-amber-400">Single Motif Detail</span>
+                    <div id="singleMotifContainer" class="w-48 h-48 flex items-center justify-center p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                        <!-- Rendered via JS -->
+                    </div>
+                    <p class="text-xs themed-text-secondary">
+                        Ornate 3-arm candelabra with scrollwork arms, dripping wax candles, and animated flame flickers.
+                    </p>
+                </div>
+
+                <!-- Theme Integration Snippet -->
+                <div class="p-6 rounded-2xl border themed-card shadow-xl space-y-4 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-serif uppercase tracking-wider text-amber-400 block mb-2">CSS Theme Integration</span>
+                        <pre class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-300 overflow-x-auto leading-relaxed">
+<code>:root {
+  --candelabra-stroke: #d4af37;
+  --candelabra-fill: #192342;
+  --flame-color: #ff9d00;
+}
+
+/* Attach as repeated SVG pattern */
+.nocturne-bg {
+  background-image: url('candelabra-pattern.svg');
+}</code></pre>
+                    </div>
+                    <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300/90 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-amber-400 mt-0.5"></i>
+                        <span>Scalable vector graphics maintain crisp details on all display resolutions.</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Code Export Modal -->
+    <div id="codeModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="max-w-3xl w-full rounded-2xl border themed-card shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-code text-amber-400"></i>
+                    <h3 class="font-serif text-lg font-bold text-amber-300">Export Pattern Code</h3>
+                </div>
+                <button onclick="closeCodeExport()" class="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Export Tabs -->
+            <div class="flex border-b border-slate-800 bg-slate-950/40 text-xs font-medium">
+                <button onclick="switchTab('css')" id="tabCss" class="px-5 py-3 border-b-2 border-amber-400 text-amber-400 transition">CSS Background Snippet</button>
+                <button onclick="switchTab('svg')" id="tabSvg" class="px-5 py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">Raw SVG File Code</button>
+                <button onclick="switchTab('inline')" id="tabInline" class="px-5 py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">Inline Overlay SVG</button>
+            </div>
+
+            <!-- Code Content Area -->
+            <div class="p-5 overflow-y-auto flex-1 bg-slate-950 font-mono text-xs text-slate-300 leading-relaxed">
+                <pre id="exportCodeBlock" class="whitespace-pre-wrap break-all"></pre>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
+                <span id="copyNotice" class="text-xs text-amber-400 opacity-0 transition-opacity">
+                    <i class="fa-solid fa-check mr-1"></i> Copied to clipboard!
+                </span>
+                <div class="flex gap-3">
+                    <button onclick="closeCodeExport()" class="px-4 py-2 rounded-xl text-xs font-medium border border-slate-700 hover:bg-slate-800 transition">Close</button>
+                    <button onclick="copyExportCode()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-copy"></i> Copy Code
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="relative z-10 w-full py-4 text-center text-xs themed-text-secondary border-t border-slate-800/40">
+        <p>© Nocturne Design System — Dynamic SVG Candelabra Pattern Generator</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Global State Configuration
+        const state = {
+            theme: 'midnight',
+            tiltAngle: -7.5,
+            scale: 140,
+            strokeWidth: 1.8,
+            opacity: 0.85,
+            layout: 'stagger', // 'stagger' or 'grid'
+            flameAnim: true,
+            activeTab: 'css'
+        };
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            updatePattern();
+            updateSingleMotif();
+        });
+
+        // Toggle Flame Flicker Animation State
+        function toggleFlameAnimation() {
+            state.flameAnim = !state.flameAnim;
+            document.getElementById('flameAnimText').innerText = `Flame Flicker: ${state.flameAnim ? 'ON' : 'OFF'}`;
+            updatePattern();
+            updateSingleMotif();
+        }
+
+        // Set Active Theme
+        function setTheme(themeName) {
+            state.theme = themeName;
+            document.body.setAttribute('data-theme', themeName);
+            
+            // Highlight button
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                if (btn.getAttribute('data-t') === themeName) {
+                    btn.classList.add('ring-2', 'ring-amber-400');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-amber-400');
+                }
+            });
+
+            updatePattern();
+        }
+
+        // Set Layout Arrangement
+        function setLayout(layoutType) {
+            state.layout = layoutType;
+            const btnStagger = document.getElementById('layoutStagger');
+            const btnGrid = document.getElementById('layoutGrid');
+
+            if (layoutType === 'stagger') {
+                btnStagger.className = "px-3 py-2 text-xs rounded-xl border border-amber-500/50 bg-amber-500/20 text-amber-300 font-medium transition";
+                btnGrid.className = "px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800/40 themed-text-secondary hover:border-slate-500 transition";
+            } else {
+                btnGrid.className = "px-3 py-2 text-xs rounded-xl border border-amber-500/50 bg-amber-500/20 text-amber-300 font-medium transition";
+                btnStagger.className = "px-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-800/40 themed-text-secondary hover:border-slate-500 transition";
+            }
+            updatePattern();
+        }
+
+        // Reset Controls to Default
+        function resetControls() {
+            document.getElementById('tiltAngle').value = -7.5;
+            document.getElementById('patternScale').value = 140;
+            document.getElementById('strokeWidth').value = 1.8;
+            document.getElementById('patternOpacity').value = 85;
+            state.layout = 'stagger';
+            setLayout('stagger');
+            updatePattern();
+        }
+
+        // Generate Candelabra SVG Path String
+        function getCandelabraSVGPath(sw) {
+            return `
+            <!-- Candelabra Base & Stem -->
+            <path d="M 42 88 Q 50 84 58 88 L 56 82 Q 50 80 44 82 Z" fill="var(--candelabra-stroke)" opacity="0.6"/>
+            <path d="M 44 82 C 44 76, 47 70, 48 62 L 52 62 C 53 70, 56 76, 56 82 Z" fill="var(--candelabra-fill)" stroke="var(--candelabra-stroke)" stroke-width="${sw}" stroke-linejoin="round"/>
+            <path d="M 50 62 L 50 28" stroke="var(--candelabra-stroke)" stroke-width="${sw * 1.3}" stroke-linecap="round"/>
+            
+            <!-- Central Stem Ornamentation Knobs -->
+            <circle cx="50" cy="58" r="${sw * 1.5}" fill="var(--candelabra-stroke)" />
+            <circle cx="50" cy="42" r="${sw * 1.8}" fill="var(--candelabra-fill)" stroke="var(--candelabra-stroke)" stroke-width="${sw}"/>
+            
+            <!-- Left Arm Scrollwork -->
+            <path d="M 50 50 C 35 50, 22 42, 22 28 C 22 22, 28 22, 28 26 C 28 32, 38 40, 50 42" fill="none" stroke="var(--candelabra-stroke)" stroke-width="${sw}" stroke-linecap="round"/>
+            <!-- Left Secondary Flourish -->
+            <path d="M 32 44 C 26 48, 20 54, 22 60 C 24 64, 28 62, 26 58" fill="none" stroke="var(--candelabra-stroke)" stroke-width="${sw * 0.8}"/>
+
+            <!-- Right Arm Scrollwork -->
+            <path d="M 50 50 C 65 50, 78 42, 78 28 C 78 22, 72 22, 72 26 C 72 32, 62 40, 50 42" fill="none" stroke="var(--candelabra-stroke)" stroke-width="${sw}" stroke-linecap="round"/>
+            <!-- Right Secondary Flourish -->
+            <path d="M 68 44 C 74 48, 80 54, 78 60 C 76 64, 72 62, 74 58" fill="none" stroke="var(--candelabra-stroke)" stroke-width="${sw * 0.8}"/>
+
+            <!-- Candle Cups / Sconces -->
+            <!-- Left Cup -->
+            <path d="M 18 28 C 18 34, 26 34, 26 28 Z" fill="var(--candelabra-fill)" stroke="var(--candelabra-stroke)" stroke-width="${sw}"/>
+            <!-- Center Cup -->
+            <path d="M 46 28 C 46 34, 54 34, 54 28 Z" fill="var(--candelabra-fill)" stroke="var(--candelabra-stroke)" stroke-width="${sw}"/>
+            <!-- Right Cup -->
+            <path d="M 74 28 C 74 34, 82 34, 82 28 Z" fill="var(--candelabra-fill)" stroke="var(--candelabra-stroke)" stroke-width="${sw}"/>
+
+            <!-- Wax Candles -->
+            <!-- Left Candle -->
+            <rect x="20" y="14" width="4" height="14" rx="1" fill="var(--candelabra-stroke)" opacity="0.9"/>
+            <path d="M 20 18 Q 19 20 20 22" stroke="var(--candelabra-stroke)" stroke-width="0.8" fill="none"/> <!-- Wax drip -->
+            <!-- Center Candle -->
+            <rect x="48" y="10" width="4" height="18" rx="1" fill="var(--candelabra-stroke)" opacity="0.9"/>
+            <path d="M 52 16 Q 53 18 52 21" stroke="var(--candelabra-stroke)" stroke-width="0.8" fill="none"/> <!-- Wax drip -->
+            <!-- Right Candle -->
+            <rect x="76" y="14" width="4" height="14" rx="1" fill="var(--candelabra-stroke)" opacity="0.9"/>
+
+            <!-- Candle Wicks -->
+            <line x1="22" y1="14" x2="22" y2="11" stroke="var(--candelabra-stroke)" stroke-width="1"/>
+            <line x1="50" y1="10" x2="50" y2="7" stroke="var(--candelabra-stroke)" stroke-width="1"/>
+            <line x1="78" y1="14" x2="78" y2="11" stroke="var(--candelabra-stroke)" stroke-width="1"/>
+
+            <!-- Animated Flames -->
+            <g class="candelabra-flames">
+                <!-- Left Flame -->
+                <path d="M 22 11 Q 19 6 22 2 Q 25 6 22 11 Z" fill="var(--flame-color)">
+                    ${state.flameAnim ? '<animate attributeName="d" values="M 22 11 Q 19 6 22 2 Q 25 6 22 11 Z; M 22 11 Q 20 7 22 3 Q 24 5 22 11 Z; M 22 11 Q 19 6 22 2 Q 25 6 22 11 Z" dur="1.8s" repeatCount="indefinite" />' : ''}
+                </path>
+                <circle cx="22" cy="6" r="3" fill="var(--flame-glow)" opacity="0.3"/>
+
+                <!-- Center Flame (Slightly Larger) -->
+                <path d="M 50 7 Q 46 2 50 -3 Q 54 2 50 7 Z" fill="var(--flame-color)">
+                    ${state.flameAnim ? '<animate attributeName="d" values="M 50 7 Q 46 2 50 -3 Q 54 2 50 7 Z; M 50 7 Q 48 3 50 -2 Q 52 1 50 7 Z; M 50 7 Q 46 2 50 -3 Q 54 2 50 7 Z" dur="1.4s" repeatCount="indefinite" />' : ''}
+                </path>
+                <circle cx="50" cy="2" r="4" fill="var(--flame-glow)" opacity="0.35"/>
+
+                <!-- Right Flame -->
+                <path d="M 78 11 Q 75 6 78 2 Q 81 6 78 11 Z" fill="var(--flame-color)">
+                    ${state.flameAnim ? '<animate attributeName="d" values="M 78 11 Q 75 6 78 2 Q 81 6 78 11 Z; M 78 11 Q 77 5 78 3 Q 79 7 78 11 Z; M 78 11 Q 75 6 78 2 Q 81 6 78 11 Z" dur="2.1s" repeatCount="indefinite" />' : ''}
+                </path>
+                <circle cx="78" cy="6" r="3" fill="var(--flame-glow)" opacity="0.3"/>
+            </g>
+            `;
+        }
+
+        // Update SVG Pattern Container in DOM
+        function updatePattern() {
+            // Read UI Sliders
+            state.tiltAngle = parseFloat(document.getElementById('tiltAngle').value);
+            state.scale = parseInt(document.getElementById('patternScale').value);
+            state.strokeWidth = parseFloat(document.getElementById('strokeWidth').value);
+            state.opacity = parseInt(document.getElementById('patternOpacity').value) / 100;
+
+            // Update Value Labels
+            document.getElementById('tiltAngleVal').innerText = `${state.tiltAngle}°`;
+            document.getElementById('patternScaleVal').innerText = `${state.scale}px`;
+            document.getElementById('strokeWidthVal').innerText = `${state.strokeWidth}px`;
+            document.getElementById('patternOpacityVal').innerText = `${Math.round(state.opacity * 100)}%`;
+
+            const tileSize = state.scale;
+            const halfTile = tileSize / 2;
+            const container = document.getElementById('patternContainer');
+
+            // Determine Pattern Coordinates based on Stagger or Regular Grid
+            let secondMotifTransform = `translate(${halfTile}, ${halfTile}) rotate(${state.tiltAngle}, 50, 50)`;
+            if (state.layout === 'grid') {
+                secondMotifTransform = `translate(${halfTile}, 0) scale(0.6) rotate(${-state.tiltAngle}, 50, 50)`;
+            }
+
+            const svgContent = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                <defs>
+                    <pattern id="nocturneCandelabraPattern" width="${tileSize}" height="${tileSize}" patternUnits="userSpaceOnUse">
+                        <!-- Primary Tilted Candelabra Motif -->
+                        <g transform="translate(10, 10) scale(${tileSize / 130}) rotate(${state.tiltAngle}, 50, 50)" opacity="${state.opacity}">
+                            ${getCandelabraSVGPath(state.strokeWidth)}
+                        </g>
+
+                        <!-- Secondary Offset Candelabra Motif for Seamless Interlocking -->
+                        <g transform="translate(${tileSize * 0.55}, ${tileSize * 0.55}) scale(${tileSize / 145}) rotate(${state.tiltAngle}, 50, 50)" opacity="${state.opacity * 0.75}">
+                            ${getCandelabraSVGPath(state.strokeWidth)}
+                        </g>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#nocturneCandelabraPattern)"/>
+            </svg>`;
+
+            container.innerHTML = svgContent;
+
+            // If Code Export Modal is active, update code display
+            if (document.getElementById('codeModal').classList.contains('opacity-100')) {
+                renderExportCode();
+            }
+        }
+
+        // Render Single Motif Inspection Card
+        function updateSingleMotif() {
+            const singleContainer = document.getElementById('singleMotifContainer');
+            const svg = `
+            <svg viewBox="-10 -10 120 120" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <g transform="rotate(${state.tiltAngle}, 50, 50)">
+                    ${getCandelabraSVGPath(2.0)}
+                </g>
+            </svg>`;
+            singleContainer.innerHTML = svg;
+        }
+
+        // Code Export Modal Handlers
+        function openCodeExport() {
+            const modal = document.getElementById('codeModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100');
+            renderExportCode();
+        }
+
+        function closeCodeExport() {
+            const modal = document.getElementById('codeModal');
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function switchTab(tab) {
+            state.activeTab = tab;
+            const tabs = ['css', 'svg', 'inline'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                if (t === tab) {
+                    btn.className = "px-5 py-3 border-b-2 border-amber-400 text-amber-400 transition font-semibold";
+                } else {
+                    btn.className = "px-5 py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+                }
+            });
+            renderExportCode();
+        }
+
+        // Generate Code Strings for Export
+        function renderExportCode() {
+            const codeBlock = document.getElementById('exportCodeBlock');
+            const tileSize = state.scale;
+
+            if (state.activeTab === 'css') {
+                codeBlock.textContent = `/* Nocturne Candelabra Dynamic Theme CSS */
+:root {
+  --nocturne-bg: #0b1021;
+  --candelabra-stroke: #d4af37;
+  --candelabra-fill: #192342;
+  --flame-color: #ff9d00;
+  --flame-glow: #ff4500;
+}
+
+/* Background Utility Class */
+.nocturne-candelabra-bg {
+  background-color: var(--nocturne-bg);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${tileSize}" height="${tileSize}"><g transform="rotate(${state.tiltAngle}, 50, 50)"><path d="M 44 82 C 44 76, 47 70, 48 62 L 52 62 Z" fill="%23d4af37"/></g></svg>');
+  /* Tip: Use SVG file referencing for full multi-color dynamic theme support */
+}`;
+            } else if (state.activeTab === 'svg') {
+                codeBlock.textContent = `<!-- candelabra-pattern.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+  <defs>
+    <style>
+      :root {
+        --candelabra-stroke: #d4af37;
+        --candelabra-fill: #192342;
+        --flame-color: #ff9d00;
+        --flame-glow: #ff4500;
+      }
+    </style>
+    <pattern id="candelabraPattern" width="${tileSize}" height="${tileSize}" patternUnits="userSpaceOnUse">
+      <g transform="translate(10, 10) scale(${tileSize / 130}) rotate(${state.tiltAngle}, 50, 50)">
+        ${getCandelabraSVGPath(state.strokeWidth).replace(/\s+/g, ' ').trim()}
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#candelabraPattern)"/>
+</svg>`;
+            } else if (state.activeTab === 'inline') {
+                codeBlock.textContent = `<!-- Nocturne Background Overlay Element -->
+<div class="fixed inset-0 pointer-events-none z-0">
+  <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+    <defs>
+      <pattern id="inlineCandelabra" width="${tileSize}" height="${tileSize}" patternUnits="userSpaceOnUse">
+        <g transform="translate(10, 10) scale(${tileSize / 130}) rotate(${state.tiltAngle}, 50, 50)" opacity="${state.opacity}">
+          ${getCandelabraSVGPath(state.strokeWidth).replace(/\s+/g, ' ').trim()}
+        </g>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#inlineCandelabra)"/>
+  </svg>
+</div>`;
+            }
+        }
+
+        // Copy Code to Clipboard using standard fallback for web embeds
+        function copyExportCode() {
+            const codeText = document.getElementById('exportCodeBlock').textContent;
+            
+            // Temporary textarea for copying
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                const notice = document.getElementById('copyNotice');
+                notice.classList.remove('opacity-0');
+                setTimeout(() => notice.classList.add('opacity-0'), 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // Download SVG File directly
+        function downloadSVG() {
+            const tileSize = state.scale;
+            const fullSVG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+  <defs>
+    <style>
+      :root {
+        --candelabra-stroke: #d4af37;
+        --candelabra-fill: #192342;
+        --flame-color: #ff9d00;
+        --flame-glow: #ff4500;
+      }
+    </style>
+    <pattern id="nocturneCandelabraPattern" width="${tileSize}" height="${tileSize}" patternUnits="userSpaceOnUse">
+      <g transform="translate(10, 10) scale(${tileSize / 130}) rotate(${state.tiltAngle}, 50, 50)" opacity="${state.opacity}">
+        ${getCandelabraSVGPath(state.strokeWidth)}
+      </g>
+      <g transform="translate(${tileSize * 0.55}, ${tileSize * 0.55}) scale(${tileSize / 145}) rotate(${state.tiltAngle}, 50, 50)" opacity="${state.opacity * 0.75}">
+        ${getCandelabraSVGPath(state.strokeWidth)}
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#nocturneCandelabraPattern)"/>
+</svg>`;
+
+            const blob = new Blob([fullSVG], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nocturne-candelabra-pattern-${state.theme}.svg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

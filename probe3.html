@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Minimal probe 3</title>
+</head>
+
+<body>
+    <div id="marker">pending</div>
+    <script>window.__step1 = 'step1-run';</script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" onload="window.__step2='react-loaded'"></script>
+    <script>
+        window.__step3 = 'inline-after-react-run';
+        document.getElementById('marker').textContent = 's1=' + window.__step1 + ' s2=' + window.__step2 + ' s3=' + window.__step3 + ' react=' + typeof React;
+    </script>
+</body>
+
+</html>

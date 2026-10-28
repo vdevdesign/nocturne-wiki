@@ -136,9 +136,7 @@
   .brand-title-row p { margin: 4px 0 0; }
   .brand-meta-row { display: grid; grid-template-columns: minmax(0, 1fr) 34px; align-items: center; gap: 8px; margin-top: 12px; }
   .brand-meta-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
-  .theme-select { max-width: 112px; padding: 5px 24px 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text-dim); font: 11px var(--font-body); cursor: pointer; outline: none; }
-  .theme-select:hover, .theme-select:focus { border-color: var(--gold); color: var(--text); }
-  .theme-select option { background: var(--surface); color: var(--text); }
+  .theme-select { display: none; }
   .inbox-button { position: relative; width: 34px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); cursor: pointer; }
   .inbox-button:hover { border-color: var(--gold); color: var(--gold); }
   .email-icon { font-size: 20px; line-height: 1; }
@@ -165,6 +163,10 @@
   .nav-chat-label { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .navlist button:hover { background: var(--surface); color: var(--text); }
   .navlist button.active { background: var(--surface-2); color: var(--gold); box-shadow: inset 2px 0 0 var(--gold-dim); }
+  /* Deepen hover surfaces so hover state remains visible on flat themes. */
+  :root[data-theme="lush"] .navlist button:hover,
+  :root[data-theme="starlight"] .navlist button:hover,
+  :root[data-theme="potion"] .navlist button:hover { background: var(--surface-2); }
   .navlist .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--purple-dim); flex-shrink: 0; }
   .navlist button.active .dot { background: var(--gold); }
   .navlist .dm-nav-btn { color: var(--rose); border: 1px dashed rgba(177, 82, 107, 0.4); margin-top: 10px; }
@@ -204,6 +206,286 @@
   nav.sidebar.collapsed .nav-icon { margin: 0; }
   nav.sidebar.collapsed .nav-chat-btn { justify-content: center; padding-left: 8px; padding-right: 8px; }
   nav.sidebar.collapsed .logout-btn { margin-left: 10px; margin-right: 10px; padding-left: 0; padding-right: 0; }
+
+  /* === Candelabra Pattern Integration ===
+     SVG stroke/fill/flame colors map to the live theme variables, so they
+     recolor instantly when the theme switcher changes data-theme. */
+  :root {
+    --candelabra-stroke: var(--gold);
+    --candelabra-fill: var(--surface-2);
+    --candelabra-flame: var(--rose);
+    --candelabra-flame-glow: var(--gold-dim);
+    --candelabra-pattern-opacity: 0.35;
+    --candelabra-pattern-opacity-sidebar: 0.4;
+    --candelabra-tile: 140px;
+  }
+  .full-page-pattern { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  #nocturnePatternLayer {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    opacity: var(--candelabra-pattern-opacity);
+    transition: opacity 0.3s ease;
+    will-change: opacity;
+  }
+  main { position: relative; z-index: 1; }
+  .sidebar-pattern {
+    position: absolute; inset: 0; z-index: 0;
+    pointer-events: none;
+    opacity: var(--candelabra-pattern-opacity-sidebar);
+    transition: opacity 0.3s ease, filter 0.3s ease;
+  }
+  /* (Sidebar-local inversion removed — inversion is now whole-page via
+     :root.pattern-inverted, toggled in Theme Studio.) */
+  /* Keeps the sidebar's own background behind its pattern layer. */
+  nav.sidebar { position: sticky; isolation: isolate; }
+  nav.sidebar > .sidebar-pattern { z-index: 0; }
+
+  /* Light themes already sit on lighter backgrounds — dim their pattern
+     layer a touch so it reads as texture, not noise. */
+  :root[data-theme="alucard"] #nocturnePatternLayer,
+  :root[data-theme="frost"] #nocturnePatternLayer { --candelabra-pattern-opacity: 0.25; }
+  :root[data-theme="alucard"] #sidebarPattern,
+  :root[data-theme="frost"] #sidebarPattern { --candelabra-pattern-opacity-sidebar: 0.28; }
+  nav.sidebar > *:not(.sidebar-pattern):not(.sidebar-resize-handle) { position: relative; z-index: 1; }
+  /* (Sidebar contrast toggle retired — inversion lives in Theme Studio.) */
+
+  /* ============ Sidebar nav contrast (theme-safe) ============
+     Buttons were --text-dim on --bg-alt, which fails contrast on several
+     themes (lush, starlight, potion). Fix by computing contrast in JS-free
+     CSS: lighten dim text toward full text color, deepen hover surfaces, and
+     give every theme a guaranteed-strong active state. */
+  .navlist button { color: var(--text-dim); }
+  .navlist button:hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--surface) 82%, var(--text) 18%);
+  }
+  .navlist button.active {
+    color: var(--gold);
+    background: var(--surface-2);
+    box-shadow: inset 2px 0 0 var(--gold);
+    text-shadow: 0 0 6px color-mix(in srgb, var(--gold) 35%, transparent);
+  }
+  /* Light themes: gold-on-light can wash out; push accent darker instead. */
+  :root[data-theme="alucard"] .navlist button.active,
+  :root[data-theme="frost"] .navlist button.active {
+    color: var(--gold-dim);
+    text-shadow: none;
+  }
+
+  /* ============ Flame glow effects ============ */
+  #nocturnePatternLayer:not(.flames-off) .candelabra-flames path {
+    filter: drop-shadow(0 0 2px var(--candelabra-flame)) drop-shadow(0 0 6px var(--candelabra-flame-glow));
+  }
+  #nocturnePatternLayer:not(.flames-off) .candelabra-flames circle {
+    filter: drop-shadow(0 0 4px var(--candelabra-flame-glow));
+  }
+  #sidebarPattern:not(.flames-off) .candelabra-flames path {
+    filter: drop-shadow(0 0 2px var(--candelabra-flame)) drop-shadow(0 0 5px var(--candelabra-flame-glow));
+  }
+  #sidebarPattern:not(.flames-off) .candelabra-flames circle {
+    filter: drop-shadow(0 0 3px var(--candelabra-flame-glow));
+  }
+  #nocturnePatternLayer.flames-off .candelabra-flames,
+  #sidebarPattern.flames-off .candelabra-flames { opacity: 0.55; }
+  .navlist .nav-icon { color: var(--symbol); }
+  .navlist button:hover .nav-icon { color: var(--gold); }
+  .nav-chat-btn { color: var(--gold); }
+
+  /* ============ Sidebar row alignment ============
+     One vertical rhythm: every sidebar row shares 12px side padding. */
+  .brand { padding-left: 12px; padding-right: 12px; }
+  .brand-meta-actions { gap: 6px; }
+  .brand-meta-actions .role-pill { margin-right: auto; }
+  .theme-studio-link, .inbox-button { width: 30px; height: 28px; }
+  .suggestion-box { margin-left: 12px; margin-right: 12px; }
+  .logout-btn { margin-left: 12px; margin-right: 12px; }
+  nav.sidebar.collapsed .brand { padding-left: 8px; padding-right: 8px; }
+
+  /* ============ Whole-page pattern inversion ============ */
+  .full-page-pattern, #sidebarPattern { transition: filter 0.3s ease; }
+  :root.pattern-inverted .full-page-pattern,
+  :root.pattern-inverted #sidebarPattern {
+    filter: invert(1) hue-rotate(180deg);
+    will-change: filter;
+  }
+
+  /* Sidebar pattern off: plain background, no candelabra. */
+  :root.sidebar-pattern-off #sidebarPattern { display: none; }
+
+  /* ============ Theme Studio ============ */
+  /* Chat GIF picker */
+  .chat-gif-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; flex: 0 0 38px; padding: 0;
+    border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); color: var(--text-dim); cursor: pointer;
+  }
+  .chat-gif-btn:hover:not(:disabled), .chat-gif-btn:focus-visible { border-color: var(--gold); color: var(--gold); }
+  .chat-gif-btn[aria-expanded="true"] { color: var(--gold); border-color: var(--gold); }
+  .chat-gif-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .chat-gif-panel {
+    position: absolute; bottom: 52px; left: 0;
+    width: min(360px, 100%); max-height: 260px; overflow-y: auto;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px;
+    padding: 10px; z-index: 30;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .chat-gif-item {
+    padding: 0; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); cursor: pointer; overflow: hidden;
+    aspect-ratio: 1; display: block;
+  }
+  .chat-gif-item:hover { border-color: var(--gold); }
+  .chat-gif-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .chat-gif-message {
+    display: block; max-width: min(260px, 100%); max-height: 200px;
+    border-radius: 8px; border: 1px solid var(--line); margin-top: 4px;
+  }
+  .theme-studio-link { display: inline-flex; align-items: center; justify-content: center; }
+  .theme-studio-link svg { display: block; }
+  .theme-studio-layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+  .theme-studio-editor {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+  .theme-studio-panel { display: grid; gap: 14px; }
+  .theme-studio-panel h3 { margin: 6px 0 0; }
+  .theme-studio-slider-label { display: grid; gap: 6px; font-size: 12px; color: var(--text-dim); }
+  .theme-studio-slider-label > span { display: flex; justify-content: space-between; align-items: baseline; }
+  .theme-studio-slider-label input[type="range"] { width: 100%; accent-color: var(--gold); }
+  .theme-studio-toggle-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  /* Selected choice buttons — unmistakable on every theme. */
+  .btn-active-choice {
+    background: var(--purple);
+    border-color: var(--gold);
+    color: #fff;
+    box-shadow: 0 0 0 1px var(--gold-dim), inset 0 0 0 1px rgba(255,255,255,0.25);
+  }
+  .btn-active-choice:hover { background: var(--purple); }
+
+  /* Theme Studio top bar: name + Publish pinned right. */
+  .theme-studio-header-bar {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px;
+    align-items: center; margin: -6px 0 20px;
+    padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface);
+  }
+  .theme-studio-header-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .premade-theme-picker { display: grid; gap: 3px; }
+  .premade-theme-label { font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-faint); }
+  .premade-theme-select { width: auto; min-width: 160px; padding: 5px 8px; font-size: 12px; }
+  .theme-studio-header-hint { font-size: 11.5px; color: var(--text-faint); }
+  .theme-studio-header-status { grid-column: 1 / -1; margin: 0; }
+  .shared-theme-save-row { display: grid; grid-template-columns: minmax(180px, 260px) auto; gap: 8px; align-items: center; }
+
+  /* Shared (community) themes */
+  .shared-theme-save-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .shared-theme-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .shared-theme-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-alt);
+  }
+  .shared-theme-info { min-width: 0; display: grid; }
+  .shared-theme-info strong { color: var(--text); font-size: 13px; }
+  .shared-theme-creator { color: var(--text-faint); font-size: 11px; }
+  .approval-badge {
+    color: var(--gold);
+    font-size: 10.5px;
+    letter-spacing: 0.3px;
+  }
+  .shared-theme-row.pending-approval { border-style: dashed; opacity: 0.85; }
+  .shared-theme-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* CSS editor: full-width row beneath the whole studio grid. */
+  .theme-studio-css-row { margin-top: 22px; }
+  .theme-studio-css-row .css-variable-editor { margin-top: 0; }
+  .btn-flame-on { background: var(--rose-dim); border-color: var(--rose); color: #fff; }
+  .theme-studio-hint { font-size: 11.5px; color: var(--text-faint); margin: 0; line-height: 1.5; }
+  .theme-studio-color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+  /* Target-first color picker */
+  .theme-studio-color-targets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .color-target-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 9px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg-alt); color: var(--text-dim); font-size: 11.5px; cursor: pointer;
+  }
+  .color-target-btn:hover { border-color: var(--gold-dim); color: var(--text); }
+  .color-target-btn.selected { border-color: var(--gold); color: var(--gold); background: var(--surface-2); }
+  .color-slider-editor { padding: 10px; border: 1px dashed var(--line); border-radius: 9px; }
+  .color-slider-preview {
+    width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line); display: inline-block;
+  }
+  .color-drop-slot {
+    position: relative; display: flex; align-items: center; gap: 8px;
+    padding: 7px 9px; border: 1px dashed var(--line); border-radius: 9px;
+    background: var(--bg-alt); cursor: default; min-width: 0;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .color-drop-slot.drag-over { border-color: var(--gold); background: color-mix(in srgb, var(--surface) 80%, var(--gold) 20%); }
+  .color-slot-swatch { width: 20px; height: 20px; border-radius: 6px; border: 1px solid var(--line); flex: 0 0 20px; }
+  .color-slot-label { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .color-slot-clear {
+    position: absolute; top: -7px; right: -7px; width: 18px; height: 18px;
+    border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
+    color: var(--text-dim); font-size: 12px; line-height: 1; cursor: pointer;
+    display: grid; place-items: center; padding: 0;
+  }
+  .color-slot-clear:hover { color: var(--rose); border-color: var(--rose); }
+  .swatch-tray { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .swatch {
+    width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--line);
+    cursor: grab; padding: 0; transition: transform 0.12s;
+  }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch:active { cursor: grabbing; }
+
+  .theme-preview-frame {
+    border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    background: var(--bg-alt); box-shadow: 0 14px 40px rgba(0,0,0,0.22);
+  }
+  .theme-preview-chrome {
+    padding: 9px 16px; font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;
+    color: var(--text-faint); background: var(--surface); border-bottom: 1px solid var(--line);
+  }
+  .theme-preview-page { padding: 24px 26px 30px; background: radial-gradient(ellipse 700px 380px at 15% -10%, var(--glow-primary), transparent 60%), var(--bg); }
+  .theme-preview-title { font-family: var(--font-title); font-weight: 600; font-size: 30px; margin: 0 0 18px; color: var(--text); }
+
+  .css-variable-editor { margin-top: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .css-variable-editor h3 { margin-top: 0; }
+  .css-editor-textarea {
+    min-height: 150px; font-family: var(--font-mono); font-size: 12.5px;
+    resize: vertical; tab-size: 2; white-space: pre; overflow-wrap: normal; overflow-x: auto;
+  }
+  .css-editor-status { color: var(--gold); font-size: 12px; margin: 6px 0 0; }
+
+  /* Light-brightness mode: force light surfaces regardless of base theme. */
+  :root.brightness-light {
+    --bg: #f3eadc; --bg-alt: #e9ddce; --surface: #fff8ec; --surface-2: #e4d4c2;
+    --line: #b8a492; --text: #2b2424; --text-dim: #4b403d; --text-faint: #625650;
+    --text-main: #382d2c; --button-text: #ffffff; --session-note: #514744;
+    --symbol: #382d2c;
+    --glow-primary: rgba(163,63,70,0.10); --glow-secondary: rgba(183,138,115,0.16);
+  }
+  :root.brightness-light body,
+  :root.brightness-light .card, :root.brightness-light .block-card { color: var(--text); }
+
+  @media (max-width: 900px) {
+    .theme-studio-layout { grid-template-columns: minmax(0, 1fr); }
+    .theme-studio-editor { position: static; max-height: none; }
+  }
 
   main { flex: 1 1 900px; min-width: 0; width: 100%; padding: 56px 64px; max-width: 900px; overflow-x: hidden; }
   section { display: none; animation: fade-in 0.25s ease; }
@@ -699,8 +981,11 @@
   margin: 0; 
 }
 .hp-input {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
+.hp-input::-webkit-inner-spin-button,
+.hp-input::-webkit-outer-spin-button { appearance: none; }
 
 .block-card {
   background: rgba(20, 20, 25, 0.6);
@@ -1296,6 +1581,7 @@
 
 <div id="react-root"></div>
 <script type="text/babel" src="pages/PageSection.jsx"></script>
+<script type="text/babel" src="pages/ThemeStudio.jsx"></script>
 <script type="text/babel" src="pages/HomePage.jsx"></script>
 <script type="text/babel" src="pages/WorldbookPage.jsx"></script>
 <script type="text/babel" src="pages/NpcsPage.jsx"></script>
@@ -1586,10 +1872,10 @@
       <!-- Messages Window -->
       <div id="chatMessages" style="flex:1; overflow-y:auto; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:12px; display:flex; flex-direction:column; gap:8px;"></div>
 
-      <!-- Message Form -->
-      <form id="chatForm" style="display:flex; gap:8px;">
-        <input type="text" id="chatInput" class="input-control" placeholder="Session locked..." disabled style="flex:1;">
-        <button type="submit" id="chatSendBtn" class="btn" disabled>Send</button>
+      <!-- Message Form (React renders the live form; this legacy copy is unused) -->
+      <form id="chatFormLegacy" style="display:flex; gap:8px;">
+        <input type="text" id="chatInputLegacy" class="input-control" placeholder="Session locked..." disabled style="flex:1;">
+        <button type="submit" id="chatSendBtnLegacy" class="btn" disabled>Send</button>
       </form>
       <p style="font-size:11px; color:var(--text-faint); margin:6px 0 0 0;">Tip: Type <code>/whisper [Name] message</code> to send a private note. Type <code>/roll 1d20+5</code> to roll dice.</p>
     </div>
@@ -1619,8 +1905,12 @@
     if (!currentUser || currentUser.id === 'dev-user' || !window.currentUserId) return;
     const requestId = ++themeSaveRequest;
     try {
+      const update = { theme };
+      // Persist the user's editable custom CSS alongside the base theme so it
+      // restores on every sign-in.
+      if (typeof window.nocturneCustomCss === 'string') update.custom_css = window.nocturneCustomCss.slice(0, 4000);
       const [profileResult, authResult] = await Promise.all([
-        sb.from('profiles').update({ theme }).eq('id', window.currentUserId),
+        sb.from('profiles').update(update).eq('id', window.currentUserId),
         sb.auth.updateUser({ data: { theme } })
       ]);
       const errors = [profileResult.error, authResult.error].filter(Boolean);
@@ -1977,6 +2267,10 @@
     }
     const themeSelect = document.getElementById('themeSelect');
     if (themeSelect) themeSelect.value = profileTheme;
+    // Restore the user's saved custom CSS from their account profile.
+    if (profile?.custom_css && typeof window.setNocturneCustomCss === 'function') {
+      window.setNocturneCustomCss(String(profile.custom_css).slice(0, 4000));
+    }
     window.dispatchEvent(new CustomEvent('nocturne-auth-changed'));
 
     document.getElementById('authScreen').classList.add('hidden');
@@ -2061,6 +2355,12 @@
     if (btn) btn.style.display = isDM ? 'block' : 'none';
   }
 
+  // Wire the GIF picker button.
+  document.getElementById('chatGifBtn')?.addEventListener('click', () => toggleGifPanel());
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#chatGifPanel') && !e.target.closest('#chatGifBtn')) toggleGifPanel(false);
+  });
+
   async function openChatModal() {
     document.getElementById('chatModalOverlay').classList.add('open');
     updateNewSessionButtonVisibility();
@@ -2068,11 +2368,13 @@
     document.getElementById('modalChatTitle').innerText = currentSessionId.replace('_', ' ').toUpperCase();
     initSessionChat(currentSessionId);
   }
+  window.openChatModal = openChatModal;
 
   function closeChatModal() {
     document.getElementById('chatModalOverlay').classList.remove('open');
     closeChatDrawer();
   }
+  window.closeChatModal = closeChatModal;
 
   function setChatDrawerOpen(open) {
     const drawer = document.getElementById('chatMenuDrawer');
@@ -2300,6 +2602,12 @@
   async function initSessionChat(sessionId) {
     currentSessionId = sessionId;
     
+    if (currentUser?.id === 'dev-user') {
+      // Offline dev preview: skip Supabase reads entirely.
+      isSessionOpen = true;
+      updateChatUI();
+      return;
+    }
     const { data: sessionState } = await sb.from('active_session').select('*').eq('id', 1).maybeSingle();
     isSessionOpen = sessionState?.is_open && (sessionState?.active_session_id === currentSessionId);
     updateChatUI();
@@ -2345,6 +2653,9 @@
     input.disabled = !canType;
     sendBtn.disabled = !canType;
     diceButton.disabled = !canType;
+    window.__chatCanInteract = canType;
+    window.dispatchEvent(new CustomEvent('nocturne-chat-state'));
+    if (!canType) toggleGifPanel(false);
 
     if (isSessionOpen) {
       badge.innerText = "Live Session Active";
@@ -2501,6 +2812,113 @@
     }
   }
 
+  /* ===================== SESSION CHAT GIF PICKER ===================== */
+  /* Sends an approved GIF as a chat message: `[gif] <url>`. Rendering turns
+     it back into an <img> for everyone — content stays plain text at rest. */
+
+  const APPROVED_GIFS_BUCKET = 'approved-gifs';
+  const APPROVED_GIFS_FALLBACK = 'assets/approved-gifs/';  // local folder, zero setup
+  let approvedGifCache = null;
+
+  // Primary source: the Supabase 'approved-gifs' bucket (if the DM has set it
+  // up). Fallback: plain files in assets/approved-gifs/ via a manifest.json
+  // listing filenames — works with no Supabase storage at all.
+  async function loadApprovedGifs() {
+    if (approvedGifCache) return approvedGifCache;
+    const gifs = [];
+    // 1) Try the storage bucket.
+    try {
+      const { data, error } = await sb.storage.from(APPROVED_GIFS_BUCKET).list('', {
+        limit: 100, sortBy: { column: 'name', order: 'asc' }
+      });
+      if (!error && Array.isArray(data)) {
+        data.filter(f => /\.(gif|png|jpe?g|webp)$/i.test(f.name)).forEach(f => gifs.push({
+          name: f.name.replace(/\.[^.]+$/, ''),
+          url: sb.storage.from(APPROVED_GIFS_BUCKET).getPublicUrl(f.name).data.publicUrl
+        }));
+      }
+    } catch (_) { /* bucket not set up — fall through */ }
+    // 2) Fall back to the local manifest.
+    if (!gifs.length) {
+      try {
+        const res = await fetch(APPROVED_GIFS_FALLBACK + 'manifest.json', { cache: 'no-cache' });
+        if (res.ok) {
+          const names = await res.json();
+          (Array.isArray(names) ? names : []).forEach(name => {
+            if (/\.(gif|png|jpe?g|webp)$/i.test(name)) {
+              gifs.push({ name: String(name).replace(/\.[^.]+$/, ''), url: APPROVED_GIFS_FALLBACK + encodeURIComponent(name) });
+            }
+          });
+        }
+      } catch (_) { /* no manifest either */ }
+    }
+    approvedGifCache = gifs;
+    return gifs;
+  }
+  window.loadApprovedGifs = loadApprovedGifs;
+
+  async function toggleGifPanel(show) {
+    const btn = document.getElementById('chatGifBtn');
+    const panel = document.getElementById('chatGifPanel');
+    if (!btn || !panel) return;
+    const open = show !== undefined ? show : panel.style.display === 'none';
+    if (!open) {
+      panel.style.display = 'none';
+      btn.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    panel.style.display = 'grid';
+    btn.setAttribute('aria-expanded', 'true');
+    panel.innerHTML = '<p class="empty-note" style="grid-column:1/-1; padding:6px;">Loading GIFs…</p>';
+    const gifs = await loadApprovedGifs();
+    if (!gifs.length) {
+      panel.innerHTML = '<p class="empty-note" style="grid-column:1/-1; padding:6px;">No approved GIFs yet. The DM adds them to assets/approved-gifs/ (see manifest.json there) or uploads to the “' + APPROVED_GIFS_BUCKET + '” storage bucket.</p>';
+      return;
+    }
+    panel.innerHTML = '';
+    gifs.forEach(gif => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'chat-gif-item';
+      item.title = gif.name;
+      item.setAttribute('aria-label', 'Send GIF ' + gif.name);
+      const img = document.createElement('img');
+      img.src = gif.url;
+      img.alt = gif.name;
+      img.loading = 'eager';  // keep GIF frames animating in the picker preview
+      item.appendChild(img);
+      item.addEventListener('click', () => sendGifMessage(gif));
+      panel.appendChild(item);
+    });
+  }
+  window.toggleGifPanel = toggleGifPanel;
+
+  async function sendGifMessage(gif) {
+    toggleGifPanel(false);
+    const { data, error } = await sb.from('session_messages').insert({
+      session_id: currentSessionId,
+      sender_id: currentUser.id,
+      sender_name: isDM ? 'DM' : (currentUser.email.split('@')[0]),
+      content: '[gif] ' + gif.url,
+      is_whisper: false
+    }).select();
+    if (error) { alert('Could not send GIF: ' + error.message); return; }
+    if (data && data.length > 0) appendMessageUI(data[0]);
+  }
+
+  // Upload helper for the DM (Supabase bucket path). For the local-folder
+  // path the DM just drops files in assets/approved-gifs/ and updates
+  // manifest.json.
+  window.uploadApprovedGif = async function (file) {
+    if (!isDM) return alert('Only the DM can upload approved GIFs.');
+    if (!/\.(gif|png|jpe?g|webp)$/i.test(file.name)) return alert('Use a .gif, .png, .jpg or .webp file.');
+    if (file.size > 8 * 1024 * 1024) return alert('GIF must be under 8 MB.');
+    const { error } = await sb.storage.from(APPROVED_GIFS_BUCKET).upload(file.name, file, { upsert: true });
+    if (error) { alert('Upload failed: ' + error.message); return; }
+    approvedGifCache = null;
+    alert('GIF approved and added to the picker.');
+  };
+
   async function loadSessionMessages() {
     const container = document.getElementById('chatMessages');
     const { data: msgs, error } = await sb.from('session_messages')
@@ -2550,9 +2968,22 @@
         finalContent = finalContent.replace(/=\s+(\d+)$/, '= <strong>$1</strong>');
     }
 
+    // Approved GIF messages: render `[gif] <url>` as an inline ANIMATED image.
+    // Plain <img> keeps GIF animation natively; eager loading avoids browsers
+    // deferring frames for below-fold lazy images.
+    let gifImage = '';
+    if (msg.content.startsWith('[gif] ')) {
+      const gifUrl = msg.content.slice(6).trim();
+      if (/^https?:\/\//.test(gifUrl)) {
+        gifImage = `<img class="chat-gif-message" src="${escapeHtml(gifUrl)}" alt="Shared GIF" loading="eager">`;
+        finalContent = '';
+      }
+    }
+
     msgDiv.innerHTML = `
       <div>
-        ${senderDisplay}: <span>${finalContent}</span>
+        ${senderDisplay}: ${gifImage ? '' : `<span>${finalContent}</span>`}
+        ${gifImage}
       </div>
       ${deleteBtn}
     `;

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>clone probe</title>
+</head>
+
+<body>
+    <div id="m">pending</div>
+    <script>window.__a = 'inline-before'</script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script>document.getElementById('m').textContent = 'a=' + window.__a + ' react=' + typeof React;</script>
+</body>
+
+</html>
