@@ -218,6 +218,20 @@
     --candelabra-pattern-opacity: 0.35;
     --candelabra-pattern-opacity-sidebar: 0.4;
     --candelabra-tile: 140px;
+    /* Sidebar-specific colors: default to MATCHING the main pattern.
+       Theme Studio can override these independently. */
+    --sidebar-stroke: var(--candelabra-stroke);
+    --sidebar-fill: var(--candelabra-fill);
+    --sidebar-flame: var(--candelabra-flame);
+    --sidebar-flame-glow: var(--candelabra-flame-glow);
+  }
+  /* The sidebar's pattern SVG reads the sidebar-scoped variables. */
+  nav.sidebar .sidebar-pattern,
+  #sidebarPattern {
+    --candelabra-stroke: var(--sidebar-stroke);
+    --candelabra-fill: var(--sidebar-fill);
+    --candelabra-flame: var(--sidebar-flame);
+    --candelabra-flame-glow: var(--sidebar-flame-glow);
   }
   .full-page-pattern { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
   #nocturnePatternLayer {
@@ -300,8 +314,16 @@
   .logout-btn { margin-left: 12px; margin-right: 12px; }
   nav.sidebar.collapsed .brand { padding-left: 8px; padding-right: 8px; }
 
+  .theme-select-inline { max-width: 110px; padding: 5px 22px 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text-dim); font: 11px var(--font-body); cursor: pointer; outline: none; }
+  .theme-select-inline:hover, .theme-select-inline:focus { border-color: var(--gold); color: var(--text); }
+  .theme-select-inline option { background: var(--surface); color: var(--text); }
+
   /* ============ Whole-page pattern inversion ============ */
   .full-page-pattern, #sidebarPattern { transition: filter 0.3s ease; }
+  /* Each filtered element is a full-bleed fixed layer; inverting the layer
+     itself (not an ancestor) keeps pixel registration identical. Explicit
+     sizing + overflow control prevents partial-layer clipping of the grid. */
+  .full-page-pattern, #sidebarPattern { inset: 0; width: 100%; height: 100%; overflow: hidden; }
   :root.pattern-inverted .full-page-pattern,
   :root.pattern-inverted #sidebarPattern {
     filter: invert(1) hue-rotate(180deg);
@@ -310,6 +332,26 @@
 
   /* Sidebar pattern off: plain background, no candelabra. */
   :root.sidebar-pattern-off #sidebarPattern { display: none; }
+
+  /* ============ Solo main-window motif ============
+   One giant centered candelabra behind main content ONLY; the sidebar keeps
+   its tiled pattern. CSS sizes the SVG; the viewBox scales the motif, so it
+   can never tile, clip, or drift with viewport coordinates. */
+  .nocturne-solo-motif {
+    display: none;
+    position: absolute; inset: 0;
+    width: min(92vmin, 900px); height: min(92vmin, 900px);
+    margin: auto;
+    opacity: var(--candelabra-solo-opacity, 0.35);
+    pointer-events: none;
+  }
+  :root.main-solo-motif .nocturne-solo-motif { display: block; }
+  :root.main-solo-motif #nocturnePatternLayer { display: none; }
+
+  /* No background at all: hide every pattern layer. */
+  :root.no-background #nocturnePatternLayer,
+  :root.no-background .full-page-pattern,
+  :root.no-background #sidebarPattern { display: none; }
 
   /* ============ Theme Studio ============ */
   /* Chat GIF picker */
@@ -324,11 +366,19 @@
   .chat-gif-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .chat-gif-panel {
     position: absolute; bottom: 52px; left: 0;
-    width: min(360px, 100%); max-height: 260px; overflow-y: auto;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px;
+    width: min(360px, 100%); max-height: 300px; overflow-y: auto;
+    display: grid; grid-template-columns: 1fr; gap: 8px;
     padding: 10px; z-index: 30;
     background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+  .gif-search {
+    width: 100%; padding: 7px 10px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 7px; color: var(--text); font: 12.5px var(--font-body); outline: none;
+  }
+  .gif-search:focus { border-color: var(--gold); }
+  .gif-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px;
   }
   .chat-gif-item {
     padding: 0; border: 1px solid var(--line); border-radius: 8px;
@@ -1984,7 +2034,7 @@
   window.toggleAuthPassword = toggleAuthPassword;
 
   function enterDevMode() {
-    if (!DEV_MODE) return;
+    if (!DEV_MODE && !window.__devModeOverride) return;
 
     currentUser = { id: 'dev-user', email: 'dm@campaign.local' };
     isDM = true;
@@ -2875,26 +2925,57 @@
       panel.innerHTML = '<p class="empty-note" style="grid-column:1/-1; padding:6px;">No approved GIFs yet. The DM adds them to assets/approved-gifs/ (see manifest.json there) or uploads to the “' + APPROVED_GIFS_BUCKET + '” storage bucket.</p>';
       return;
     }
-    panel.innerHTML = '';
-    gifs.forEach(gif => {
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'chat-gif-item';
-      item.title = gif.name;
-      item.setAttribute('aria-label', 'Send GIF ' + gif.name);
-      const img = document.createElement('img');
-      img.src = gif.url;
-      img.alt = gif.name;
-      img.loading = 'eager';  // keep GIF frames animating in the picker preview
-      item.appendChild(img);
-      item.addEventListener('click', () => sendGifMessage(gif));
-      panel.appendChild(item);
+    // Search box + grid. Filenames are Tenor-style kebab tags (e.g.
+    // "uno-reverse-card.gif"), so plain substring match on the name works.
+    panel.innerHTML = `
+      <input type="search" id="gifSearch" class="gif-search" placeholder="Search GIFs…" aria-label="Search GIFs" style="grid-column:1/-1;">
+      <div id="gifGrid" class="gif-grid"></div>
+    `;
+    const grid = panel.querySelector('#gifGrid');
+    const render = (list) => {
+      grid.innerHTML = '';
+      if (!list.length) {
+        grid.innerHTML = '<p class="empty-note" style="grid-column:1/-1;">No GIFs match that search.</p>';
+        return;
+      }
+      list.forEach(gif => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'chat-gif-item';
+        item.title = gif.name;
+        item.setAttribute('aria-label', 'Send GIF ' + gif.name);
+        const img = document.createElement('img');
+        img.src = gif.url;
+        img.alt = gif.name;
+        img.loading = 'eager';
+        item.appendChild(img);
+        item.addEventListener('click', () => sendGifMessage(gif));
+        grid.appendChild(item);
+      });
+    };
+    render(gifs);
+    const search = panel.querySelector('#gifSearch');
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      render(q ? gifs.filter(g => g.name.toLowerCase().includes(q)) : gifs);
     });
+    setTimeout(() => search.focus(), 50);
   }
   window.toggleGifPanel = toggleGifPanel;
 
   async function sendGifMessage(gif) {
     toggleGifPanel(false);
+    // Offline dev preview: no Supabase write — render locally so the flow is
+    // still demonstrable.
+    if (currentUser?.id === 'dev-user') {
+      appendMessageUI({
+        id: 'dev-gif-' + Date.now(),
+        sender_name: 'DM',
+        content: '[gif] ' + gif.url,
+        is_whisper: false
+      });
+      return;
+    }
     const { data, error } = await sb.from('session_messages').insert({
       session_id: currentSessionId,
       sender_id: currentUser.id,
@@ -2970,11 +3051,13 @@
 
     // Approved GIF messages: render `[gif] <url>` as an inline ANIMATED image.
     // Plain <img> keeps GIF animation natively; eager loading avoids browsers
-    // deferring frames for below-fold lazy images.
+    // deferring frames for below-fold lazy images. Accepts absolute URLs
+    // (Supabase bucket) AND site-relative paths (local manifest fallback),
+    // but nothing else — no javascript: or data: URIs.
     let gifImage = '';
     if (msg.content.startsWith('[gif] ')) {
       const gifUrl = msg.content.slice(6).trim();
-      if (/^https?:\/\//.test(gifUrl)) {
+      if (/^(https?:\/\/|assets\/approved-gifs\/)/.test(gifUrl)) {
         gifImage = `<img class="chat-gif-message" src="${escapeHtml(gifUrl)}" alt="Shared GIF" loading="eager">`;
         finalContent = '';
       }

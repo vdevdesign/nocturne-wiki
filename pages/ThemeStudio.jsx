@@ -30,7 +30,11 @@ function PremadeThemePicker() {
       id: 'premadeThemeSelect',
       className: 'input-control premade-theme-select',
       value: current,
-      onChange: e => window.setNocturneTheme(e.target.value)
+      onChange: e => {
+        const ok = window.setNocturneTheme(e.target.value);
+        if (ok === false) setCurrent(document.documentElement.dataset.theme);  // user cancelled
+        else setCurrent(e.target.value);
+      }
     }, PREMADE_THEMES.map(([value, label]) => h('option', { key: value, value }, label)))
   );
 }
@@ -212,12 +216,17 @@ function ThemeStudioControls() {
   const [layout, setLayout] = React.useState(window.nocturnePatternState.layout);
   const [soloMain, setSoloMain] = React.useState(window.nocturnePatternState.soloMain);
   const [sidebarPattern, setSidebarPattern] = React.useState(window.nocturnePatternState.sidebarPattern);
+  const [noBackground, setNoBackground] = React.useState(window.nocturnePatternState.noBackground);
   const [inverted, setInverted] = React.useState(document.documentElement.classList.contains('pattern-inverted'));
   const [brightness, setBrightness] = React.useState(window.nocturneDisplayMode());
   const [sharedThemes, setSharedThemes] = React.useState([]);
   const [sharedError, setSharedError] = React.useState('');
   const [colorMode, setColorMode] = React.useState('hsl');  // 'rgb' | 'hsl'
   const [colorTarget, setColorTarget] = React.useState('');  // varName or ''
+  const [sidebarMatchMain, setSidebarMatchMain] = React.useState(window.nocturnePatternState.sidebarMatchMain);
+  const [sidebarColorTarget, setSidebarColorTarget] = React.useState('');
+  const [motif, setMotif] = React.useState(window.nocturnePatternState.motif);
+  const [animateMotif, setAnimateMotif] = React.useState(window.nocturnePatternState.animateMotif);
 
   React.useEffect(() => {
     const sync = () => {
@@ -231,8 +240,12 @@ function ThemeStudioControls() {
       setLayout(window.nocturnePatternState.layout);
       setSoloMain(!!window.nocturnePatternState.soloMain);
       setSidebarPattern(!!window.nocturnePatternState.sidebarPattern);
+      setNoBackground(!!window.nocturnePatternState.noBackground);
       setInverted(document.documentElement.classList.contains('pattern-inverted'));
       setBrightness(window.nocturneDisplayMode());
+      setSidebarMatchMain(!!window.nocturnePatternState.sidebarMatchMain);
+      setMotif(window.nocturnePatternState.motif);
+      setAnimateMotif(window.nocturnePatternState.animateMotif);
     };
     window.addEventListener('nocturne-pattern-updated', sync);
     return () => window.removeEventListener('nocturne-pattern-updated', sync);
@@ -267,8 +280,52 @@ function ThemeStudioControls() {
     else refreshShared();
   }
 
+  function resetAppearance() {
+    window.resetNocturneAppearance();
+    // Reset also restores the current premade theme's stock colors — drop any
+    // local color/CSS overrides left over in storage.
+    try { window.localStorage.removeItem('nocturne-color-overrides'); } catch (_) {}
+  }
+
   return h('div', { className: 'theme-studio-panel' },
+    h('button', {
+      type: 'button',
+      className: 'btn btn-secondary btn-sm',
+      style: { marginBottom: 4, justifySelf: 'start' },
+      onClick: resetAppearance
+    }, '↺ Reset appearance to theme defaults'),
     h('h3', null, 'Pattern Geometry'),
+
+    h('label', { className: 'theme-studio-slider-label' },
+      h('span', null, 'Motif'),
+      h('div', { className: 'theme-studio-toggle-row' },
+        [
+          ['candelabra', 'Candelabra'],
+          ['fleur', 'Fleur-de-lis'],
+          ['fish', 'Fish'],
+          ['fireflies', 'Fireflies']
+        ].map(([value, label]) => h('button', {
+          type: 'button',
+          key: value,
+          'aria-pressed': String(motif === value),
+          className: 'btn btn-sm ' + (motif === value ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneMotif(value)
+        }, label))
+      )
+    ),
+
+    h('label', { className: 'theme-studio-slider-label' },
+      h('span', null, 'Motif animation'),
+      h('div', { className: 'theme-studio-toggle-row' },
+        h('button', {
+          type: 'button',
+          'aria-pressed': String(animateMotif),
+          className: 'btn btn-sm ' + (animateMotif ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneAnimateMotif(!window.nocturnePatternState.animateMotif)
+        }, animateMotif ? 'Animated' : 'Static'),
+        h('span', { className: 'theme-studio-hint' }, 'Fish sway; fireflies drift and pulse. Applies to fish/fireflies motifs.')
+      )
+    ),
 
     h('label', { className: 'theme-studio-slider-label' },
       h('span', null, 'Flame glow'),
@@ -369,7 +426,25 @@ function ThemeStudioControls() {
 
     h('h3', null, 'Layout'),
     h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'Sidebar background'),
+      h('span', null, 'Background'),
+      h('div', { className: 'theme-studio-toggle-row' },
+        h('button', {
+          type: 'button',
+          'aria-pressed': String(!noBackground),
+          className: 'btn btn-sm ' + (!noBackground ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneNoBackground(false)
+        }, 'On'),
+        h('button', {
+          type: 'button',
+          'aria-pressed': String(noBackground),
+          className: 'btn btn-sm ' + (noBackground ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneNoBackground(true)
+        }, 'Off'),
+        h('span', { className: 'theme-studio-hint' }, noBackground ? 'No candelabra background anywhere.' : 'Background pattern visible on the page.')
+      )
+    ),
+    !noBackground ? h('label', { className: 'theme-studio-slider-label' },
+      h('span', null, 'Sidebar'),
       h('div', { className: 'theme-studio-toggle-row' },
         h('button', {
           type: 'button',
@@ -379,7 +454,7 @@ function ThemeStudioControls() {
         }, sidebarPattern ? 'Pattern on' : 'Pattern off'),
         h('span', { className: 'theme-studio-hint' }, sidebarPattern ? 'Candelabra shows behind the navbar.' : 'Navbar has a plain background.')
       )
-    ),
+    ) : null,
     h('label', { className: 'theme-studio-slider-label' },
       h('span', null, 'Main window motif'),
       h('div', { className: 'theme-studio-toggle-row' },
@@ -392,6 +467,40 @@ function ThemeStudioControls() {
         h('span', { className: 'theme-studio-hint' }, soloMain ? 'A single oversized candelabra centered behind the main window; sidebar unaffected.' : 'Standard tiled pattern everywhere.')
       )
     ),
+
+    h('h3', null, 'Sidebar theme'),
+    h('label', { className: 'theme-studio-slider-label' },
+      h('span', null, 'Sidebar colors'),
+      h('div', { className: 'theme-studio-toggle-row' },
+        h('button', {
+          type: 'button',
+          'aria-pressed': String(sidebarMatchMain),
+          className: 'btn btn-sm ' + (sidebarMatchMain ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneSidebarMatchMain(true)
+        }, 'Match main page'),
+        h('button', {
+          type: 'button',
+          'aria-pressed': String(!sidebarMatchMain),
+          className: 'btn btn-sm ' + (!sidebarMatchMain ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneSidebarMatchMain(false)
+        }, 'Custom')
+      )
+    ),
+    !sidebarMatchMain ? h('p', { className: 'theme-studio-hint' }, 'Pick a color target, then dial it in below (same RGB/HSL sliders as the main colors).') : null,
+    !sidebarMatchMain ? h('div', { className: 'theme-studio-color-targets' },
+      SIDEBAR_EDIT_TARGETS.map(item => h('button', {
+        key: item.varName,
+        type: 'button',
+        className: 'color-target-btn' + (sidebarColorTarget === item.varName ? ' selected' : ''),
+        onClick: () => setSidebarColorTarget(item.varName)
+      },
+        h('span', { className: 'color-slot-swatch', style: { background: window.nocturneSidebarColorOverrides[item.varName] || `var(${SIDEBAR_VAR_MAP[item.varName] || item.varName})` } }),
+        item.label
+      ))
+    ) : null,
+    !sidebarMatchMain && sidebarColorTarget
+      ? h(SidebarColorSliders, { varName: sidebarColorTarget, mode: colorMode, onModeChange: setColorMode })
+      : null,
 
     h('h3', null, 'Display'),
     h('label', { className: 'theme-studio-slider-label' },
@@ -456,12 +565,85 @@ function ThemeStudioControls() {
         ))
       ),
 
-    h('button', {
-      type: 'button',
-      className: 'btn btn-secondary btn-sm',
-      style: { marginTop: 10 },
-      onClick: () => window.resetNocturneAppearance()
-    }, 'Reset appearance to theme defaults')
+  );
+}
+
+/* ======== Sidebar color editor (independent from main) ======== */
+
+// Sidebar targets are expressed via the MAIN variables they shadow; the
+// sidebar-scoped variables (--sidebar-stroke etc.) are set from these.
+const SIDEBAR_EDIT_TARGETS = [
+  { varName: '--gold', label: 'Stroke' },
+  { varName: '--surface-2', label: 'Fill' },
+  { varName: '--rose', label: 'Flame' },
+  { varName: '--gold-dim', label: 'Flame glow' }
+];
+const SIDEBAR_VAR_MAP = {
+  '--gold': '--sidebar-stroke',
+  '--surface-2': '--sidebar-fill',
+  '--rose': '--sidebar-flame',
+  '--gold-dim': '--sidebar-flame-glow'
+};
+
+function SidebarColorSliders({ varName, mode, onModeChange }) {
+  // Current effective sidebar color: override, else the sidebar variable's
+  // computed value, else falls back to the main variable's color.
+  const currentOverride = window.nocturneSidebarColorOverrides[varName] || '';
+  const sidebarVar = SIDEBAR_VAR_MAP[varName] || varName;
+  const [draft, setDraft] = React.useState(() => {
+    if (currentOverride && hexToRgb(currentOverride)) return currentOverride.toLowerCase();
+    return resolveVarHex(sidebarVar);
+  });
+  React.useEffect(() => {
+    const ov = window.nocturneSidebarColorOverrides[varName] || '';
+    setDraft(ov && hexToRgb(ov) ? ov.toLowerCase() : resolveVarHex(sidebarVar));
+  }, [varName]);
+
+  const rgb = hexToRgb(draft) || { r: 136, g: 136, b: 136 };
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  const item = SIDEBAR_EDIT_TARGETS.find(t => t.varName === varName);
+
+  function commit(nextRgb) {
+    const hex = rgbToHex(nextRgb.r, nextRgb.g, nextRgb.b);
+    setDraft(hex);
+    window.setNocturneSidebarColorOverride(varName, hex);
+  }
+
+  const sliderRow = (label, value, min, max, onInput) => h('label', { className: 'theme-studio-slider-label' },
+    h('span', null, label, h('code', null, String(value))),
+    h('input', { type: 'range', min, max, step: 1, value, onInput: e => onInput(+e.target.value) })
+  );
+
+  return h('div', { className: 'color-slider-editor' },
+    h('div', { className: 'theme-studio-toggle-row', style: { marginBottom: 8 } },
+      h('button', {
+        type: 'button', 'aria-pressed': String(mode === 'hsl'),
+        className: 'btn btn-sm ' + (mode === 'hsl' ? 'btn-active-choice' : 'btn-secondary'),
+        onClick: () => onModeChange('hsl')
+      }, 'HSL'),
+      h('button', {
+        type: 'button', 'aria-pressed': String(mode === 'rgb'),
+        className: 'btn btn-sm ' + (mode === 'rgb' ? 'btn-active-choice' : 'btn-secondary'),
+        onClick: () => onModeChange('rgb')
+      }, 'RGB'),
+      h('span', { className: 'color-slider-preview', style: { background: draft }, title: draft }),
+      h('button', {
+        type: 'button', className: 'btn btn-sm btn-secondary',
+        onClick: () => { window.setNocturneSidebarColorOverride(varName, ''); setDraft(resolveVarHex(sidebarVar)); }
+      }, 'Reset')
+    ),
+    mode === 'rgb'
+      ? h(React.Fragment, null,
+          sliderRow('Red', rgb.r, 0, 255, v => commit({ ...rgb, r: v })),
+          sliderRow('Green', rgb.g, 0, 255, v => commit({ ...rgb, g: v })),
+          sliderRow('Blue', rgb.b, 0, 255, v => commit({ ...rgb, b: v }))
+        )
+      : h(React.Fragment, null,
+          sliderRow('Hue', hsl.h, 0, 360, v => commit(hslToRgb(v, hsl.s, hsl.l))),
+          sliderRow('Saturation', hsl.s, 0, 100, v => commit(hslToRgb(hsl.h, v, hsl.l))),
+          sliderRow('Lightness', hsl.l, 0, 100, v => commit(hslToRgb(hsl.h, hsl.s, v)))
+        ),
+    h('p', { className: 'theme-studio-hint' }, `Editing sidebar ${item ? item.label : varName}.`)
   );
 }
 

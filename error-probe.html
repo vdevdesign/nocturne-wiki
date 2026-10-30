@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+</head>
+
+<body>
+  <script>
+    window.__errs = [];
+    window.onerror = function (msg, src, line, col, err) {
+      window.__errs.push((src || '').split('/').pop() + ':' + line + ':' + col + ' ' + msg);
+    };
+    window.addEventListener('unhandledrejection', e => {
+      window.__errs.push('rejection: ' + String(e.reason && (e.reason.stack || e.reason.message || e.reason)).slice(0, 300));
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="pages/PageSection.jsx"></script>
+  <script type="text/babel" src="pages/ThemeStudio.jsx"></script>
+  <script type="text/babel" src="pages/HomePage.jsx"></script>
+  <script type="text/babel" src="pages/WorldbookPage.jsx"></script>
+  <script type="text/babel" src="pages/NpcsPage.jsx"></script>
+  <script type="text/babel" src="pages/CharactersPage.jsx"></script>
+  <script type="text/babel" src="pages/SessionZeroPage.jsx"></script>
+  <script type="text/babel" src="pages/SummariesPage.jsx"></script>
+  <script type="text/babel" src="pages/QuestBoardPage.jsx"></script>
+  <script type="text/babel" src="pages/LootPage.jsx"></script>
+  <script type="text/babel" src="pages/PrimerPage.jsx"></script>
+  <script type="text/babel" src="pages/RestrictedPage.jsx"></script>
+  <script type="text/babel" src="pages/CommonRoomsPage.jsx"></script>
+  <script type="text/babel" src="pages/games/useMatch.jsx"></script>
+  <script type="text/babel" src="pages/games/RuneDuel.jsx"></script>
+  <script type="text/babel" src="pages/games/SharedConstellation.jsx"></script>
+  <script type="text/babel" src="pages/games/GamesHub.jsx"></script>
+  <script type="text/babel" src="App.jsx"></script>
+  <script>
+    setTimeout(() => {
+      document.title = 'ERRS:' + JSON.stringify((window.__errs || []).slice(0, 5)) + ' MOUNTED:' + document.getElementById('react-root').children.length;
+    }, 25000);
+  </script>
+</body>
+
+</html>
