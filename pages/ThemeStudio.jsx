@@ -196,8 +196,6 @@ function ThemePreviewHome() {
 
 /* ============================ Sidebar editor ============================ */
 
-const PATTERN_MIN = 90, PATTERN_MAX = 240;
-const SVG_MIN = 40, SVG_MAX = 120;      // % of tile the motif occupies
 const GRID_MIN = 1, GRID_MAX = 4;       // motif repeats per tile axis
 const OPACITY_MIN = 4, OPACITY_MAX = 70;
 
@@ -205,16 +203,198 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+/* ======== Dual background editor (Sidebar BG / Main BG tabs) ========
+   Each layer independently picks: motif, literal grid cols/rows (exact
+   repeat count across the layer), opacity, tiled-vs-single mode, and
+   fixed-vs-scroll attachment. Every numeric control is a paired
+   range slider + text input so exact values can be typed. */
+
+const LAYER_MOTIFS = [
+  ['dragon', 'Breathing Dragon'],
+  ['candelabra', 'Candelabra'],
+  ['fleur', 'Fleur-de-lis'],
+  ['fish', 'Fish'],
+  ['fireflies', 'Fireflies']
+];
+
+// Paired control: slider + synced number text input. The slider drives
+// live updates; the text field commits exact typed values on Enter/blur.
+function DualInput({ label, min, max, step, value, draft, onDraft, onCommit, suffix }) {
+  return h('label', { className: 'theme-studio-slider-label dual-input' },
+    h('span', null, label,
+      h('input', {
+        type: 'number', className: 'dual-input-number', min, max, step,
+        value: draft == null ? String(value) : draft, 'aria-label': label + ' exact value',
+        onChange: e => onDraft(e.target.value),
+        onBlur: () => onCommit(),
+        onKeyDown: e => { if (e.key === 'Enter') { e.preventDefault(); onCommit(); } }
+      }),
+      suffix ? h('code', null, suffix) : null
+    ),
+    h('input', {
+      type: 'range', min, max, step, value,
+      'aria-label': label + ' slider',
+      onInput: e => { onDraft(e.target.value); onCommit(+e.target.value); }
+    })
+  );
+}
+
+function NumericRangeControl({ label, min, max, value, onChange }) {
+  const [draft, setDraft] = React.useState(String(value));
+  React.useEffect(() => setDraft(String(value)), [value]);
+  function commit(raw) {
+    if (raw === '') { setDraft(String(value)); return; }
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) { setDraft(String(value)); return; }
+    const next = clamp(Math.round(parsed), min, max);
+    setDraft(String(next));
+    onChange(next);
+  }
+  return h(DualInput, {
+    label, min, max, step: 1, value, draft,
+    onDraft: setDraft,
+    onCommit: next => commit(typeof next === 'number' ? String(next) : draft)
+  });
+}
+
+function BackgroundEditor({ bgTab, setBgTab, layerCfg, layerDrafts, setLayerDrafts }) {
+  const layer = bgTab;
+  const cfg = layerCfg[layer] || {};
+  const drafts = layerDrafts[layer] || {};
+
+  function setDraft(field, value) {
+    setLayerDrafts(previous => ({
+      ...previous,
+      [layer]: { ...previous[layer], [field]: String(value) }
+    }));
+  }
+
+  function commitDraft(field, raw) {
+    if (raw === '') { setDraft(field, String(cfg[field])); return; }
+    const num = Number(raw);
+    if (!Number.isFinite(num)) { setDraft(field, String(cfg[field])); return; }
+    const bounds = {
+      gridCols: [GRID_MIN, GRID_MAX],
+      gridRows: [GRID_MIN, GRID_MAX],
+      opacity: [OPACITY_MIN, OPACITY_MAX],
+      size: [25, 100],
+      tilt: [-180, 180]
+    }[field];
+    const value = clamp(Math.round(num), bounds[0], bounds[1]);
+    if (field === 'size') window.setNocturneLayerSize(layer, value);
+    else if (field === 'tilt') window.setNocturneLayerTilt(layer, value);
+    else window.setNocturneLayerGridOrOpacity(layer, field, value);
+    setDraft(field, String(value));
+  }
+
+  return h('div', { className: 'background-editor' },
+    h('div', { className: 'background-editor-tabs' },
+      [['sidebar', 'Sidebar BG'], ['main', 'Main BG']].map(([key, label]) => h('button', {
+        type: 'button', key,
+        className: 'btn btn-sm ' + (bgTab === key ? 'btn-active-choice' : 'btn-secondary'),
+        'aria-pressed': String(bgTab === key),
+        onClick: () => setBgTab(key)
+      }, label))
+    ),
+
+    h('label', { className: 'theme-studio-slider-label' },
+      h('span', null, 'Motif pattern'),
+      h('div', { className: 'theme-studio-toggle-row' },
+        LAYER_MOTIFS.map(([value, label]) => h('button', {
+          type: 'button', key: value,
+          'aria-pressed': String(cfg.motif === value),
+          className: 'btn btn-sm ' + (cfg.motif === value ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneLayerMotif(layer, value)
+        }, label))
+      )
+    ),
+
+    h('label', { className: 'theme-studio-slider-label' },
+      h('span', null, 'Background mode'),
+      h('div', { className: 'theme-studio-toggle-row' },
+        h('button', {
+          type: 'button',
+          'aria-pressed': String(!cfg.single),
+          className: 'btn btn-sm ' + (!cfg.single ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneLayerSingle(layer, false)
+        }, 'Repeating tiles'),
+        h('button', {
+          type: 'button',
+          'aria-pressed': String(!!cfg.single),
+          className: 'btn btn-sm ' + (cfg.single ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneLayerSingle(layer, true)
+        }, 'Single large motif')
+      ),
+      h('span', { className: 'theme-studio-hint' },
+        cfg.single
+            ? 'One large, aspect-ratio-preserving motif fills the layer without cropping.'
+            : `Exact ${cfg.gridCols || 1}×${cfg.gridRows || 1} grid; each cell is sized to the layer, including 1×1.`)
+    ),
+
+    !cfg.single ? h(React.Fragment, null,
+      h(DualInput, {
+        label: 'Grid columns', min: GRID_MIN, max: GRID_MAX, step: 1,
+        value: cfg.gridCols, draft: drafts.gridCols,
+        onDraft: v => setDraft('gridCols', v),
+        onCommit: v => (typeof v === 'number' ? window.setNocturneLayerGrid(layer, 'gridCols', v) : commitDraft('gridCols', drafts.gridCols))
+      }),
+      h(DualInput, {
+        label: 'Grid rows', min: GRID_MIN, max: GRID_MAX, step: 1,
+        value: cfg.gridRows, draft: drafts.gridRows,
+        onDraft: v => setDraft('gridRows', v),
+        onCommit: v => (typeof v === 'number' ? window.setNocturneLayerGrid(layer, 'gridRows', v) : commitDraft('gridRows', drafts.gridRows))
+      })
+    ) : null,
+
+    h(DualInput, {
+      label: 'Motif size', min: 25, max: 100, step: 1,
+      value: cfg.size, draft: drafts.size,
+      onDraft: v => setDraft('size', v),
+      onCommit: v => (typeof v === 'number' ? window.setNocturneLayerSize(layer, v) : commitDraft('size', drafts.size)),
+      suffix: '%'
+    }),
+
+    h(DualInput, {
+      label: 'Tilt angle', min: -180, max: 180, step: 1,
+      value: cfg.tilt, draft: drafts.tilt,
+      onDraft: v => setDraft('tilt', v),
+      onCommit: v => (typeof v === 'number' ? window.setNocturneLayerTilt(layer, v) : commitDraft('tilt', drafts.tilt)),
+      suffix: '°'
+    }),
+
+    h(DualInput, {
+      label: 'Opacity', min: OPACITY_MIN, max: OPACITY_MAX, step: 1,
+      value: cfg.opacity, draft: drafts.opacity,
+      onDraft: v => setDraft('opacity', v),
+      onCommit: v => (typeof v === 'number' ? window.setNocturneLayerOpacity(layer, v) : commitDraft('opacity', drafts.opacity)),
+      suffix: '%'
+    }),
+
+    h('label', { className: 'theme-studio-slider-label' },
+      h('span', null, 'Scroll behavior'),
+      h('div', { className: 'theme-studio-toggle-row' },
+        h('button', {
+          type: 'button',
+          'aria-pressed': String(cfg.sticky !== false),
+          className: 'btn btn-sm ' + (cfg.sticky !== false ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneLayerSticky(layer, true)
+        }, 'Sticky (fixed)'),
+        h('button', {
+          type: 'button',
+          'aria-pressed': String(cfg.sticky === false),
+          className: 'btn btn-sm ' + (cfg.sticky === false ? 'btn-active-choice' : 'btn-secondary'),
+          onClick: () => window.setNocturneLayerSticky(layer, false)
+        }, 'Scrolls with page')
+      )
+    ),
+
+    h('p', { className: 'theme-studio-hint' },
+      'Colors follow the active Nocturne theme variables. Fire animates and glows with the theme flame colors.')
+  );
+}
+
 function ThemeStudioControls() {
   const [flames, setFlames] = React.useState(window.nocturnePatternState.flames);
-  const [tilt, setTilt] = React.useState(window.nocturnePatternState.tilt);
-  const [tile, setTile] = React.useState(window.nocturnePatternState.tile);
-  const [svgSize, setSvgSize] = React.useState(window.nocturnePatternState.svgSize);
-  const [gridCols, setGridCols] = React.useState(window.nocturnePatternState.gridCols);
-  const [gridRows, setGridRows] = React.useState(window.nocturnePatternState.gridRows);
-  const [opacity, setOpacity] = React.useState(window.nocturnePatternState.opacity);
-  const [layout, setLayout] = React.useState(window.nocturnePatternState.layout);
-  const [soloMain, setSoloMain] = React.useState(window.nocturnePatternState.soloMain);
   const [sidebarPattern, setSidebarPattern] = React.useState(window.nocturnePatternState.sidebarPattern);
   const [noBackground, setNoBackground] = React.useState(window.nocturnePatternState.noBackground);
   const [inverted, setInverted] = React.useState(document.documentElement.classList.contains('pattern-inverted'));
@@ -225,27 +405,41 @@ function ThemeStudioControls() {
   const [colorTarget, setColorTarget] = React.useState('');  // varName or ''
   const [sidebarMatchMain, setSidebarMatchMain] = React.useState(window.nocturnePatternState.sidebarMatchMain);
   const [sidebarColorTarget, setSidebarColorTarget] = React.useState('');
-  const [motif, setMotif] = React.useState(window.nocturnePatternState.motif);
   const [animateMotif, setAnimateMotif] = React.useState(window.nocturnePatternState.animateMotif);
+  // Dual background editor: which layer's tab is open, and per-layer local
+  // copies (synced from window.nocturnePatternState[layer]) for the inputs.
+  const [bgTab, setBgTab] = React.useState('main');
+  const [layerCfg, setLayerCfg] = React.useState(() => ({
+    sidebar: { ...(window.nocturnePatternState.sidebar || {}) },
+    main: { ...(window.nocturnePatternState.main || {}) }
+  }));
+  // Draft text values so users can type exact numbers; committed on blur/Enter.
+  const [layerDrafts, setLayerDrafts] = React.useState(() => ({
+    sidebar: { gridCols: '2', gridRows: '2', opacity: '35', size: '85', tilt: '0' },
+    main: { gridCols: '2', gridRows: '2', opacity: '35', size: '85', tilt: '0' }
+  }));
 
   React.useEffect(() => {
     const sync = () => {
       setFlames(window.nocturnePatternState.flames);
-      setTilt(window.nocturnePatternState.tilt);
-      setTile(window.nocturnePatternState.tile);
-      setSvgSize(window.nocturnePatternState.svgSize);
-      setGridCols(window.nocturnePatternState.gridCols);
-      setGridRows(window.nocturnePatternState.gridRows);
-      setOpacity(window.nocturnePatternState.opacity);
-      setLayout(window.nocturnePatternState.layout);
-      setSoloMain(!!window.nocturnePatternState.soloMain);
       setSidebarPattern(!!window.nocturnePatternState.sidebarPattern);
       setNoBackground(!!window.nocturnePatternState.noBackground);
       setInverted(document.documentElement.classList.contains('pattern-inverted'));
       setBrightness(window.nocturneDisplayMode());
       setSidebarMatchMain(!!window.nocturnePatternState.sidebarMatchMain);
-      setMotif(window.nocturnePatternState.motif);
       setAnimateMotif(window.nocturnePatternState.animateMotif);
+      const nextLayerCfg = {
+        sidebar: { ...(window.nocturnePatternState.sidebar || {}) },
+        main: { ...(window.nocturnePatternState.main || {}) }
+      };
+      setLayerCfg(nextLayerCfg);
+      setLayerDrafts(Object.fromEntries(['sidebar', 'main'].map(layer => [layer, {
+        gridCols: String(nextLayerCfg[layer].gridCols || 1),
+        gridRows: String(nextLayerCfg[layer].gridRows || 1),
+        opacity: String(nextLayerCfg[layer].opacity || 35),
+        size: String(nextLayerCfg[layer].size || 85),
+        tilt: String(nextLayerCfg[layer].tilt || 0)
+      }])));
     };
     window.addEventListener('nocturne-pattern-updated', sync);
     return () => window.removeEventListener('nocturne-pattern-updated', sync);
@@ -294,25 +488,7 @@ function ThemeStudioControls() {
       style: { marginBottom: 4, justifySelf: 'start' },
       onClick: resetAppearance
     }, '↺ Reset appearance to theme defaults'),
-    h('h3', null, 'Pattern Geometry'),
-
-    h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'Motif'),
-      h('div', { className: 'theme-studio-toggle-row' },
-        [
-          ['candelabra', 'Candelabra'],
-          ['fleur', 'Fleur-de-lis'],
-          ['fish', 'Fish'],
-          ['fireflies', 'Fireflies']
-        ].map(([value, label]) => h('button', {
-          type: 'button',
-          key: value,
-          'aria-pressed': String(motif === value),
-          className: 'btn btn-sm ' + (motif === value ? 'btn-active-choice' : 'btn-secondary'),
-          onClick: () => window.setNocturneMotif(value)
-        }, label))
-      )
-    ),
+    h('h3', null, 'Backgrounds'),
 
     h('label', { className: 'theme-studio-slider-label' },
       h('span', null, 'Motif animation'),
@@ -323,7 +499,7 @@ function ThemeStudioControls() {
           className: 'btn btn-sm ' + (animateMotif ? 'btn-active-choice' : 'btn-secondary'),
           onClick: () => window.setNocturneAnimateMotif(!window.nocturnePatternState.animateMotif)
         }, animateMotif ? 'Animated' : 'Static'),
-        h('span', { className: 'theme-studio-hint' }, 'Fish sway; fireflies drift and pulse. Applies to fish/fireflies motifs.')
+        h('span', { className: 'theme-studio-hint' }, 'Dragon fire flickers; fireflies pulse; fish sway.')
       )
     ),
 
@@ -334,73 +510,7 @@ function ThemeStudioControls() {
         className: 'btn btn-sm ' + (flames ? 'btn-flame-on' : 'btn-secondary'),
         'aria-pressed': String(flames),
         onClick: () => window.setNocturnePatternFlames(!window.nocturnePatternState.flames)
-      }, flames ? 'Glowing' : 'Extinguished')
-    ),
-
-    h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'Tilt angle ', h('code', null, tilt + '°')),
-      h('input', {
-        type: 'range', min: -180, max: 180, step: 1, value: tilt,
-        onInput: e => window.setNocturnePatternTilt(parseInt(e.target.value, 10))
-      })
-    ),
-
-    h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'Tile size ', h('code', null, tile + 'px')),
-      h('input', {
-        type: 'range', min: PATTERN_MIN, max: PATTERN_MAX, step: 2, value: tile,
-        onInput: e => window.setNocturnePatternTile(parseInt(e.target.value, 10))
-      })
-    ),
-
-    h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'SVG size ', h('code', null, svgSize + '%'), h('span', { className: 'theme-studio-hint' }, ' offsets tile size')),
-      h('input', {
-        type: 'range', min: SVG_MIN, max: SVG_MAX, step: 1, value: svgSize,
-        onInput: e => window.setNocturneSvgSize(parseInt(e.target.value, 10))
-      })
-    ),
-
-    h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'Grid columns ', h('code', null, gridCols)),
-      h('input', {
-        type: 'range', min: GRID_MIN, max: GRID_MAX, step: 1, value: gridCols,
-        onInput: e => window.setNocturneGridColumns(parseInt(e.target.value, 10))
-      })
-    ),
-
-    h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'Grid rows ', h('code', null, gridRows)),
-      h('input', {
-        type: 'range', min: GRID_MIN, max: GRID_MAX, step: 1, value: gridRows,
-        onInput: e => window.setNocturneGridRows(parseInt(e.target.value, 10))
-      })
-    ),
-
-    h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'Pattern opacity ', h('code', null, opacity + '%')),
-      h('input', {
-        type: 'range', min: OPACITY_MIN, max: OPACITY_MAX, step: 1, value: opacity,
-        onInput: e => window.setNocturnePatternOpacity(parseInt(e.target.value, 10))
-      })
-    ),
-
-    h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'Arrangement'),
-      h('div', { className: 'theme-studio-toggle-row' },
-        h('button', {
-          type: 'button',
-          'aria-pressed': String(layout === 'stagger'),
-          className: 'btn btn-sm ' + (layout === 'stagger' ? 'btn-active-choice' : 'btn-secondary'),
-          onClick: () => window.setNocturnePatternLayout('stagger')
-        }, 'Offset grid'),
-        h('button', {
-          type: 'button',
-          'aria-pressed': String(layout === 'grid'),
-          className: 'btn btn-sm ' + (layout === 'grid' ? 'btn-active-choice' : 'btn-secondary'),
-          onClick: () => window.setNocturnePatternLayout('grid')
-        }, 'Regular grid')
-      )
+      }, flames ? 'Fire glow on' : 'Fire glow off')
     ),
 
     h('h3', null, 'Colors'),
@@ -452,21 +562,14 @@ function ThemeStudioControls() {
           className: 'btn btn-sm ' + (sidebarPattern ? 'btn-active-choice' : 'btn-secondary'),
           onClick: () => window.setNocturneSidebarPattern(!window.nocturnePatternState.sidebarPattern)
         }, sidebarPattern ? 'Pattern on' : 'Pattern off'),
-        h('span', { className: 'theme-studio-hint' }, sidebarPattern ? 'Candelabra shows behind the navbar.' : 'Navbar has a plain background.')
+        h('span', { className: 'theme-studio-hint' }, sidebarPattern ? 'Background shows behind the navbar.' : 'Navbar has a plain background.')
       )
     ) : null,
-    h('label', { className: 'theme-studio-slider-label' },
-      h('span', null, 'Main window motif'),
-      h('div', { className: 'theme-studio-toggle-row' },
-        h('button', {
-          type: 'button',
-          'aria-pressed': String(soloMain),
-          className: 'btn btn-sm ' + (soloMain ? 'btn-active-choice' : 'btn-secondary'),
-          onClick: () => window.setNocturneSoloMain(!window.nocturnePatternState.soloMain)
-        }, soloMain ? 'One large motif' : 'Repeating pattern'),
-        h('span', { className: 'theme-studio-hint' }, soloMain ? 'A single oversized candelabra centered behind the main window; sidebar unaffected.' : 'Standard tiled pattern everywhere.')
-      )
-    ),
+
+    /* ===== Dual background editor: independent Sidebar / Main tabs ===== */
+    !noBackground ? h(BackgroundEditor, {
+      bgTab, setBgTab, layerCfg, layerDrafts, setLayerDrafts
+    }) : null,
 
     h('h3', null, 'Sidebar theme'),
     h('label', { className: 'theme-studio-slider-label' },
@@ -609,10 +712,8 @@ function SidebarColorSliders({ varName, mode, onModeChange }) {
     window.setNocturneSidebarColorOverride(varName, hex);
   }
 
-  const sliderRow = (label, value, min, max, onInput) => h('label', { className: 'theme-studio-slider-label' },
-    h('span', null, label, h('code', null, String(value))),
-    h('input', { type: 'range', min, max, step: 1, value, onInput: e => onInput(+e.target.value) })
-  );
+  const sliderRow = (label, value, min, max, onInput) =>
+    h(NumericRangeControl, { label, value, min, max, onChange: onInput });
 
   return h('div', { className: 'color-slider-editor' },
     h('div', { className: 'theme-studio-toggle-row', style: { marginBottom: 8 } },
@@ -716,10 +817,8 @@ function ColorSliders({ varName, mode, onModeChange }) {
     window.setNocturneColorOverride(varName, hex);
   }
 
-  const sliderRow = (label, value, min, max, onInput) => h('label', { className: 'theme-studio-slider-label' },
-    h('span', null, label, h('code', null, String(value))),
-    h('input', { type: 'range', min, max, step: 1, value, onInput: e => onInput(+e.target.value) })
-  );
+  const sliderRow = (label, value, min, max, onInput) =>
+    h(NumericRangeControl, { label, value, min, max, onChange: onInput });
 
   return h('div', { className: 'color-slider-editor' },
     h('div', { className: 'theme-studio-toggle-row', style: { marginBottom: 8 } },

@@ -9,13 +9,148 @@ function RuneArt({ pick }) {
   return <img className="rune-art" src={`assets/rune-duel/${image}`} alt="" aria-hidden="true" />;
 }
 
+// Resolve a round between two runes using the same rules as the database
+// function. Returns 'a', 'b', or 'draw'. Ties: gale/shadow and stone/flame.
+function resolveRuneRound(pickA, pickB) {
+  if (!pickA || !pickB) return null;
+  if (pickA === pickB) return 'draw';
+  if (
+    (pickA === 'gale' && pickB === 'shadow') || (pickA === 'shadow' && pickB === 'gale')
+    || (pickA === 'stone' && pickB === 'flame') || (pickA === 'flame' && pickB === 'stone')
+  ) return 'draw';
+  if (
+    (pickA === 'stone' && pickB === 'gale') || (pickA === 'gale' && pickB === 'flame')
+    || (pickA === 'flame' && pickB === 'shadow') || (pickA === 'shadow' && pickB === 'stone')
+  ) return 'a';
+  return 'b';
+}
+
+function RuneDuelTestMode() {
+  const runes = [
+    ['flame', 'Flame'],
+    ['gale', 'Gale'],
+    ['stone', 'Stone'],
+    ['shadow', 'Shadow']
+  ];
+  const [pickA, setPickA] = React.useState(null);
+  const [pickB, setPickB] = React.useState(null);
+  const [history, setHistory] = React.useState([]);
+  const [scores, setScores] = React.useState({ a: 0, b: 0 });
+  const [round, setRound] = React.useState(1);
+  const winner = scores.a >= 3 ? 'House A' : scores.b >= 3 ? 'House B' : null;
+
+  function reveal() {
+    if (!pickA || !pickB) return;
+    const outcome = resolveRuneRound(pickA, pickB);
+    setHistory(previous => [{ round, pickA, pickB, outcome }, ...previous].slice(0, 10));
+    if (outcome === 'a') setScores(previous => ({ ...previous, a: previous.a + 1 }));
+    if (outcome === 'b') setScores(previous => ({ ...previous, b: previous.b + 1 }));
+    if (outcome !== 'draw') setRound(previous => previous + 1);
+    setPickA(null);
+    setPickB(null);
+  }
+
+  function reset() {
+    setPickA(null);
+    setPickB(null);
+    setHistory([]);
+    setScores({ a: 0, b: 0 });
+    setRound(1);
+  }
+
+  return (
+    <section className="games-section rune-test-mode" aria-label="Rune Duel test mode" style={{ marginTop: 24 }}>
+      <div className="games-section-heading">
+        <div>
+          <span className="games-kicker">DM tools</span>
+          <h4>Rune Duel test mode</h4>
+        </div>
+      </div>
+      <p className="games-note">
+        Sandbox only — nothing is saved and no points are awarded. Play both sides
+        to check the matchup rules against the chart. First to 3 round wins.
+      </p>
+      <div className="rune-scoreboard" aria-label="Test scoreboard">
+        <div><span>Player A</span><strong>{scores.a}</strong></div>
+        <span className="rune-score-divider">:</span>
+        <div><span>Player B</span><strong>{scores.b}</strong></div>
+      </div>
+      <p className="games-round">
+        {winner
+          ? `${winner} wins the test duel.`
+          : `Round ${round}. Draws replay the round.`}
+      </p>
+      <div className="rune-test-grid">
+        {['A', 'B'].map(side => (
+          <div className="rune-test-side" key={side}>
+            <small>Player {side}</small>
+            <div className="rune-test-picks">
+              {runes.map(([pick, label]) => (
+                <button
+                  className={`rune-pick ${(side === 'A' ? pickA : pickB) === pick ? 'selected' : ''}`}
+                  type="button"
+                  key={pick}
+                  onClick={() => (side === 'A' ? setPickA(pick) : setPickB(pick))}
+                >
+                  <RuneArt pick={pick} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="rune-test-actions">
+        <button className="btn btn-sm" type="button" disabled={!pickA || !pickB || Boolean(winner)} onClick={reveal}>
+          Reveal round
+        </button>
+        <button className="btn btn-sm btn-secondary" type="button" onClick={reset}>Reset test</button>
+      </div>
+      <div className="rune-test-result" aria-live="polite">
+        {history.length ? history.map(entry => (
+          <p key={entry.round} className="games-rule">
+            Round {entry.round}: {entry.pickA} vs {entry.pickB} —
+            {' '}{entry.outcome === 'draw' ? 'draw, replay' : `Player ${entry.outcome.toUpperCase()} wins the round`}.
+          </p>
+        )) : <p className="empty-note">Pick a rune for both players, then reveal the round.</p>}
+      </div>
+    </section>
+  );
+}
+
+function RuneDuelMatchBanner({ match, status }) {
+  const phrases = [
+    "Let's d-d-duel!",
+    'Choose your rune carefully!',
+    'The runes await your choice…',
+    'May the sharpest mind prevail!',
+    'Every rune has a rival.',
+    'Trust your instinct — then lock it in!'
+  ];
+  const winnerHouse = status === 'finished' ? match.winner_house : null;
+  if (winnerHouse) {
+    return (
+      <div className="rune-duel-banner rune-duel-banner-winner" role="status">
+        <strong>House {winnerHouse} wins the duel!</strong>
+      </div>
+    );
+  }
+  const phrase = phrases[(Number(match.state?.round) || 1) % phrases.length];
+  return (
+    <div className="rune-duel-banner" role="status">
+      <strong>{phrase}</strong>
+    </div>
+  );
+}
+
 function RuneRoundResults({ result, match, players }) {
   if (!result) return null;
   const houses = [match.house_a, match.house_b];
   const picks = [result.house_a_pick, result.house_b_pick];
   const winner = result.winner_house;
   const isDraw = result.outcome === 'draw';
-  const winnerName = players.find(player => player.house === winner)?.name;
+  const winnerPlayer = players.find(player => player.house === winner);
+  const winnerName = (winnerPlayer && winnerPlayer.name) || '';
 
   return (
     <div className="rune-last-round" aria-live="polite">
@@ -34,7 +169,7 @@ function RuneRoundResults({ result, match, players }) {
           return (
             <div className={`rune-last-round-player ${victory ? 'victory' : ''}`} key={house}>
               <div>
-                <strong>{player?.name || `House ${house}`}</strong>
+                <strong>{(player && player.name) || `House ${house}`}</strong>
                 <span>House {house}</span>
               </div>
               <RuneArt pick={picks[index]} />
@@ -49,6 +184,8 @@ function RuneRoundResults({ result, match, players }) {
     </div>
   );
 }
+
+window.RuneDuelTestMode = RuneDuelTestMode;
 
 window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] }) {
   const [myPick, setMyPick] = React.useState(null);
@@ -173,19 +310,7 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
           )).join('')}. This view cannot submit picks or affect the result.
         </p>
       ) : null}
-      <p className="games-rule">Flame defeats Gale. Gale defeats Stone. Stone defeats Shadow. Shadow defeats Flame. Matching or opposite runes draw without scoring.</p>
-      <figure className="rune-matchup-chart">
-        <img
-          src="assets/rune-duel/rune-duel-matchups.png"
-          alt="Rune Duel matchup chart. Flame defeats Gale, Gale defeats Stone, Stone defeats Shadow, and Shadow defeats Flame. Matching runes and opposite runes tie and replay."
-        />
-        <figcaption>Read each row as the rune you played. Matching or opposite runes tie and replay the round.</figcaption>
-      </figure>
-      <div className="rune-scoreboard">
-        <div><span>House {match.house_a}</span><strong>{scores.house_a || 0}</strong></div>
-        <span className="rune-score-divider">:</span>
-        <div><span>House {match.house_b || 'opponent'}</span><strong>{scores.house_b || 0}</strong></div>
-      </div>
+      <RuneDuelMatchBanner match={match} status={match.status} />
       <RuneRoundResults result={lastResult} match={match} players={players} />
       {match.status === 'active' ? (
         <>
@@ -257,6 +382,27 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
           {match.winner_house ? `House ${match.winner_house} won the duel.` : 'This match has finished.'}
         </p>
       )}
+      <div className="rune-scoreboard" aria-label="Round wins">
+        <div><span>House {match.house_a}</span><strong>{scores.house_a || 0}</strong></div>
+        <span className="rune-score-divider">:</span>
+        <div><span>House {match.house_b || 'opponent'}</span><strong>{scores.house_b || 0}</strong></div>
+      </div>
+      <section className="games-section rune-how-to-play" aria-label="How to play Rune Duel" style={{ marginTop: 24 }}>
+        <div className="games-section-heading">
+          <div>
+            <span className="games-kicker">Rules</span>
+            <h4>How to play Rune Duel</h4>
+          </div>
+        </div>
+        <p className="games-rule">Stone grounds Gale. Gale snuffs out Flame. Flame banishes Shadow. Shadow hollows out Stone. Matching runes tie, and opposite runes tie and replay the round.</p>
+        <figure className="rune-matchup-chart">
+          <img
+            src="assets/rune-duel/rune-duel-matchups_UPDATED.png"
+            alt="Rune Duel matchup chart. Stone grounds Gale, Gale snuffs out Flame, Flame banishes Shadow, and Shadow hollows out Stone. Gale ties Shadow, and Stone ties Flame; matching runes also tie and replay."
+          />
+        </figure>
+      </section>
+      {window.currentUserIsDM ? <RuneDuelTestMode /> : null}
       {pickError ? <p className="games-error" role="alert">{pickError}</p> : null}
     </article>
   );

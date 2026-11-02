@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nocturne Full-Page Background Generator</title>
+    <style>
+        /* Hooks into your existing Nocturne CSS variables */
+        :root {
+            --bg-sidebar: var(--theme-sidebar-bg, #130f1c);
+            --bg-main: var(--theme-main-bg, #0c0914);
+            --card-bg: var(--theme-card-bg, #1a1225);
+            --border-color: var(--theme-border, #2d2440);
+            --text-main: var(--theme-text, #e2e8f0);
+            --text-muted: var(--theme-muted, #a0aec0);
+            --accent-color: var(--theme-accent, #9f7aea);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #050308;
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Control Sidebar */
+        aside.control-panel {
+            width: 400px;
+            background-color: #120e1a;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 50;
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: #171124;
+        }
+
+        .panel-header h1 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: #0f0a17;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--text-main);
+            border-bottom-color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tab-content {
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        .section-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.015);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            background: #1a1426;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        input[type="range"] {
+            accent-color: var(--accent-color);
+            padding: 0;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            accent-color: var(--accent-color);
+            width: 16px;
+            height: 16px;
+        }
+
+        .view-mode-bar {
+            padding: 12px 20px;
+            background: #171124;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .device-btn {
+            flex: 1;
+            background: #1a1426;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .device-btn.active {
+            border-color: var(--accent-color);
+            background: rgba(159, 122, 234, 0.15);
+        }
+
+        .export-action-btn {
+            background-color: var(--accent-color);
+            color: #0f0a17;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: 10px;
+        }
+
+        .export-action-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Live Preview Stage */
+        main.preview-stage {
+            flex: 1;
+            background-color: #08060d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow: hidden;
+        }
+
+        .website-frame {
+            width: 100%;
+            height: 100%;
+            max-width: 1400px;
+            max-height: 900px;
+            background: #0f0a17;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+
+        .website-frame.mobile-view {
+            width: 390px;
+            height: 844px;
+        }
+
+        /* Simulated Nocturne Layout Components */
+        .site-sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .site-main {
+            flex: 1;
+            background-color: var(--bg-main);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .bg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .site-sidebar *, .site-main * {
+            z-index: 1;
+            position: relative;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-nav {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item.active {
+            background: rgba(159, 122, 234, 0.15);
+            color: var(--text-main);
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .main-header {
+            padding: 32px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .main-header h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .main-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .content-body {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: #171124;
+            border: 1px solid var(--border-color);
+            width: 700px;
+            max-width: 90%;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        textarea {
+            width: 100%;
+            height: 220px;
+            background: #0f0a17;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            resize: none;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Control Sidebar with Separate Editors -->
+    <aside class="control-panel">
+        <div class="panel-header">
+            <h1>🛡️ Nocturne Background Studio</h1>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('sidebar')">Sidebar BG</button>
+            <button class="tab-btn" onclick="switchTab('main')">Main Content BG</button>
+        </div>
+
+        <!-- Sidebar Background Editor -->
+        <div class="tab-content active" id="tab-sidebar">
+            <div class="section-group">
+                <label>Sidebar Motif Pattern</label>
+                <select id="sb-motif" onchange="updateAll()">
+                    <option value="candelabra">Tilted Candelabra</option>
+                    <option value="fireflies">Enchanted Fireflies</option>
+                    <option value="fish">Abyssal Fish School</option>
+                </select>
+            </div>
+
+            <div class="section-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="sb-single" onchange="updateAll()"> Single Big SVG Element Mode
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="sb-sticky" onchange="updateAll()" checked> Sticky Background (Fixed)
+                </label>
+            </div>
+
+            <div class="section-group">
+                <label>Pattern Scale / Zoom <span id="sb-scale-val">1.0x</span></label>
+                <input type="range" id="sb-scale" min="0.5" max="2.5" step="0.1" value="1.0" oninput="updateAll()">
+            </div>
+
+            <div class="section-group">
+                <label>Opacity <span id="sb-opacity-val">0.85</span></label>
+                <input type="range" id="sb-opacity" min="0.1" max="1.0" step="0.05" value="0.85" oninput="updateAll()">
+            </div>
+
+            <button class="export-action-btn" onclick="openExportModal()">Export Code for Agent</button>
+        </div>
+
+        <!-- Main Content Background Editor -->
+        <div class="tab-content" id="tab-main">
+            <div class="section-group">
+                <label>Main Content Motif Pattern</label>
+                <select id="main-motif" onchange="updateAll()">
+                    <option value="candelabra" selected>Tilted Candelabra</option>
+                    <option value="fireflies">Enchanted Fireflies</option>
+                    <option value="fish">Abyssal Fish School</option>
+                </select>
+            </div>
+
+            <div class="section-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="main-single" onchange="updateAll()"> Single Big SVG Element Mode
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="main-sticky" onchange="updateAll()"> Sticky Background (Fixed)
+                </label>
+            </div>
+
+            <div class="section-group">
+                <label>Pattern Scale / Zoom <span id="main-scale-val">1.2x</span></label>
+                <input type="range" id="main-scale" min="0.5" max="3.0" step="0.1" value="1.2" oninput="updateAll()">
+            </div>
+
+            <div class="section-group">
+                <label>Opacity <span id="main-opacity-val">0.75</span></label>
+                <input type="range" id="main-opacity" min="0.1" max="1.0" step="0.05" value="0.75" oninput="updateAll()">
+            </div>
+
+            <button class="export-action-btn" onclick="openExportModal()">Export Code for Agent</button>
+        </div>
+
+        <div class="view-mode-bar">
+            <button class="device-btn active" id="btn-desktop" onclick="setDevice('desktop')">🖥️ Desktop</button>
+            <button class="device-btn" id="btn-mobile" onclick="setDevice('mobile')">📱 Mobile Phone</button>
+        </div>
+    </aside>
+
+    <!-- Live Preview Stage -->
+    <main class="preview-stage">
+        <div class="website-frame" id="siteFrame">
+            <!-- Sidebar -->
+            <div class="site-sidebar">
+                <div class="bg-layer" id="sidebarBgLayer"></div>
+                <div class="sidebar-header">Nocturne</div>
+                <div class="sidebar-nav">
+                    <div class="nav-item active">⬡ Home</div>
+                    <div class="nav-item">⚔️ Players</div>
+                    <div class="nav-item">📖 Worldbook</div>
+                    <div class="nav-item">👤 NPCs & Quests</div>
+                    <div class="nav-item">📜 Session Logs</div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="site-main">
+                <div class="bg-layer" id="mainBgLayer"></div>
+                <div class="main-header">
+                    <h2>The World of Nocturne</h2>
+                    <p>A homebrew D&D campaign centered in Elbizar Adventure Academy.</p>
+                </div>
+                <div class="content-body">
+                    <div class="card">
+                        <h3>Campaign at a Glance</h3>
+                        <p>Next Session: November 6, 2026. Reviewing quest status, house points, and active character rosters across the realm.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Active Quests & Rumors</h3>
+                        <p>The party has uncovered mysterious whispers in the restricted archives regarding ancient artifacts.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal">
+            <h2>Agent Integration Code Package</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Provide this clean CSS snippet to your agent to plug into your Nocturne repository without affecting your existing themes:</p>
+            <textarea id="exportCode" readonly></textarea>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeExportModal()">Close</button>
+                <button class="export-action-btn" style="margin-top:0;" onclick="copyCode()">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function setDevice(mode) {
+            const frame = document.getElementById('siteFrame');
+            frame.classList.toggle('mobile-view', mode === 'mobile');
+            document.getElementById('btn-desktop').classList.toggle('active', mode === 'desktop');
+            document.getElementById('btn-mobile').classList.toggle('active', mode === 'mobile');
+        }
+
+        // SVG Generators with zero-clip viewBox scaling
+        function getSvgDataUri(motif, isSingle) {
+            let svgString = '';
+            
+            if (motif === 'candelabra') {
+                if (isSingle) {
+                    svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+                        <g transform="rotate(-7.5 200 250)">
+                            <path d="M200,80 L200,420 M130,150 Q200,120 270,150 M130,150 L130,200 M270,150 L270,200 M200,110 L200,70" stroke="var(--accent-color)" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.9"/>
+                            <ellipse cx="200" cy="70" rx="6" ry="12" fill="var(--text-main)" />
+                            <ellipse cx="130" cy="200" rx="5" ry="10" fill="var(--text-main)" />
+                            <ellipse cx="270" cy="200" rx="5" ry="10" fill="var(--text-main)" />
+                        </g>
+                    </svg>`;
+                } else {
+                    svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" width="160" height="200">
+                        <g transform="rotate(-7.5 80 100)">
+                            <path d="M80,40 L80,180 M40,80 Q80,60 120,80 M40,80 L40,110 M120,80 L120,110" stroke="var(--accent-color)" stroke-width="3.5" fill="none" stroke-linecap="round" opacity="0.8"/>
+                        </g>
+                    </svg>`;
+                }
+            } else if (motif === 'fireflies') {
+                if (isSingle) {
+                    svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+                        <circle cx="150" cy="200" r="4" fill="var(--accent-color)" filter="blur(6px)"/>
+                        <circle cx="450" cy="150" r="5" fill="var(--accent-color)" filter="blur(8px)"/>
+                        <circle cx="300" cy="400" r="6" fill="var(--accent-color)" filter="blur(10px)"/>
+                        <circle cx="100" cy="500" r="3.5" fill="var(--accent-color)" filter="blur(5px)"/>
+                    </svg>`;
+                } else {
+                    svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+                        <circle cx="50" cy="60" r="3" fill="var(--accent-color)" filter="blur(4px)" opacity="0.9"/>
+                        <circle cx="140" cy="120" r="4" fill="var(--accent-color)" filter="blur(5px)" opacity="0.8"/>
+                        <circle cx="90" cy="160" r="2.5" fill="var(--accent-color)" filter="blur(3px)" opacity="0.7"/>
+                    </svg>`;
+                }
+            } else if (motif === 'fish') {
+                if (isSingle) {
+                    svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+                        <path d="M200,300 C250,270 320,285 360,300 C320,315 250,330 200,300 Z" fill="var(--accent-color)" opacity="0.7"/>
+                        <path d="M190,300 L160,280 L160,320 Z" fill="var(--accent-color)" opacity="0.6"/>
+                    </svg>`;
+                } else {
+                    svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+                        <g transform="rotate(-15 100 100)">
+                            <path d="M70,100 C85,90 110,95 125,100 C110,105 85,110 70,100 Z" fill="var(--accent-color)" opacity="0.8"/>
+                            <path d="M65,100 L50,90 L50,110 Z" fill="var(--accent-color)" opacity="0.7"/>
+                        </g>
+                    </svg>`;
+                }
+            }
+
+            return `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
+        }
+
+        function updateAll() {
+            // Sidebar Config
+            const sbMotif = document.getElementById('sb-motif').value;
+            const sbSingle = document.getElementById('sb-single').checked;
+            const sbSticky = document.getElementById('sb-sticky').checked;
+            const sbScale = document.getElementById('sb-scale').value;
+            const sbOpacity = document.getElementById('sb-opacity').value;
+
+            document.getElementById('sb-scale-val').textContent = sbScale + 'x';
+            document.getElementById('sb-opacity-val').textContent = sbOpacity;
+
+            const sbLayer = document.getElementById('sidebarBgLayer');
+            sbLayer.style.opacity = sbOpacity;
+            sbLayer.style.backgroundImage = `url("${getSvgDataUri(sbMotif, sbSingle)}")`;
+            
+            if (sbSingle) {
+                sbLayer.style.backgroundSize = 'cover';
+                sbLayer.style.backgroundRepeat = 'no-repeat';
+                sbLayer.style.backgroundPosition = 'center';
+            } else {
+                sbLayer.style.backgroundSize = `${160 * sbScale}px auto`;
+                sbLayer.style.backgroundRepeat = 'repeat';
+            }
+            sbLayer.style.backgroundAttachment = sbSticky ? 'fixed' : 'scroll';
+
+
+            // Main Content Config
+            const mainMotif = document.getElementById('main-motif').value;
+            const mainSingle = document.getElementById('main-single').checked;
+            const mainSticky = document.getElementById('main-sticky').checked;
+            const mainScale = document.getElementById('main-scale').value;
+            const mainOpacity = document.getElementById('main-opacity').value;
+
+            document.getElementById('main-scale-val').textContent = mainScale + 'x';
+            document.getElementById('main-opacity-val').textContent = mainOpacity;
+
+            const mainLayer = document.getElementById('mainBgLayer');
+            mainLayer.style.opacity = mainOpacity;
+            mainLayer.style.backgroundImage = `url("${getSvgDataUri(mainMotif, mainSingle)}")`;
+
+            if (mainSingle) {
+                mainLayer.style.backgroundSize = 'cover';
+                mainLayer.style.backgroundRepeat = 'no-repeat';
+                mainLayer.style.backgroundPosition = 'center';
+            } else {
+                mainLayer.style.backgroundSize = `${200 * mainScale}px auto`;
+                mainLayer.style.backgroundRepeat = 'repeat';
+            }
+            mainLayer.style.backgroundAttachment = mainSticky ? 'fixed' : 'scroll';
+        }
+
+        function openExportModal() {
+            const cssOutput = `/* Nocturne Background Integration CSS (Compatible with existing themes) */
+.site-sidebar {
+  background-color: var(--theme-sidebar-bg);
+  background-image: url("${document.getElementById('sidebarBgLayer').style.backgroundImage.slice(5, -2)}");
+  background-size: ${document.getElementById('sb-single').checked ? 'cover' : '160px auto'};
+  background-repeat: ${document.getElementById('sb-single').checked ? 'no-repeat' : 'repeat'};
+  background-attachment: ${document.getElementById('sb-sticky').checked ? 'fixed' : 'scroll'};
+}
+
+.site-main {
+  background-color: var(--theme-main-bg);
+  background-image: url("${document.getElementById('mainBgLayer').style.backgroundImage.slice(5, -2)}");
+  background-size: ${document.getElementById('main-single').checked ? 'cover' : '200px auto'};
+  background-repeat: ${document.getElementById('main-single').checked ? 'no-repeat' : 'repeat'};
+  background-attachment: ${document.getElementById('main-sticky').checked ? 'fixed' : 'scroll'};
+}`;
+
+            document.getElementById('exportCode').value = cssOutput;
+            document.getElementById('exportModal').style.display = 'flex';
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportModal').style.display = 'none';
+        }
+
+        function copyCode() {
+            const ta = document.getElementById('exportCode');
+            ta.select();
+            navigator.clipboard.writeText(ta.value);
+            alert('Code copied to clipboard!');
+        }
+
+        window.onload = updateAll;
+    </script>
+</body>
+</html>

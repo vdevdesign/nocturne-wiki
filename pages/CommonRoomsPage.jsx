@@ -601,9 +601,9 @@ function CommonRoomsPage() {
               <p>{details.virtue}</p>
             </div>
           </article>
-          {house === 'Phoenix' ? <PhoenixGame key={house} /> : null}
-          {house === 'Fox' ? <FoxGame key={house} /> : null}
-          {house === 'Selkie' ? <SelkieGame key={house} /> : null}
+          <PhoenixGame key={`phoenix-${house}`} />
+          <FoxGame key={`fox-${house}`} />
+          <SelkieGame key={`selkie-${house}`} />
           <div className={`games-section house-${house.toLowerCase()}`}>
             <div className="games-section-heading">
               <div>

@@ -758,18 +758,22 @@ BEGIN
   JOIN public.match_players AS mp USING (match_id, user_id)
   WHERE rp.match_id = v_match.id AND rp.round = v_round AND mp.house = v_match.house_b;
 
-  -- Balanced four-rune cycle: flame beats gale, gale beats stone,
-  -- stone beats shadow, and shadow beats flame. Matching or opposite runes tie.
+  -- Tie pairs: gale/shadow and stone/flame. Otherwise, stone beats gale,
+  -- gale beats flame, flame beats shadow, and shadow beats stone.
   v_winner := CASE
     WHEN v_pick_a = v_pick_b THEN NULL
-    WHEN (v_pick_a = 'flame' AND v_pick_b = 'gale')
-      OR (v_pick_a = 'gale' AND v_pick_b = 'stone')
-      OR (v_pick_a = 'stone' AND v_pick_b = 'shadow')
-      OR (v_pick_a = 'shadow' AND v_pick_b = 'flame') THEN v_match.house_a
-    WHEN (v_pick_b = 'flame' AND v_pick_a = 'gale')
-      OR (v_pick_b = 'gale' AND v_pick_a = 'stone')
-      OR (v_pick_b = 'stone' AND v_pick_a = 'shadow')
-      OR (v_pick_b = 'shadow' AND v_pick_a = 'flame') THEN v_match.house_b
+    WHEN (v_pick_a = 'gale' AND v_pick_b = 'shadow')
+      OR (v_pick_a = 'shadow' AND v_pick_b = 'gale')
+      OR (v_pick_a = 'stone' AND v_pick_b = 'flame')
+      OR (v_pick_a = 'flame' AND v_pick_b = 'stone') THEN NULL
+    WHEN (v_pick_a = 'stone' AND v_pick_b = 'gale')
+      OR (v_pick_a = 'gale' AND v_pick_b = 'flame')
+      OR (v_pick_a = 'flame' AND v_pick_b = 'shadow')
+      OR (v_pick_a = 'shadow' AND v_pick_b = 'stone') THEN v_match.house_a
+    WHEN (v_pick_b = 'stone' AND v_pick_a = 'gale')
+      OR (v_pick_b = 'gale' AND v_pick_a = 'flame')
+      OR (v_pick_b = 'flame' AND v_pick_a = 'shadow')
+      OR (v_pick_b = 'shadow' AND v_pick_a = 'stone') THEN v_match.house_b
     ELSE NULL
   END;
 

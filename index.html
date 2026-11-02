@@ -95,8 +95,8 @@
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  #react-root { display: flex; flex: 1; min-width: 0; min-height: 100vh; }
-  body { margin: 0; background: radial-gradient(ellipse 900px 500px at 15% -10%, var(--glow-primary), transparent 60%), radial-gradient(ellipse 700px 500px at 100% 10%, var(--glow-secondary), transparent 55%), var(--bg); color: var(--text); font-family: var(--font-body); display: flex; min-height: 100vh; }
+  #react-root { display: flex; flex: 1; min-width: 0; min-height: 100vh; position: relative; }
+  body { margin: 0; background: radial-gradient(ellipse 900px 500px at 15% -10%, var(--glow-primary), transparent 60%), radial-gradient(ellipse 700px 500px at 100% 10%, var(--glow-secondary), transparent 55%), var(--theme-main-bg); color: var(--theme-text); font-family: var(--font-body); display: flex; min-height: 100vh; }
   @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; } }
 
   /* Auth */
@@ -121,7 +121,7 @@
   .auth-error { color: var(--rose); font-size: 12.5px; margin-top: 10px; min-height: 14px; }
   .auth-note { color: var(--text-faint); font-size: 11.5px; margin-top: 14px; line-height:1.5; }
 
-  nav.sidebar { width: var(--sidebar-width, 260px); min-width: var(--sidebar-width, 260px); flex-shrink: 0; background: var(--bg-alt); border-right: 1px solid var(--line); padding: 28px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; transition: width 0.2s ease, min-width 0.2s ease; }
+  nav.sidebar { width: var(--sidebar-width, 260px); min-width: var(--sidebar-width, 260px); flex-shrink: 0; background: var(--theme-sidebar-bg); border-right: 1px solid var(--line); padding: 28px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; transition: width 0.2s ease, min-width 0.2s ease; }
   nav.sidebar.collapsed { width: 76px; min-width: 76px; }
   .sidebar-resize-handle { position: absolute; top: 0; right: -5px; width: 10px; height: 100%; cursor: col-resize; z-index: 20; }
   .sidebar-resize-handle:hover, body.sidebar-resizing .sidebar-resize-handle { background: var(--gold); opacity: 0.45; }
@@ -211,9 +211,15 @@
      SVG stroke/fill/flame colors map to the live theme variables, so they
      recolor instantly when the theme switcher changes data-theme. */
   :root {
+    --theme-sidebar-bg: var(--bg-alt);
+    --theme-main-bg: var(--bg);
+    --theme-accent: var(--gold);
+    --theme-accent-glow: var(--gold-dim);
+    --theme-text: var(--text);
+    --theme-fire: var(--rose);
     --candelabra-stroke: var(--gold);
     --candelabra-fill: var(--surface-2);
-    --candelabra-flame: var(--rose);
+    --candelabra-flame: var(--theme-fire);
     --candelabra-flame-glow: var(--gold-dim);
     --candelabra-pattern-opacity: 0.35;
     --candelabra-pattern-opacity-sidebar: 0.4;
@@ -233,17 +239,24 @@
     --candelabra-flame: var(--sidebar-flame);
     --candelabra-flame-glow: var(--sidebar-flame-glow);
   }
-  .full-page-pattern { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  /* The attachment variables are driven by Theme Studio's per-layer
+     Sticky toggle: fixed = background stays put while content scrolls;
+     scroll = the pattern scrolls naturally with its layer. */
+  .full-page-pattern { position: absolute; inset: 0; min-height: 100vh; z-index: 0; pointer-events: none; }
   #nocturnePatternLayer {
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    position: fixed; top: 0; left: var(--nocturne-main-left, var(--sidebar-width, 260px)); right: 0; height: 100vh; z-index: 0; pointer-events: none;
+    background-attachment: var(--candelabra-bg-attachment, fixed);
     opacity: var(--candelabra-pattern-opacity);
     transition: opacity 0.3s ease;
     will-change: opacity;
   }
+  #nocturnePatternLayer svg,
+  #sidebarPattern svg { display: block; width: 100%; height: 100%; overflow: visible; }
   main { position: relative; z-index: 1; }
   .sidebar-pattern {
     position: absolute; inset: 0; z-index: 0;
     pointer-events: none;
+    background-attachment: var(--candelabra-bg-attachment-sidebar, fixed);
     opacity: var(--candelabra-pattern-opacity-sidebar);
     transition: opacity 0.3s ease, filter 0.3s ease;
   }
@@ -300,6 +313,22 @@
   }
   #nocturnePatternLayer.flames-off .candelabra-flames,
   #sidebarPattern.flames-off .candelabra-flames { opacity: 0.55; }
+  #nocturnePatternLayer:not(.flames-off) .dragon-fire,
+  #sidebarPattern:not(.flames-off) .dragon-fire {
+    filter: drop-shadow(0 0 3px var(--candelabra-flame)) drop-shadow(0 0 10px var(--candelabra-flame-glow));
+  }
+  #nocturnePatternLayer:not(.flames-off) .dragon-fire-core,
+  #sidebarPattern:not(.flames-off) .dragon-fire-core {
+    filter: drop-shadow(0 0 7px var(--candelabra-flame-glow));
+  }
+  #nocturnePatternLayer.flames-off .dragon-flames,
+  #sidebarPattern.flames-off .dragon-flames { filter: none; opacity: 0.55; }
+  @media (prefers-reduced-motion: reduce) {
+    #nocturnePatternLayer .dragon-flames animate,
+    #sidebarPattern .dragon-flames animate,
+    #nocturnePatternLayer .dragon-flames animateTransform,
+    #sidebarPattern .dragon-flames animateTransform { display: none; }
+  }
   .navlist .nav-icon { color: var(--symbol); }
   .navlist button:hover .nav-icon { color: var(--gold); }
   .nav-chat-btn { color: var(--gold); }
@@ -323,7 +352,8 @@
   /* Each filtered element is a full-bleed fixed layer; inverting the layer
      itself (not an ancestor) keeps pixel registration identical. Explicit
      sizing + overflow control prevents partial-layer clipping of the grid. */
-  .full-page-pattern, #sidebarPattern { inset: 0; width: 100%; height: 100%; overflow: hidden; }
+  .full-page-pattern { inset: 0; width: 100%; overflow: visible; }
+  #sidebarPattern { inset: 0; width: 100%; height: 100%; overflow: hidden; }
   :root.pattern-inverted .full-page-pattern,
   :root.pattern-inverted #sidebarPattern {
     filter: invert(1) hue-rotate(180deg);
@@ -333,25 +363,18 @@
   /* Sidebar pattern off: plain background, no candelabra. */
   :root.sidebar-pattern-off #sidebarPattern { display: none; }
 
-  /* ============ Solo main-window motif ============
-   One giant centered candelabra behind main content ONLY; the sidebar keeps
-   its tiled pattern. CSS sizes the SVG; the viewBox scales the motif, so it
-   can never tile, clip, or drift with viewport coordinates. */
+  /* The per-layer SVG switches between a literal repeat grid and one contained hero. */
   .nocturne-solo-motif {
-    display: none;
-    position: absolute; inset: 0;
-    width: min(92vmin, 900px); height: min(92vmin, 900px);
-    margin: auto;
-    opacity: var(--candelabra-solo-opacity, 0.35);
-    pointer-events: none;
+    display: none !important;
   }
-  :root.main-solo-motif .nocturne-solo-motif { display: block; }
-  :root.main-solo-motif #nocturnePatternLayer { display: none; }
 
   /* No background at all: hide every pattern layer. */
   :root.no-background #nocturnePatternLayer,
   :root.no-background .full-page-pattern,
   :root.no-background #sidebarPattern { display: none; }
+  @media (max-width: 560px) {
+    #nocturnePatternLayer { left: 0 !important; }
+  }
 
   /* ============ Theme Studio ============ */
   /* Chat GIF picker */
@@ -537,7 +560,7 @@
     .theme-studio-editor { position: static; max-height: none; }
   }
 
-  main { flex: 1 1 900px; min-width: 0; width: 100%; padding: 56px 64px; max-width: 900px; overflow-x: hidden; }
+  main { flex: 1 1 900px; min-width: 0; width: 100%; padding: 56px 64px; max-width: 900px; overflow-x: hidden; background: transparent; }
   section { display: none; animation: fade-in 0.25s ease; }
   section.active { display: block; }
   .page-back-button { margin-bottom: 24px; }
@@ -1582,6 +1605,37 @@
 .rune-pick:hover:not(:disabled), .rune-pick.selected { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 16px rgba(201,162,75,0.12); }
 .rune-pick:disabled { cursor: default; opacity: 0.65; }
 @keyframes runeReveal { from { opacity: 0; transform: rotateY(90deg) scale(0.8); } to { opacity: 1; transform: rotateY(0) scale(1); } }
+.rune-how-to-play { border-top: 1px solid var(--line); padding-top: 6px; }
+/* Dual background editor (Theme Studio) */
+.background-editor { display: grid; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(18,17,31,0.5); }
+.background-editor-tabs { display: flex; gap: 6px; }
+.background-editor .theme-studio-toggle-row { flex-wrap: wrap; }
+.background-editor .btn-active-choice { border-color: var(--theme-accent); }
+.dual-input input[type='range'] { flex: 1; }
+.dual-input span { display: flex; align-items: center; gap: 6px; }
+.dual-input-number { width: 72px; padding: 3px 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; color: var(--text); font-size: 12px; text-align: right; }
+.dual-input-number:focus { outline: none; border-color: var(--gold); }
+.rune-duel-banner {
+  border: 1px solid var(--gold-dim);
+  border-radius: 10px;
+  background: rgba(18,17,31,0.82);
+  padding: 14px 18px;
+  margin: 14px 0;
+  text-align: center;
+}
+.rune-duel-banner strong { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.5px; color: var(--gold); }
+.rune-duel-banner-winner { border-color: var(--gold); box-shadow: 0 0 24px rgba(201,160,80,0.25); }
+.rune-duel-banner-winner strong { font-size: 1.9rem; text-transform: uppercase; }
+.rune-test-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.rune-test-side { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(18,17,31,0.82); }
+.rune-test-side > small { color: var(--text-faint); font-size: 10px; text-transform: uppercase; }
+.rune-test-picks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.rune-test-actions { display: flex; gap: 8px; margin-top: 12px; }
+.rune-test-result { display: grid; gap: 4px; margin-top: 10px; }
+.rune-test-result p { margin: 0; }
+@media (max-width: 560px) {
+  .rune-test-grid, .rune-test-picks { grid-template-columns: 1fr; }
+}
 .games-leaderboard { display: grid; gap: 8px; margin-top: 14px; }
 .games-leaderboard-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-left: 2px solid var(--purple-dim); border-radius: 6px; background: var(--bg-alt); color: var(--text-dim); text-transform: capitalize; }
 .games-leaderboard-row.house-phoenix { border-left-color: #b76554; }
@@ -1631,7 +1685,7 @@
 
 <div id="react-root"></div>
 <script type="text/babel" src="pages/PageSection.jsx"></script>
-<script type="text/babel" src="pages/ThemeStudio.jsx"></script>
+<script type="text/babel" src="pages/ThemeStudio.jsx?v=20261102-dual-bg-editor"></script>
 <script type="text/babel" src="pages/HomePage.jsx"></script>
 <script type="text/babel" src="pages/WorldbookPage.jsx"></script>
 <script type="text/babel" src="pages/NpcsPage.jsx"></script>
@@ -1642,12 +1696,12 @@
 <script type="text/babel" src="pages/LootPage.jsx"></script>
 <script type="text/babel" src="pages/PrimerPage.jsx"></script>
 <script type="text/babel" src="pages/RestrictedPage.jsx"></script>
-<script type="text/babel" src="pages/CommonRoomsPage.jsx"></script>
+<script type="text/babel" src="pages/CommonRoomsPage.jsx?v=20261102-all-house-games"></script>
 <script type="text/babel" src="pages/games/useMatch.jsx"></script>
-<script type="text/babel" src="pages/games/RuneDuel.jsx?v=20261006-rune-matchup-chart"></script>
+<script type="text/babel" src="pages/games/RuneDuel.jsx?v=20261102-testmode-standalone"></script>
 <script type="text/babel" src="pages/games/SharedConstellation.jsx"></script>
-<script type="text/babel" src="pages/games/GamesHub.jsx?v=20261007-completed-games"></script>
-<script type="text/babel" src="App.jsx?v=20261021-password-toggle"></script>
+<script type="text/babel" src="pages/games/GamesHub.jsx?v=20261102-testmode-standalone"></script>
+<script type="text/babel" src="App.jsx?v=20261102-pattern-scale-fix2"></script>
 <div id="legacy-app" style="display:none;">
 
 <!-- ================= AUTH SCREEN ================= -->
@@ -2959,7 +3013,8 @@
       const q = search.value.trim().toLowerCase();
       render(q ? gifs.filter(g => g.name.toLowerCase().includes(q)) : gifs);
     });
-    setTimeout(() => search.focus(), 50);
+    // Do not autofocus the search box — focusing it pops open the on-screen
+    // keyboard on touch devices. Let users tap it deliberately instead.
   }
   window.toggleGifPanel = toggleGifPanel;
 
@@ -5315,7 +5370,7 @@ function renderCharacterInfoPage(char) {
     ['Parents', char.parents], ['Race', char.race], ['Class', char.class],
     ['Hometown', char.hometown], ['Background', char.background], ['Goals', char.goals],
     ['Fears', char.fears], ['Bonds', char.bonds]
-  ].filter(([, value]) => value != null && String(value).trim() !== '');
+  ].filter(([label, value]) => !/^image/i.test(label) && value != null && String(value).trim() !== '');
   const privateDetailsDisplay = privateDetails.length ? `<div class="character-private-details">${privateDetails.map(([label, value]) => `<div class="character-private-detail"><strong>${label}</strong><div>${renderMarkdown(String(value), '')}</div></div>`).join('')}</div>` : '<p class="empty-note">No private character details yet.</p>';
   const portrait = char.image_url
     ? `<img class="character-info-portrait" src="${escapeHtml(char.image_url)}" alt="Portrait of ${escapeHtml(char.name || 'character')}" />`
@@ -5502,6 +5557,7 @@ function getEditableImageValue(scope, id) {
           Object.entries(npc).forEach(([key, value]) => {
             if (value === null || value === undefined || value === '') return;
             if (/^(id|created_at|updated_at|order_index)$/i.test(key)) return;
+            if (/image/i.test(key)) return;
             if (/secret|private|dm_only|visible_to_players/i.test(key)) return;
             if (/^death_save_(successes|failures)$/i.test(key)) return;
             if (/^tags?$/i.test(key) || /^(class|race)$/i.test(key)) return;
@@ -6075,7 +6131,33 @@ function getEditableImageValue(scope, id) {
     await loadNPCs();
   }
 
+  window.toggleBlockVisibility = toggleBlockVisibility;
+  window.deleteTableBlock = deleteTableBlock;
+  window.toggleInlineSummaryEdit = toggleInlineSummaryEdit;
+  window.addNewSessionSummary = addNewSessionSummary;
+  window.toggleSpoilers = toggleSpoilers;
+
   checkSession();
+
+  // Local file:// fail-safe. The browser blocks external .jsx scripts on
+  // file:// pages, so React cannot mount until the site is served over HTTP.
+  (function () {
+    function checkMount() {
+      if (document.getElementById('react-root').childElementCount > 0) return;
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:fixed;inset:auto 16px 16px 16px;z-index:9999;background:#2b1420;border:1px solid #e245a7;border-radius:10px;padding:16px 20px;color:#fff;font-family:system-ui;max-width:520px;box-shadow:0 8px 30px rgba(0,0,0,.6)';
+      probe.innerHTML = '<strong style="color:#ff9ecf;">The site could not start.</strong><br>' +
+        'You opened this page directly from disk (file://), and the browser blocks ' +
+        'loading the app scripts that way.<br><br>' +
+        '<strong>Fix:</strong> open PowerShell in the project folder, run <code>npm run dev</code>, ' +
+        'then open <a href="http://localhost:5188/">http://localhost:5188/</a>.<br>' +
+        '<code style="display:block;margin-top:8px;padding:8px;background:#120a12;border-radius:6px;font-size:12px;">' +
+        'npm run dev&nbsp;&nbsp;→&nbsp;&nbsp;http://localhost:5188/</code>';
+      document.body.appendChild(probe);
+    }
+    // Wait well past babel compile time before declaring failure.
+    setTimeout(checkMount, 12000);
+  })();
 </script>
 </body>
 </html>

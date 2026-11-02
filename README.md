@@ -1,5 +1,9 @@
 # Nocturne Campaign Hub
 
+## Run locally
+
+Do not open `index.html` directly from disk; the browser blocks the external JSX scripts on `file://` pages. From the project folder, run `npm run dev`, then open [http://localhost:5188/](http://localhost:5188/).
+
 ## Implemented goals
 
 - **Player character cards:** New accounts automatically receive a starter character whose `id` is the username before `@campaign.local` and whose display `name` capitalizes the first letter. Character cards show the public character name, uploaded portrait, appearance, and public bio. DMs can edit the full character template (full real name, age, aliases, parents, race, class, hometown, appearance, background, goals, fears, and bonds); players can edit their public appearance, portrait, and public bio. The private-bio restriction is UI-level, not database-level security. Run [supabase-character-public-bio.sql](supabase-character-public-bio.sql) and [supabase-character-details.sql](supabase-character-details.sql) once in the Supabase SQL editor to add the public bio and character template fields; existing `bio` and `description` content remains private.

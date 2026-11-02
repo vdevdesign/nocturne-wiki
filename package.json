@@ -1,0 +1,10 @@
+{
+  "name": "nocturne-wiki",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nocturne campaign hub",
+  "scripts": {
+    "dev": "npx --yes serve -l 5188 .",
+    "start": "npx --yes serve -l 5188 ."
+  }
+}

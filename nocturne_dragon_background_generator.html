@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nocturne Background Generator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --theme-sidebar-bg: var(--bg-alt, #14121f);
+      --theme-main-bg: var(--bg, #0e0d16);
+      --theme-accent: var(--gold, #c9a24b);
+      --theme-accent-glow: var(--gold-dim, #8a713a);
+      --theme-fire: var(--rose, #b1526b);
+      --theme-text: var(--text, #e9e4f2);
+      --panel: var(--surface, #1b1829);
+      --border: var(--line, #33304a);
+      font: 14px/1.45 system-ui, sans-serif;
+      color: var(--theme-text);
+      background: var(--theme-main-bg);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--theme-main-bg); }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    .app { display: grid; grid-template-columns: minmax(290px, 360px) minmax(0, 1fr); min-height: 100vh; }
+    .controls { display: grid; align-content: start; gap: 16px; padding: 22px; background: var(--panel); border-right: 1px solid var(--border); }
+    h1 { margin: 0; font-size: 20px; }
+    .intro, .hint { margin: 0; color: color-mix(in srgb, var(--theme-text) 72%, transparent); font-size: 12px; }
+    fieldset { display: grid; gap: 10px; min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 9px; }
+    legend { padding: 0 5px; color: var(--theme-accent); font-weight: 650; }
+    .tabs, .choices { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tabs button, .choices button, .export-button {
+      min-height: 34px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--theme-main-bg); cursor: pointer;
+    }
+    button[aria-pressed="true"] { border-color: var(--theme-accent); color: var(--theme-accent); }
+    .field { display: grid; gap: 5px; }
+    .field-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .number-pair { display: flex; align-items: center; gap: 5px; color: var(--theme-accent); }
+    input[type="number"] {
+      width: 76px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 5px;
+      background: var(--theme-main-bg); color: var(--theme-text); text-align: right;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--theme-accent); }
+    .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .switch-row label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+    .export-button { background: var(--theme-accent); color: var(--theme-main-bg); font-weight: 700; }
+    .preview { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; padding: 22px; gap: 14px; }
+    .preview-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .preview-title h2 { margin: 0; font-size: 16px; }
+    .preview-title small { color: var(--theme-text); opacity: .7; }
+    .site-preview { display: grid; grid-template-columns: minmax(95px, 24%) minmax(0, 1fr); min-height: min(68vh, 680px); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .preview-sidebar, .preview-main { position: relative; min-width: 0; overflow: hidden; }
+    .preview-sidebar { background: var(--theme-sidebar-bg); border-right: 1px solid var(--border); }
+    .preview-main { background: var(--theme-main-bg); }
+    .preview-sidebar::after, .preview-main::after {
+      position: absolute; inset: 12px; z-index: 1; display: grid; align-content: start; gap: 10px;
+      content: ""; pointer-events: none; border: 1px solid color-mix(in srgb, var(--theme-accent) 24%, transparent); border-radius: 8px;
+    }
+    .preview-sidebar::after { inset: 12px 8px; }
+    .preview-sidebar .sample-label, .preview-main .sample-label {
+      position: absolute; z-index: 2; top: 24px; left: 22px; color: var(--theme-text); opacity: .8;
+      font-size: 11px; letter-spacing: .12em; text-transform: uppercase; pointer-events: none;
+    }
+    .preview-main .sample-label { left: 28px; }
+    .pattern-layer { position: absolute; inset: 0; z-index: 0; opacity: var(--pattern-opacity); pointer-events: none; }
+    .pattern-layer svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .pattern-layer .dragon-fire { filter: drop-shadow(0 0 3px var(--theme-fire)) drop-shadow(0 0 10px var(--theme-accent-glow)); }
+    .pattern-layer .dragon-fire-core { filter: drop-shadow(0 0 7px var(--theme-accent-glow)); }
+    .pattern-layer .motion-off animate, .pattern-layer .motion-off animateTransform { display: none; }
+    .preview-main .content-sample {
+      position: absolute; z-index: 2; inset: 68px 28px auto; display: grid; gap: 12px; color: var(--theme-text);
+      pointer-events: none;
+    }
+    .sample-card { padding: 13px; border: 1px solid var(--border); border-radius: 7px; background: color-mix(in srgb, var(--panel) 84%, transparent); }
+    .export-output { width: 100%; min-height: 100px; padding: 10px; resize: vertical; border: 1px solid var(--border); border-radius: 7px; background: var(--theme-main-bg); color: var(--theme-text); font: 12px/1.45 ui-monospace, monospace; }
+    @keyframes fire-breathe { 0%, 100% { transform: scale(1); opacity: .92; } 45% { transform: scale(1.09,.94); opacity: 1; } 72% { transform: scale(.96,1.05); opacity: .86; } }
+    @media (max-width: 760px) {
+      .app { grid-template-columns: 1fr; }
+      .controls { border-right: 0; border-bottom: 1px solid var(--border); }
+      .preview { padding: 14px; }
+      .site-preview { min-height: 58vh; grid-template-columns: minmax(80px, 25%) minmax(0,1fr); }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="controls">
+      <header>
+        <h1>Nocturne Background Generator</h1>
+        <p class="intro">Tune the sidebar and main-content layers independently. Colors resolve from the Nocturne theme variables when this markup is used in the site.</p>
+      </header>
+      <div class="tabs" role="tablist" aria-label="Background layer">
+        <button type="button" role="tab" data-layer-tab="sidebar" aria-selected="true">Sidebar</button>
+        <button type="button" role="tab" data-layer-tab="main" aria-selected="false">Main content</button>
+      </div>
+      <fieldset>
+        <legend>Motif</legend>
+        <label class="field">Pattern
+          <select id="motif">
+            <option value="dragon">Breathing Dragon Head (Facing Left)</option>
+            <option value="candelabra">Tilted Candelabra</option>
+            <option value="fireflies">Enchanted Fireflies</option>
+          </select>
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>Geometry & appearance</legend>
+        <div id="number-controls"></div>
+        <div class="switch-row">
+          <span>Rendering mode</span>
+          <div class="choices">
+            <button type="button" data-single="false" aria-pressed="true">Repeating</button>
+            <button type="button" data-single="true" aria-pressed="false">Single hero</button>
+          </div>
+        </div>
+        <div class="switch-row">
+          <span>Scroll behavior</span>
+          <div class="choices">
+            <button type="button" data-sticky="true" aria-pressed="true">Sticky / fixed</button>
+            <button type="button" data-sticky="false" aria-pressed="false">Scrolls naturally</button>
+          </div>
+        </div>
+        <label class="switch-row"><span>Animate fire / motif</span><input id="animate" type="checkbox" checked></label>
+      </fieldset>
+      <p class="hint">Grid columns and rows define exact cell counts. A 1 × 1 grid is exactly one motif cell filling its layer.</p>
+      <button type="button" class="export-button" id="export">Export layer settings</button>
+      <label class="field" for="export-output">Copyable JSON</label>
+      <textarea class="export-output" id="export-output" readonly></textarea>
+    </aside>
+    <main class="preview">
+      <header class="preview-title"><h2>Live preview</h2><small>Theme colors use --gold, --rose, --gold-dim and Nocturne background/text variables.</small></header>
+      <div class="site-preview">
+        <section class="preview-sidebar" aria-label="Sidebar background preview">
+          <span class="sample-label">Sidebar</span>
+          <div class="pattern-layer" id="sidebar-layer"></div>
+        </section>
+        <section class="preview-main" aria-label="Main background preview">
+          <span class="sample-label">Main content</span>
+          <div class="pattern-layer" id="main-layer"></div>
+          <div class="content-sample"><div class="sample-card">Nocturne Campaign Hub</div><div class="sample-card">Theme-aware background preview</div></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script>
+    const defaults = () => ({ motif: 'candelabra', gridCols: 2, gridRows: 2, size: 85, tilt: 0, opacity: 35, single: false, sticky: true, animate: true });
+    const layers = { sidebar: defaults(), main: defaults() };
+    let activeLayer = 'sidebar';
+    const root = document.documentElement;
+    const bounds = {
+      gridCols: [1, 4, 1], gridRows: [1, 4, 1],
+      size: [25, 100, 1], tilt: [-180, 180, 1], opacity: [4, 70, 1]
+    };
+    const numberLabels = { gridCols: 'Grid columns', gridRows: 'Grid rows', size: 'Motif size (%)', tilt: 'Tilt angle (°)', opacity: 'Opacity (%)' };
+    const numberControls = document.getElementById('number-controls');
+    const motifSelect = document.getElementById('motif');
+    const animationToggle = document.getElementById('animate');
+    const svgByMotif = {
+      dragon: `<g class="dragon"><path d="M75 38 C68 31 58 28 48 28 C39 28 34 22 36 11 C28 20 31 32 41 37 C32 34 23 34 15 38 L7 42 L23 43 L12 48 L27 49 C21 53 19 58 22 64 L31 57 C36 64 44 67 53 66 C61 65 67 61 72 56 L82 58 L91 53 L80 47 L87 43 L77 42 Z" fill="var(--gold, currentColor)" stroke="var(--surface-2, currentColor)" stroke-width="1.3" stroke-linejoin="round"/><path d="M67 36 C72 27 72 19 67 9 C79 16 84 25 81 37 M57 31 C58 22 55 15 49 8 C62 11 68 18 69 29" fill="none" stroke="var(--gold, currentColor)" stroke-width="5.5" stroke-linecap="round"/><path d="M70 52 L82 55 L89 62 L76 60 M60 61 L69 70 L78 73 L70 63 M48 65 L53 75 L62 81 L58 67 M37 62 L36 73 L41 82 L45 65" fill="var(--gold, currentColor)" stroke="var(--surface-2, currentColor)" stroke-width="1.2"/><path d="M20 40 L31 39 L21 42 Z" fill="var(--surface-2, currentColor)"/><path d="M29 40 L33 39" stroke="var(--rose, currentColor)" stroke-width="2.2" stroke-linecap="round"/><g class="dragon-flames"><path class="dragon-fire" d="M23 48 C17 44 13 40 7 39 C10 44 12 46 4 46 C9 49 13 50 5 54 C12 54 15 53 11 59 C18 57 21 54 26 52 Z" fill="var(--rose, currentColor)"><animateTransform attributeName="transform" type="scale" values="1 1;1.08 0.94;0.96 1.06;1 1" dur="1.15s" repeatCount="indefinite"/></path><path class="dragon-fire-core" d="M22 49 C17 47 14 45 10 45 C13 48 13 49 10 51 C15 51 18 50 22 51 Z" fill="var(--gold-dim, currentColor)"><animate attributeName="opacity" values=".65;1;.72;.9" dur=".8s" repeatCount="indefinite"/></path></g></g>`,
+      candelabra: `<g><path d="M42 88 Q50 84 58 88 L56 82 Q50 80 44 82Z" fill="var(--gold, currentColor)"/><path d="M50 82V22 M22 22 Q22 48 50 48 M78 22 Q78 48 50 48" fill="none" stroke="var(--gold, currentColor)" stroke-width="3"/><path d="M18 22 Q22 10 26 22 M46 22 Q50 7 54 22 M74 22 Q78 10 82 22" fill="var(--rose, currentColor)"/><g class="dragon-flames"><circle cx="22" cy="17" r="4" fill="var(--gold-dim, currentColor)"/><circle cx="50" cy="15" r="5" fill="var(--gold-dim, currentColor)"/><circle cx="78" cy="17" r="4" fill="var(--gold-dim, currentColor)"/></g></g>`,
+      fireflies: `<g class="fireflies"><path d="M16 74 Q50 50 84 74 M22 82 Q50 62 78 82" fill="none" stroke="var(--gold, currentColor)" stroke-width="1.5" opacity=".55"/><circle cx="28" cy="34" r="4" fill="var(--rose, currentColor)"/><circle cx="65" cy="27" r="5" fill="var(--gold, currentColor)"/><circle cx="52" cy="59" r="4" fill="var(--gold-dim, currentColor)"/></g>`
+    };
+    function createSvg() {
+      const { motif, size, tilt, single, animate } = layers[activeLayer];
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 100 100');
+      svg.setAttribute('preserveAspectRatio', single ? 'xMidYMid meet' : 'none');
+      svg.setAttribute('aria-hidden', 'true');
+      if (!animate) svg.classList.add('motion-off');
+      const count = single ? 1 : layers[activeLayer].gridCols * layers[activeLayer].gridRows;
+      const { gridCols, gridRows } = layers[activeLayer];
+      const grid = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      if (!single) grid.setAttribute('data-exact-grid', `${gridCols}x${gridRows}`);
+      for (let i = 0; i < count; i++) {
+        const col = single ? 0 : i % gridCols;
+        const row = single ? 0 : Math.floor(i / gridCols);
+        const cellW = single ? 100 : 100 / gridCols;
+        const cellH = single ? 100 : 100 / gridRows;
+        const cell = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        cell.setAttribute('x', String(col * cellW));
+        cell.setAttribute('y', String(row * cellH));
+        cell.setAttribute('width', String(cellW));
+        cell.setAttribute('height', String(cellH));
+        cell.setAttribute('viewBox', '0 0 100 100');
+        cell.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        const motifGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        motifGroup.setAttribute('transform', `translate(50 50) rotate(${tilt}) scale(${size / 100}) translate(-50 -50)`);
+        motifGroup.innerHTML = svgByMotif[motif];
+        cell.appendChild(motifGroup);
+        grid.appendChild(cell);
+      }
+      svg.appendChild(grid);
+      return svg;
+    }
+    function renderLayer(layer) {
+      const host = document.getElementById(`${layer}-layer`);
+      const cfg = layers[layer];
+      host.replaceChildren();
+      host.style.opacity = String(cfg.opacity / 100);
+      host.style.position = cfg.sticky ? 'sticky' : 'absolute';
+      host.style.backgroundAttachment = cfg.sticky ? 'fixed' : 'scroll';
+      host.dataset.sticky = String(cfg.sticky);
+      if (layer === activeLayer) {
+        const oldActive = activeLayer;
+        activeLayer = layer;
+        host.appendChild(createSvg());
+        activeLayer = oldActive;
+      } else {
+        const { gridCols, gridRows, single, size, tilt, motif, animate } = cfg;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('preserveAspectRatio', single ? 'xMidYMid meet' : 'none');
+        if (!animate) svg.classList.add('motion-off');
+        const count = single ? 1 : gridCols * gridRows;
+        for (let i = 0; i < count; i++) {
+          const cell = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          const w = single ? 100 : 100 / gridCols, h = single ? 100 : 100 / gridRows;
+          cell.setAttribute('x', String((single ? 0 : i % gridCols) * w));
+          cell.setAttribute('y', String((single ? 0 : Math.floor(i / gridCols)) * h));
+          cell.setAttribute('width', String(w)); cell.setAttribute('height', String(h));
+          cell.setAttribute('viewBox', '0 0 100 100'); cell.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          g.setAttribute('transform', `translate(50 50) rotate(${tilt}) scale(${size / 100}) translate(-50 -50)`);
+          g.innerHTML = svgByMotif[motif]; cell.appendChild(g); svg.appendChild(cell);
+        }
+        host.appendChild(svg);
+      }
+    }
+    function updateNumberControls() {
+      const cfg = layers[activeLayer];
+      numberControls.replaceChildren();
+      Object.entries(bounds).forEach(([key, [min, max, step]]) => {
+        const wrapper = document.createElement('label');
+        wrapper.className = 'field';
+        wrapper.innerHTML = `<span class="field-heading"><span>${numberLabels[key]}</span><span class="number-pair"><input type="number" min="${min}" max="${max}" step="${step}" value="${cfg[key]}" aria-label="${numberLabels[key]} exact value"></span></span><input type="range" min="${min}" max="${max}" step="${step}" value="${cfg[key]}" aria-label="${numberLabels[key]} slider">`;
+        const number = wrapper.querySelector('input[type="number"]');
+        const range = wrapper.querySelector('input[type="range"]');
+        function commit(raw) {
+          if (raw === '') { number.value = String(cfg[key]); return; }
+          const parsed = Number(raw);
+          if (!Number.isFinite(parsed)) { number.value = String(cfg[key]); return; }
+          cfg[key] = Math.min(max, Math.max(min, Math.round(parsed)));
+          number.value = range.value = String(cfg[key]);
+          renderAll();
+        }
+        range.addEventListener('input', () => commit(range.value));
+        number.addEventListener('input', () => { range.value = number.value; });
+        number.addEventListener('change', () => commit(number.value));
+        number.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commit(number.value); } });
+        numberControls.appendChild(wrapper);
+      });
+    }
+    function renderAll() {
+      const cfg = layers[activeLayer];
+      motifSelect.value = cfg.motif;
+      animationToggle.checked = cfg.animate;
+      document.querySelectorAll('[data-single]').forEach(button => button.setAttribute('aria-pressed', String(cfg.single === (button.dataset.single === 'true'))));
+      document.querySelectorAll('[data-sticky]').forEach(button => button.setAttribute('aria-pressed', String(cfg.sticky === (button.dataset.sticky === 'true'))));
+      document.querySelectorAll('[data-layer-tab]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.layerTab === activeLayer)));
+      updateNumberControls();
+      renderLayer('sidebar'); renderLayer('main');
+      document.getElementById('export-output').value = JSON.stringify(layers, null, 2);
+    }
+    document.querySelectorAll('[data-layer-tab]').forEach(button => button.addEventListener('click', () => { activeLayer = button.dataset.layerTab; renderAll(); }));
+    motifSelect.addEventListener('change', () => { layers[activeLayer].motif = motifSelect.value; renderAll(); });
+    animationToggle.addEventListener('change', () => { layers[activeLayer].animate = animationToggle.checked; renderAll(); });
+    document.querySelectorAll('[data-single]').forEach(button => button.addEventListener('click', () => { layers[activeLayer].single = button.dataset.single === 'true'; renderAll(); }));
+    document.querySelectorAll('[data-sticky]').forEach(button => button.addEventListener('click', () => { layers[activeLayer].sticky = button.dataset.sticky === 'true'; renderAll(); }));
+    document.getElementById('export').addEventListener('click', () => { document.getElementById('export-output').focus(); document.getElementById('export-output').select(); });
+    renderAll();
+  </script>
+</body>
+</html>

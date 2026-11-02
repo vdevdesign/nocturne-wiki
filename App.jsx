@@ -15,6 +15,7 @@ function applySidebarWidth(width) {
   const nextWidth = Math.min(420, Math.max(220, Number(width) || 260));
   document.documentElement.style.setProperty('--sidebar-width', `${nextWidth}px`);
   try { window.localStorage.setItem('nocturne-sidebar-width', String(nextWidth)); } catch (_) { /* private browsing */ }
+  updateBackgroundLayerBounds();
 }
 
 applySidebarWidth(savedSidebarWidth);
@@ -30,6 +31,7 @@ function setSidebarCollapsed(collapsed) {
     toggle.textContent = collapsed ? '›' : '‹';
   }
   try { window.localStorage.setItem('nocturne-sidebar-collapsed', String(collapsed)); } catch (_) { /* private browsing */ }
+  updateBackgroundLayerBounds();
 }
 
 function startSidebarResize(event) {
@@ -212,6 +214,7 @@ function setMobileNavOpen(open) {
   toggle.setAttribute('aria-expanded', String(isOpen));
   toggle.setAttribute('aria-label', isOpen ? 'Close navigation menu' : 'Open navigation menu');
   document.body.classList.toggle('mobile-nav-open', isOpen);
+  updateBackgroundLayerBounds();
 
   if (isOpen) {
     const closeButton = sidebar.querySelector('.mobile-nav-close');
@@ -246,7 +249,14 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, Number(value)));
 }
 
-window.nocturnePatternState = { flames: true, tilt: -7.5, tile: 140, svgSize: 70, gridCols: 1, gridRows: 1, opacity: 35, layout: 'stagger', soloMain: false, sidebarPattern: true, noBackground: true, sidebarMatchMain: true, motif: 'candelabra', animateMotif: true };
+window.nocturnePatternState = { flames: true, tilt: -7.5, tile: 140, svgSize: 70, gridCols: 1, gridRows: 1, opacity: 35, layout: 'stagger', soloMain: false, sidebarPattern: true, noBackground: true, sidebarMatchMain: true, motif: 'candelabra', animateMotif: true,
+  // Dual-editor background state: independent sidebar/main settings. Each
+  // layer picks its own motif, grid density (which LITERALLY dictates how
+  // many motif copies repeat across the layer), opacity, tiled-vs-single
+  // mode, and fixed-vs-scrolling attachment.
+  sidebar: { motif: 'candelabra', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, single: false, sticky: true },
+  main: { motif: 'candelabra', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, single: false, sticky: true }
+};
 window.nocturneColorOverrides = {};
 window.nocturneSidebarColorOverrides = {};
 window.nocturneCustomCss = '';
@@ -290,10 +300,24 @@ function readAppearancePref(key, fallback) {
     if (typeof stored.sidebarPattern === 'boolean') s.sidebarPattern = stored.sidebarPattern;
     if (typeof stored.noBackground === 'boolean') s.noBackground = stored.noBackground;
     if (typeof stored.sidebarMatchMain === 'boolean') s.sidebarMatchMain = stored.sidebarMatchMain;
-    if (['candelabra', 'fleur', 'fish', 'fireflies'].includes(stored.motif)) s.motif = stored.motif;
+    if (    ['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(stored.motif)) s.motif = stored.motif;
     if (typeof stored.animateMotif === 'boolean') s.animateMotif = stored.animateMotif;
     if (Number.isFinite(stored.opacity)) s.opacity = clamp(stored.opacity, OPACITY_MIN, OPACITY_MAX);
     if (stored.layout === 'grid' || stored.layout === 'stagger') s.layout = stored.layout;
+    // Restore per-layer dual-editor settings (sidebar / main backgrounds).
+    ['sidebar', 'main'].forEach(layer => {
+      const src = stored[layer];
+      if (!src || typeof src !== 'object') return;
+      const dst = s[layer];
+      if (['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(src.motif)) dst.motif = src.motif;
+      if (Number.isFinite(src.gridCols)) dst.gridCols = clamp(Math.round(src.gridCols), GRID_MIN, GRID_MAX);
+      if (Number.isFinite(src.gridRows)) dst.gridRows = clamp(Math.round(src.gridRows), GRID_MIN, GRID_MAX);
+      if (Number.isFinite(src.opacity)) dst.opacity = clamp(Math.round(src.opacity), OPACITY_MIN, OPACITY_MAX);
+      if (Number.isFinite(src.size)) dst.size = clamp(Math.round(src.size), 25, 100);
+      if (Number.isFinite(src.tilt)) dst.tilt = clamp(Math.round(src.tilt), -180, 180);
+      if (typeof src.single === 'boolean') dst.single = src.single;
+      if (typeof src.sticky === 'boolean') dst.sticky = src.sticky;
+    });
   }
   const overrides = readAppearancePref('nocturne-color-overrides', {});
   if (overrides && typeof overrides === 'object' && Array.isArray(window.nocturneSwatches)) {
@@ -379,12 +403,11 @@ window.markAppearanceSaved = markAppearanceSaved;
 
 function applyFlameAnimation() {
   const state = window.nocturnePatternState;
-  // Flames only exist on the candelabra motif; the animate toggle governs ALL
-  // motif animation (fish sway, firefly drift/pulse) via SMIL pause.
-  const animAllowed = state.flames || state.motif !== 'candelabra';
-  document.querySelectorAll('.pattern-motif, .candelabra-flames').forEach(group => {
+  const animAllowed = state.animateMotif !== false;
+  document.querySelectorAll('.pattern-motif, .candelabra-flames, .dragon-flames').forEach(group => {
+    const isFlame = group.classList.contains('candelabra-flames') || group.classList.contains('dragon-flames');
     group.querySelectorAll('animate, animateTransform').forEach(anim => {
-      if (animAllowed && state.animateMotif !== false) {
+      if (animAllowed && (!isFlame || state.flames)) {
         anim.removeAttribute('data-flame-paused');
         try { anim.unpauseAnimation(); } catch (_) {}
       } else {
@@ -392,44 +415,97 @@ function applyFlameAnimation() {
         anim.setAttribute('data-flame-paused', 'true');
       }
     });
-    if (group.classList.contains('candelabra-flames')) {
+    if (group.classList.contains('candelabra-flames') || group.classList.contains('dragon-flames')) {
       group.style.filter = state.flames ? '' : 'none';
     }
   });
-  document.getElementById('nocturnePatternLayer')?.classList.toggle('flames-off', !state.flames && state.motif === 'candelabra');
-  document.getElementById('sidebarPattern')?.classList.toggle('flames-off', !state.flames && state.motif === 'candelabra');
+  document.getElementById('nocturnePatternLayer')?.classList.toggle('flames-off', !state.flames);
+  document.getElementById('sidebarPattern')?.classList.toggle('flames-off', !state.flames);
 }
 
 function applyPatternGeometry() {
   const state = window.nocturnePatternState;
   const root = document.documentElement;
-  // Opacity drives ALL layers equally — main tiled, solo overlay, sidebar.
+  // Opacity per layer now — global opacity stays as the shared default for
+  // legacy snapshots; per-layer values (state.sidebar.opacity / state.main.opacity)
+  // are applied at the bottom of this function.
   const op = (state.opacity / 100).toFixed(3);
   root.style.setProperty('--candelabra-pattern-opacity', op);
   root.style.setProperty('--candelabra-pattern-opacity-sidebar', op);
   root.style.setProperty('--candelabra-solo-opacity', op);
-  // Sidebar pattern on/off + solo main-window mode + no background at all.
+  // Sidebar pattern on/off + per-layer single-motif mode + no background.
+  // "Single" now maps onto the existing solo-motif machinery: the main
+  // layer's choice drives the viewport solo overlay, the sidebar's toggles
+  // a sidebar-scoped single rendering.
   root.classList.toggle('sidebar-pattern-off', !state.sidebarPattern);
-  root.classList.toggle('main-solo-motif', !!state.soloMain);
   root.classList.toggle('no-background', !!state.noBackground);
-  // Tilt applies to every layer: rotate the solo motif group and bake the
-  // tilt into the tiled motif transforms (buildPatternTile already does).
-  const soloGroup = document.getElementById('nocturneSoloMotifGroup');
-  if (soloGroup) soloGroup.setAttribute('transform', `rotate(${state.tilt}, 50, 50)`);
-  ['nocturneCandelabraPattern', 'nocturneSidebarCandelabraPattern'].forEach(patternId => {
-    const pattern = document.getElementById(patternId);
-    if (!pattern) return;
-    pattern.setAttribute('width', String(state.tile));
-    pattern.setAttribute('height', String(state.tile));
-    // Rebuild the tile contents: gridCols/gridRows/svgSize/tilt all change
-    // what the tile must contain, which plain attribute tweaks can't express.
-    pattern.innerHTML = buildPatternTile(state);
+  // Rebuild each SVG from its own layer settings and theme-inheriting markup.
+  ['sidebar', 'main'].forEach(layer => {
+    const svg = document.querySelector(`#${layer === 'sidebar' ? 'sidebarPattern' : 'nocturnePatternLayer'} svg[data-layer="${layer}"]`);
+    if (!svg) return;
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('preserveAspectRatio', state[layer]?.single ? 'xMidYMid meet' : 'none');
+    svg.innerHTML = buildLayerSvgContent(layer);
   });
+  // Per-layer opacity + sticky(scroll) attachment via CSS variables.
+  const sidebarCfg = state.sidebar || {};
+  const mainCfg = state.main || {};
+  root.style.setProperty('--nocturne-main-layer-position', mainCfg.sticky === false ? 'absolute' : 'fixed');
+  root.style.setProperty('--nocturne-sidebar-layer-position', sidebarCfg.sticky === false ? 'absolute' : 'fixed');
+  root.style.setProperty('--candelabra-pattern-opacity', ((Number.isFinite(mainCfg.opacity) ? mainCfg.opacity : state.opacity) / 100).toFixed(3));
+  root.style.setProperty('--candelabra-pattern-opacity-sidebar', ((Number.isFinite(sidebarCfg.opacity) ? sidebarCfg.opacity : state.opacity) / 100).toFixed(3));
+  root.style.setProperty('--candelabra-bg-attachment', mainCfg.sticky === false ? 'scroll' : 'fixed');
+  root.style.setProperty('--candelabra-bg-attachment-sidebar', sidebarCfg.sticky === false ? 'scroll' : 'fixed');
+  updateBackgroundLayerBounds();
 }
 
-// One tile's worth of motifs. svgSize (%) counteracts tile size so the motif
-// keeps a sane visual weight whether the tile is 90px or 240px; gridCols /
-// gridRows repeat the motif across the tile for denser weaves.
+function updateBackgroundLayerBounds() {
+  const sidebar = document.getElementById('appSidebar');
+  const mainPattern = document.getElementById('nocturnePatternLayer');
+  const sidebarPattern = document.getElementById('sidebarPattern');
+  const root = document.documentElement;
+  const state = window.nocturnePatternState;
+  if (!state) return;
+  const isMobile = window.matchMedia('(max-width: 560px)').matches;
+  const sidebarRect = sidebar?.getBoundingClientRect();
+  const mainOffset = isMobile ? 0 : (sidebarRect?.width || 0);
+
+  root.style.setProperty('--nocturne-main-left', `${mainOffset}px`);
+  if (mainPattern) {
+    const fixed = state.main?.sticky !== false;
+    mainPattern.style.position = fixed ? 'fixed' : 'absolute';
+    mainPattern.style.top = '0';
+    mainPattern.style.left = `${mainOffset}px`;
+    mainPattern.style.right = '0';
+    mainPattern.style.bottom = fixed ? 'auto' : '0';
+    mainPattern.style.height = fixed ? '100vh' : '100%';
+  }
+  if (sidebarPattern) {
+    const fixed = state.sidebar?.sticky !== false;
+    sidebarPattern.style.position = fixed ? 'fixed' : 'absolute';
+    if (fixed && sidebarRect) {
+      sidebarPattern.style.top = `${sidebarRect.top}px`;
+      sidebarPattern.style.left = `${sidebarRect.left}px`;
+      sidebarPattern.style.width = `${sidebarRect.width}px`;
+      sidebarPattern.style.height = '100vh';
+      sidebarPattern.style.right = 'auto';
+      sidebarPattern.style.bottom = 'auto';
+    } else {
+      sidebarPattern.style.top = '0';
+      sidebarPattern.style.left = '0';
+      sidebarPattern.style.width = 'auto';
+      sidebarPattern.style.height = 'auto';
+      sidebarPattern.style.right = '0';
+      sidebarPattern.style.bottom = '0';
+    }
+  }
+  applyFlameAnimation();
+}
+
+window.addEventListener('resize', updateBackgroundLayerBounds);
+
+// Legacy single-config tile builder retained for theme snapshots; new code
+// uses buildLayerTile() which handles per-layer motif/grid/geometry.
 function buildPatternTile(state) {
   const baseScale = 0.7 * (state.svgSize / 100) * (140 / state.tile);
   const cells = [];
@@ -629,7 +705,7 @@ function setNocturneNoBackground(on) {
 window.setNocturneNoBackground = setNocturneNoBackground;
 
 function setNocturneMotif(motif) {
-  if (!['candelabra', 'fleur', 'fish', 'fireflies'].includes(motif)) return;
+  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(motif)) return;
   window.nocturnePatternState.motif = motif;
   applyPatternGeometry();
   persistAppearanceState();
@@ -645,6 +721,91 @@ function setNocturneAnimateMotif(on) {
   emitAppearanceChange();
 }
 window.setNocturneAnimateMotif = setNocturneAnimateMotif;
+
+/* ======== Dual-editor per-layer background setters ========
+   Each background layer (sidebar / main) has its own motif, literal grid
+   density, opacity, tiled-vs-single mode, and fixed-vs-scroll attachment. */
+
+function layerConfig(layer) {
+  const state = window.nocturnePatternState;
+  if (!state[layer] || typeof state[layer] !== 'object') {
+    state[layer] = { motif: state.motif || 'candelabra', gridCols: 2, gridRows: 2, opacity: state.opacity || 35, size: 85, tilt: 0, single: false, sticky: true };
+  }
+  return state[layer];
+}
+
+function setNocturneLayerMotif(layer, motif) {
+  if (layer !== 'sidebar' && layer !== 'main') return;
+  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(motif)) return;
+  layerConfig(layer).motif = motif;
+  applyPatternGeometry();
+  persistAppearanceState();
+  emitAppearanceChange();
+}
+window.setNocturneLayerMotif = setNocturneLayerMotif;
+
+function setNocturneLayerGrid(layer, axis, value) {
+  if (layer !== 'sidebar' && layer !== 'main') return;
+  if (axis !== 'gridCols' && axis !== 'gridRows') return;
+  layerConfig(layer)[axis] = clamp(Math.round(Number(value)) || GRID_MIN, GRID_MIN, GRID_MAX);
+  applyPatternGeometry();
+  persistAppearanceState();
+  emitAppearanceChange();
+}
+window.setNocturneLayerGrid = setNocturneLayerGrid;
+
+function setNocturneLayerSize(layer, value) {
+  if (layer !== 'sidebar' && layer !== 'main') return;
+  layerConfig(layer).size = clamp(Math.round(Number(value)), 25, 100);
+  applyPatternGeometry();
+  persistAppearanceState();
+  emitAppearanceChange();
+}
+window.setNocturneLayerSize = setNocturneLayerSize;
+
+function setNocturneLayerTilt(layer, value) {
+  if (layer !== 'sidebar' && layer !== 'main') return;
+  layerConfig(layer).tilt = clamp(Math.round(Number(value)), -180, 180);
+  applyPatternGeometry();
+  persistAppearanceState();
+  emitAppearanceChange();
+}
+window.setNocturneLayerTilt = setNocturneLayerTilt;
+
+function setNocturneLayerOpacity(layer, value) {
+  if (layer !== 'sidebar' && layer !== 'main') return;
+  layerConfig(layer).opacity = clamp(parseInt(value, 10) || OPACITY_MIN, OPACITY_MIN, OPACITY_MAX);
+  applyPatternGeometry();
+  persistAppearanceState();
+  emitAppearanceChange();
+}
+window.setNocturneLayerOpacity = setNocturneLayerOpacity;
+
+function setNocturneLayerSingle(layer, on) {
+  if (layer !== 'sidebar' && layer !== 'main') return;
+  layerConfig(layer).single = !!on;
+  applyPatternGeometry();
+  persistAppearanceState();
+  emitAppearanceChange();
+}
+window.setNocturneLayerSingle = setNocturneLayerSingle;
+
+function setNocturneLayerSticky(layer, on) {
+  if (layer !== 'sidebar' && layer !== 'main') return;
+  layerConfig(layer).sticky = !!on;
+  applyPatternGeometry();
+  persistAppearanceState();
+  emitAppearanceChange();
+}
+window.setNocturneLayerSticky = setNocturneLayerSticky;
+
+// Convenience dispatcher used by paired slider/text inputs: routes
+// gridCols/gridRows to the grid setter and opacity to the opacity setter.
+function setNocturneLayerGridOrOpacity(layer, field, value) {
+  if (field === 'opacity') setNocturneLayerOpacity(layer, value);
+  else setNocturneLayerGrid(layer, field, value);
+}
+window.setNocturneLayerGridOrOpacity = setNocturneLayerGridOrOpacity;
 
 function setNocturnePatternOpacity(value) {
   window.nocturnePatternState.opacity = clamp(parseInt(value, 10) || OPACITY_MIN, OPACITY_MIN, OPACITY_MAX);
@@ -678,7 +839,10 @@ function setNocturneDisplayMode(mode) {
 window.setNocturneDisplayMode = setNocturneDisplayMode;
 
 function resetNocturneAppearance() {
-  window.nocturnePatternState = { flames: true, tilt: -7.5, tile: 140, svgSize: 70, gridCols: 1, gridRows: 1, opacity: 35, layout: 'stagger', soloMain: false, sidebarPattern: true, noBackground: true, sidebarMatchMain: true, motif: 'candelabra', animateMotif: true };
+  window.nocturnePatternState = { flames: true, tilt: -7.5, tile: 140, svgSize: 70, gridCols: 1, gridRows: 1, opacity: 35, layout: 'stagger', soloMain: false, sidebarPattern: true, noBackground: true, sidebarMatchMain: true, motif: 'candelabra', animateMotif: true,
+    sidebar: { motif: 'candelabra', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, single: false, sticky: true },
+    main: { motif: 'candelabra', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, single: false, sticky: true }
+  };
   window.nocturneColorOverrides = {};
   window.nocturneSidebarColorOverrides = {};
   window.nocturneCustomCss = '';
@@ -734,6 +898,19 @@ function applyNocturneThemeSnapshot(snapshot) {
     if (Number.isFinite(snapshot.pattern.gridRows)) s.gridRows = clamp(Math.round(snapshot.pattern.gridRows), GRID_MIN, GRID_MAX);
     if (Number.isFinite(snapshot.pattern.opacity)) s.opacity = clamp(snapshot.pattern.opacity, OPACITY_MIN, OPACITY_MAX);
     if (snapshot.pattern.layout === 'grid' || snapshot.pattern.layout === 'stagger') s.layout = snapshot.pattern.layout;
+    ['sidebar', 'main'].forEach(layer => {
+      const src = snapshot.pattern[layer];
+      if (!src || typeof src !== 'object') return;
+      const dst = s[layer];
+      if (['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(src.motif)) dst.motif = src.motif;
+      if (Number.isFinite(src.gridCols)) dst.gridCols = clamp(Math.round(src.gridCols), GRID_MIN, GRID_MAX);
+      if (Number.isFinite(src.gridRows)) dst.gridRows = clamp(Math.round(src.gridRows), GRID_MIN, GRID_MAX);
+      if (Number.isFinite(src.opacity)) dst.opacity = clamp(Math.round(src.opacity), OPACITY_MIN, OPACITY_MAX);
+      if (Number.isFinite(src.size)) dst.size = clamp(Math.round(src.size), 25, 100);
+      if (Number.isFinite(src.tilt)) dst.tilt = clamp(Math.round(src.tilt), -180, 180);
+      if (typeof src.single === 'boolean') dst.single = src.single;
+      if (typeof src.sticky === 'boolean') dst.sticky = src.sticky;
+    });
     if (typeof snapshot.pattern.soloMain === 'boolean') s.soloMain = snapshot.pattern.soloMain;
     if (typeof snapshot.pattern.sidebarPattern === 'boolean') s.sidebarPattern = snapshot.pattern.sidebarPattern;
     if (typeof snapshot.pattern.noBackground === 'boolean') s.noBackground = snapshot.pattern.noBackground;
@@ -983,7 +1160,8 @@ const MOTIF_BUILDERS = {
   candelabra: candelabraMotif,
   fleur: fleurDeLisMotif,
   fish: fishMotif,
-  fireflies: firefliesMotif
+  fireflies: firefliesMotif,
+  dragon: dragonHeadMotif
 };
 
 function motifMarkup() {
@@ -1024,21 +1202,57 @@ function candelabraMotif() {
 </g>`;
 }
 
-function CandelabraPattern({ id }) {
-  const tile = candelabraTilePx();
+function dragonHeadMotif() {
+  return `\
+<g class="dragon-head">\
+<path d="M75 38 C68 31 58 28 48 28 C39 28 34 22 36 11 C28 20 31 32 41 37 C32 34 23 34 15 38 L7 42 L23 43 L12 48 L27 49 C21 53 19 58 22 64 L31 57 C36 64 44 67 53 66 C61 65 67 61 72 56 L82 58 L91 53 L80 47 L87 43 L77 42 Z" fill="var(--candelabra-stroke)" stroke="var(--candelabra-fill)" stroke-width="1.3" stroke-linejoin="round"/>\
+<path d="M67 36 C72 27 72 19 67 9 C79 16 84 25 81 37 M57 31 C58 22 55 15 49 8 C62 11 68 18 69 29" fill="none" stroke="var(--candelabra-stroke)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>\
+<path d="M70 52 L82 55 L89 62 L76 60 M60 61 L69 70 L78 73 L70 63 M48 65 L53 75 L62 81 L58 67 M37 62 L36 73 L41 82 L45 65" fill="var(--candelabra-stroke)" stroke="var(--candelabra-fill)" stroke-width="1.2" stroke-linejoin="round"/>\
+<path d="M20 40 L31 39 L21 42 Z" fill="var(--candelabra-fill)"/>\
+<path d="M24 46 Q33 45 39 48" fill="none" stroke="var(--candelabra-fill)" stroke-width="1.5" stroke-linecap="round"/>\
+<path d="M29 40 L33 39" stroke="var(--candelabra-flame)" stroke-width="2.2" stroke-linecap="round"/>\
+<g class="dragon-flames">\
+<path class="dragon-fire" d="M23 48 C17 44 13 40 7 39 C10 44 12 46 4 46 C9 49 13 50 5 54 C12 54 15 53 11 59 C18 57 21 54 26 52 Z" fill="var(--candelabra-flame)" opacity="0.95">\
+<animateTransform attributeName="transform" type="scale" values="1 1;1.08 0.94;0.96 1.06;1 1" dur="1.15s" repeatCount="indefinite"/>\
+</path>\
+<path class="dragon-fire-core" d="M22 49 C17 47 14 45 10 45 C13 48 13 49 10 51 C15 51 18 50 22 51 Z" fill="var(--candelabra-flame-glow)" opacity="0.9">\
+<animate attributeName="opacity" values="0.65;1;0.72;0.9" dur="0.8s" repeatCount="indefinite"/>\
+</path>\
+</g>\
+</g>`;
+}
+
+// SVG's pattern viewBox maps one 100×100 motif into each exact grid cell.
+function buildLayerSvgContent(layer) {
+  const state = window.nocturnePatternState;
+  const cfg = (state && state[layer]) || {};
+  const motif = cfg.motif || state.motif || 'candelabra';
+  const build = MOTIF_BUILDERS[motif] || candelabraMotif;
+  const savedMotif = state.motif;
+  state.motif = motif;              // motif builders read state.motif
+  let markup;
+  try { markup = build(); } finally { state.motif = savedMotif; }
+  const cols = clamp(Math.round(cfg.gridCols) || 1, GRID_MIN, GRID_MAX);
+  const rows = clamp(Math.round(cfg.gridRows) || 1, GRID_MIN, GRID_MAX);
+  const size = clamp(Number(cfg.size) || 85, 25, 100);
+  const tilt = clamp(Number(cfg.tilt) || 0, -180, 180);
+  const transform = `translate(50 50) rotate(${tilt}) scale(${(size / 100).toFixed(3)}) translate(-50 -50)`;
+  if (cfg.single) {
+    return `<g class="pattern-motif" transform="${transform}">${markup}</g>`;
+  }
+  const cellW = (100 / cols).toFixed(4);
+  const cellH = (100 / rows).toFixed(4);
+  return `<defs><pattern id="nocturne-${layer}-motif" width="${cellW}" height="${cellH}" patternUnits="userSpaceOnUse" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><g class="pattern-motif" transform="${transform}">${markup}</g></pattern></defs><rect width="100" height="100" fill="url(#nocturne-${layer}-motif)"/>`;
+}
+
+function CandelabraPattern({ id, layer }) {
   return h('svg', {
     xmlns: 'http://www.w3.org/2000/svg',
-    width: '100%', height: '100%', preserveAspectRatio: 'none',
-    'aria-hidden': true, focusable: false
-  },
-    h('defs', null,
-      h('pattern', {
-        id, width: tile, height: tile, patternUnits: 'userSpaceOnUse',
-        dangerouslySetInnerHTML: { __html: buildPatternTile(window.nocturnePatternState) }
-      })
-    ),
-    h('rect', { width: '100%', height: '100%', fill: `url(#${id})` })
-  );
+    width: '100%', height: '100%', viewBox: '0 0 100 100',
+    preserveAspectRatio: 'none',
+    'aria-hidden': true, focusable: false, 'data-layer': layer || 'main',
+    dangerouslySetInnerHTML: { __html: buildLayerSvgContent(layer || 'main') }
+  });
 }
 
 // Raw motif markup — rebuilt on demand since motif selection changes.
@@ -1088,8 +1302,8 @@ function ChatGifButton() {
 }
 
 function Sidebar() {
-  return h('nav', { className: `sidebar${savedSidebarCollapsed ? ' collapsed' : ''}`, id: 'appSidebar', style: { display: 'none' } },
-    h('div', { className: 'sidebar-pattern', id: 'sidebarPattern', 'aria-hidden': true }, h(CandelabraPattern, { id: 'nocturneSidebarCandelabraPattern' })),
+  return h('nav', { className: `site-sidebar sidebar${savedSidebarCollapsed ? ' collapsed' : ''}`, id: 'appSidebar', style: { display: 'none' } },
+    h('div', { className: 'sidebar-pattern', id: 'sidebarPattern', 'aria-hidden': true }, h(CandelabraPattern, { id: 'nocturneSidebarCandelabraPattern', layer: 'sidebar' })),
     h('button', { type: 'button', className: 'mobile-nav-close', 'aria-label': 'Close navigation menu', onClick: () => window.setMobileNavOpen(false) }, '×'),
     h('div', { className: 'brand' }, h('div', { className: 'brand-title-row' }, h(Sigil), h('div', { className: 'brand-title-copy' }, h('h1', null, 'Nocturne'), h('p', null, 'Campaign Hub')), h('button', { type: 'button', className: 'sidebar-collapse-toggle', id: 'sidebarCollapseToggle', 'aria-expanded': String(!savedSidebarCollapsed), 'aria-label': savedSidebarCollapsed ? 'Expand navigation menu' : 'Collapse navigation menu', onClick: () => setSidebarCollapsed(!document.getElementById('appSidebar')?.classList.contains('collapsed')) }, savedSidebarCollapsed ? '›' : '‹')), h('div', { className: 'brand-meta-row' }, h('div', { className: 'brand-meta-actions' }, h('span', { className: 'role-pill', id: 'rolePill' }, 'player'),
             h('select', { className: 'theme-select-inline', id: 'themeSelectInline', 'aria-label': 'Choose site theme', defaultValue: 'nocturne', onChange: event => window.setNocturneTheme(event.target.value) },
@@ -1140,7 +1354,7 @@ function Sidebar() {
 }
 
 function ContentSections() {
-  return h('main', { id: 'appMain', style: { display: 'none' } },
+  return h('main', { id: 'appMain', className: 'site-main', style: { display: 'none' } },
     h(HomePage), h(WorldbookPage), h(NpcsPage), h(CharactersPage),
     h(CommonRoomsPage), h(GamesHub), h(SummariesPage), h(QuestBoardPage), h(LootPage), h(PrimerPage), h(RestrictedPage),
     h(ThemeStudio)
@@ -1237,18 +1451,9 @@ function App() {
       h('span', { className: 'mobile-nav-title' }, 'Nocturne')
     ),
     h('button', { type: 'button', className: 'mobile-nav-backdrop', id: 'mobileNavBackdrop', 'aria-label': 'Close navigation menu', onClick: () => window.setMobileNavOpen(false) }),
-    h('div', { className: 'sidebar-pattern full-page-pattern', 'aria-hidden': true },
-      // Tiled pattern layer (hidden in solo mode)…
-      h('div', { id: 'nocturnePatternLayer' }, h(CandelabraPattern, { id: 'nocturneCandelabraPattern' })),
-      // …and the solo overlay: ONE giant candelabra centered in the viewport.
-      // Rendered as a plain SVG sized by CSS (not an SVG pattern), so it can
-      // never tile, clip, or shift.
-      h('svg', {
-        id: 'nocturneSoloMotif', className: 'nocturne-solo-motif',
-        viewBox: '-20 -20 140 140', preserveAspectRatio: 'xMidYMid meet',
-        'aria-hidden': true, focusable: false,
-        dangerouslySetInnerHTML: { __html: `<g id="nocturneSoloMotifGroup">${CANDELABRA_MOTIF_MARKUP()}</g>` }
-      })
+    h('div', { className: 'full-page-pattern', 'aria-hidden': true },
+      // Tiled pattern layer…
+      h('div', { id: 'nocturnePatternLayer' }, h(CandelabraPattern, { id: 'nocturneCandelabraPattern', layer: 'main' })),
     ),
     h(Sidebar),
     h(ContentSections),
@@ -1258,3 +1463,8 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('react-root')).render(h(App));
+updateBackgroundLayerBounds();
+if (typeof ResizeObserver === 'function') {
+  const sidebarForBackgrounds = document.getElementById('appSidebar');
+  if (sidebarForBackgrounds) new ResizeObserver(updateBackgroundLayerBounds).observe(sidebarForBackgrounds);
+}
