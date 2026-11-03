@@ -402,7 +402,6 @@ window.RuneDuel = function RuneDuel({ match, spectating = false, players = [] })
           />
         </figure>
       </section>
-      {window.currentUserIsDM ? <RuneDuelTestMode /> : null}
       {pickError ? <p className="games-error" role="alert">{pickError}</p> : null}
     </article>
   );

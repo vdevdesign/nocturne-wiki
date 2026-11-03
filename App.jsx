@@ -55,20 +55,6 @@ function startSidebarResize(event) {
 function setNocturneTheme(theme) {
   const nextTheme = nocturneThemes.includes(theme) ? theme : 'nocturne';
 
-  // Only warn when the user has a shared/saved theme worth protecting. A
-  // freshly-restored page (snapshot taken at DOMContentLoaded) or an explicit
-  // reset is "settled" — no warning. Restoring YOUR OWN saved look on
-  // refresh must never prompt.
-  if (typeof window.hasUnsavedAppearanceChanges === 'function' && window.hasUnsavedAppearanceChanges()) {
-    const proceed = window.confirm('Switching to a premade theme will discard your unsaved appearance changes (colors, pattern tweaks, custom CSS). Continue?');
-    if (!proceed) {
-      // Restore the select control to the current theme.
-      const picker = document.getElementById('premadeThemeSelect');
-      if (picker) picker.value = document.documentElement.dataset.theme;
-      return false;
-    }
-  }
-
   document.documentElement.dataset.theme = nextTheme;
   try { window.localStorage.setItem('nocturne-theme', nextTheme); } catch (_) { /* private browsing */ }
   if (typeof window.persistNocturneTheme === 'function') window.persistNocturneTheme(nextTheme);
@@ -134,9 +120,9 @@ function AuthScreen() {
 
 const navigation = [
   ['home', 'Home', '⌂'], ['characters', 'Players', '♙'],
-  ['worldbook', 'Worldbook', '◇'], ['npcs', 'NPCs & Friendship Points', '♧'],
+  ['loot', 'Inventory', '◈'], ['npcs', 'NPCs & Friendship Points', '♧'],
   ['common-rooms', 'Common Rooms', '✧'], ['games', 'House Games', '✦'], ['quest-board', 'Quest & Rumor Board', '⚑'], ['summaries', 'Session Summaries', '≡'],
-  ['loot', 'Loot & Rewards', '◈'], ['primer', 'Player Primer', '✦']
+  ['worldbook', 'Worldbook', '◇'], ['primer', 'Player Primer', '✦']
 ];
 
 let currentPage = window.history.state?.nocturnePage || null;
@@ -153,6 +139,8 @@ function updateBackButtons(showBack) {
 function renderPage(target, showBack = false) {
   window.setMobileNavOpen(false);
   currentPage = target;
+  document.documentElement.classList.toggle('theme-studio-fullscreen', target === 'theme-studio');
+  document.getElementById('appMain')?.classList.toggle('session-chats-active', target === 'session-chats');
   window.localStorage.setItem('nocturne-active-page', target);
   document.querySelectorAll('#react-root .navlist button[data-target]').forEach(button => {
     button.classList.toggle('active', button.dataset.target === target);
@@ -163,6 +151,7 @@ function renderPage(target, showBack = false) {
   updateBackButtons(showBack);
   if (target === 'home') window.loadDashboard();
   if (target === 'common-rooms') window.loadCommonRoom();
+  if (target === 'session-chats' && window.loadSessionChatPage) window.loadSessionChatPage();
   if (target === 'games' && window.refreshGames) window.refreshGames();
 }
 
@@ -242,36 +231,50 @@ window.addEventListener('resize', () => {
 // depends on them. Keep any new range consts above their first use.
 const PATTERN_MIN = 90, PATTERN_MAX = 240;
 const SVG_MIN = 40, SVG_MAX = 120;   // % of tile the motif may occupy
-const GRID_MIN = 1, GRID_MAX = 4;    // motif repeats per tile axis
+const GRID_MIN = 1, GRID_MAX = 12;   // motif repeats per tile axis
+const MOTIF_SIZE_MIN = 10, MOTIF_SIZE_MAX = 200;
 const OPACITY_MIN = 4, OPACITY_MAX = 70;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, Number(value)));
 }
 
-window.nocturnePatternState = { flames: true, tilt: -7.5, tile: 140, svgSize: 70, gridCols: 1, gridRows: 1, opacity: 35, layout: 'stagger', soloMain: false, sidebarPattern: true, noBackground: true, sidebarMatchMain: true, motif: 'candelabra', animateMotif: true,
+window.nocturnePatternState = { flames: true, tilt: -7.5, tile: 140, svgSize: 70, gridCols: 1, gridRows: 1, opacity: 45, layout: 'stagger', soloMain: false, sidebarPattern: true, noBackground: false, sidebarMatchMain: true, motif: 'dragon', animateMotif: true,
   // Dual-editor background state: independent sidebar/main settings. Each
   // layer picks its own motif, grid density (which LITERALLY dictates how
   // many motif copies repeat across the layer), opacity, tiled-vs-single
   // mode, and fixed-vs-scrolling attachment.
-  sidebar: { motif: 'candelabra', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, single: false, sticky: true },
-  main: { motif: 'candelabra', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, single: false, sticky: true }
+  sidebar: { motif: 'fireflies', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, alignX: 0, alignY: 0, single: false, sticky: true },
+  main: { motif: 'dragon', gridCols: 1, gridRows: 1, opacity: 45, size: 100, tilt: 0, alignX: 0, alignY: 0, single: true, sticky: true }
 };
 window.nocturneColorOverrides = {};
 window.nocturneSidebarColorOverrides = {};
+window.nocturneMainColorOverrides = {};
 window.nocturneCustomCss = '';
 
 // Declared BEFORE initAppearanceState() runs below — it validates stored
 // overrides against this list.
 window.nocturneSwatches = [
-  { varName: '--gold', label: 'Accent' },
-  { varName: '--purple', label: 'Secondary' },
-  { varName: '--rose', label: 'Flame' },
-  { varName: '--bg', label: 'Page' },
-  { varName: '--surface', label: 'Card' },
-  { varName: '--text', label: 'Text' },
-  { varName: '--text-dim', label: 'Text dim' },
-  { varName: '--line', label: 'Border' }
+  { varName: '--bg', label: 'Page background', description: 'The site-wide page background color.' },
+  { varName: '--bg-alt', label: 'Alternate background', description: 'Secondary page surfaces, including the navigation sidebar.' },
+  { varName: '--surface', label: 'Card surface', description: 'The base fill for cards, panels, and raised controls.' },
+  { varName: '--surface-2', label: 'Raised surface', description: 'A contrasting surface used for selected cards, inputs, and motif fills.' },
+  { varName: '--line', label: 'Borders', description: 'The color of borders, dividers, and outlines.' },
+  { varName: '--text', label: 'Primary text', description: 'Main headings, labels, and body text.' },
+  { varName: '--text-dim', label: 'Secondary text', description: 'Supporting copy and less prominent labels.' },
+  { varName: '--text-faint', label: 'Muted text', description: 'Subtle hints, metadata, and placeholder text.' },
+  { varName: '--gold', label: 'Accent', description: 'Primary accent used for highlights, links, and decorative strokes.' },
+  { varName: '--gold-dim', label: 'Accent glow', description: 'Muted accent used for glows, focus rings, and softer details.' },
+  { varName: '--purple', label: 'Secondary accent', description: 'Secondary highlight color for selected controls and decorative details.' },
+  { varName: '--purple-dim', label: 'Muted secondary accent', description: 'Soft secondary accents and subdued control states.' },
+  { varName: '--rose', label: 'Flame / warning', description: 'Fire colors and warning or destructive-action accents.' },
+  { varName: '--rose-dim', label: 'Muted flame', description: 'Soft fire accents and muted warning backgrounds.' },
+  { varName: '--text-main', label: 'Text on accent', description: 'Foreground color intended for text over strongly colored surfaces.' },
+  { varName: '--symbol', label: 'Navigation symbols', description: 'Icons and symbols in the navigation sidebar.' },
+  { varName: '--button-text', label: 'Button text', description: 'Foreground text on filled buttons.' },
+  { varName: '--session-note', label: 'Session notes', description: 'Text color used for session-note content.' },
+  { varName: '--glow-primary', label: 'Primary page glow', description: 'The first soft radial glow behind the page.' },
+  { varName: '--glow-secondary', label: 'Secondary page glow', description: 'The secondary soft radial glow behind the page.' }
 ];
 
 function emitAppearanceChange() {
@@ -287,7 +290,72 @@ function readAppearancePref(key, fallback) {
 }
 
 (function initAppearanceState() {
+  let backgroundDefaultsMigrated = false;
+  let dragonHeroDefaultMigrated = false;
+  let sidebarFirefliesDefaultMigrated = false;
+  try {
+    backgroundDefaultsMigrated = window.localStorage.getItem('nocturne-background-default-off-v1') === 'true';
+    dragonHeroDefaultMigrated = window.localStorage.getItem('nocturne-background-dragon-hero-v2') === 'true';
+    sidebarFirefliesDefaultMigrated = window.localStorage.getItem('nocturne-background-sidebar-fireflies-v1') === 'true';
+  } catch (_) { /* private browsing */ }
   const stored = readAppearancePref('nocturne-pattern-state', null);
+  if (!backgroundDefaultsMigrated) {
+    if (stored && typeof stored === 'object') {
+      stored.noBackground = true;
+      stored.sidebarPattern = false;
+      try { window.localStorage.setItem('nocturne-pattern-state', JSON.stringify(stored)); } catch (_) { /* private browsing */ }
+    }
+    try { window.localStorage.setItem('nocturne-background-default-off-v1', 'true'); } catch (_) { /* private browsing */ }
+  }
+  if (!dragonHeroDefaultMigrated) {
+    const applyDragonHeroDefaults = pattern => {
+      if (!pattern || typeof pattern !== 'object') return;
+      pattern.noBackground = false;
+      pattern.sidebarPattern = false;
+      pattern.motif = 'dragon';
+      pattern.opacity = 45;
+      pattern.main = {
+        ...(pattern.main && typeof pattern.main === 'object' ? pattern.main : {}),
+        motif: 'dragon',
+        gridCols: 1,
+        gridRows: 1,
+        opacity: 45,
+        size: 100,
+        single: true
+      };
+    };
+    if (stored && typeof stored === 'object') {
+      applyDragonHeroDefaults(stored);
+      try { window.localStorage.setItem('nocturne-pattern-state', JSON.stringify(stored)); } catch (_) { /* private browsing */ }
+    }
+    const settled = readAppearancePref('nocturne-settled-snapshot', null);
+    if (settled && typeof settled === 'object') {
+      applyDragonHeroDefaults(settled.pattern);
+      try { window.localStorage.setItem('nocturne-settled-snapshot', JSON.stringify(settled)); } catch (_) { /* private browsing */ }
+    }
+    try { window.localStorage.setItem('nocturne-background-dragon-hero-v2', 'true'); } catch (_) { /* private browsing */ }
+  }
+  if (!sidebarFirefliesDefaultMigrated) {
+    const applySidebarFireflyDefaults = pattern => {
+      if (!pattern || typeof pattern !== 'object') return;
+      const sidebar = pattern.sidebar && typeof pattern.sidebar === 'object' ? pattern.sidebar : null;
+      const wasDefault = pattern.sidebarPattern === false && (!sidebar || sidebar.motif === 'candelabra');
+      if (wasDefault) {
+        pattern.sidebarPattern = true;
+        pattern.sidebar = { ...(sidebar || {}), motif: 'fireflies' };
+      }
+    };
+    if (stored && typeof stored === 'object') {
+      applySidebarFireflyDefaults(stored);
+      try { window.localStorage.setItem('nocturne-pattern-state', JSON.stringify(stored)); } catch (_) { /* private browsing */ }
+    }
+    const settled = readAppearancePref('nocturne-settled-snapshot', null);
+    if (settled && typeof settled === 'object') {
+      applySidebarFireflyDefaults(settled.pattern);
+      try { window.localStorage.setItem('nocturne-settled-snapshot', JSON.stringify(settled)); } catch (_) { /* private browsing */ }
+    }
+    try { window.localStorage.setItem('nocturne-background-sidebar-fireflies-v1', 'true'); } catch (_) { /* private browsing */ }
+  }
   if (stored && typeof stored === 'object') {
     const s = window.nocturnePatternState;
     if (typeof stored.flames === 'boolean') s.flames = stored.flames;
@@ -313,8 +381,10 @@ function readAppearancePref(key, fallback) {
       if (Number.isFinite(src.gridCols)) dst.gridCols = clamp(Math.round(src.gridCols), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.gridRows)) dst.gridRows = clamp(Math.round(src.gridRows), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.opacity)) dst.opacity = clamp(Math.round(src.opacity), OPACITY_MIN, OPACITY_MAX);
-      if (Number.isFinite(src.size)) dst.size = clamp(Math.round(src.size), 25, 100);
+      if (Number.isFinite(src.size)) dst.size = clamp(Math.round(src.size), MOTIF_SIZE_MIN, MOTIF_SIZE_MAX);
       if (Number.isFinite(src.tilt)) dst.tilt = clamp(Math.round(src.tilt), -180, 180);
+      if (Number.isFinite(src.alignX)) dst.alignX = clamp(Math.round(src.alignX), -50, 50);
+      if (Number.isFinite(src.alignY)) dst.alignY = clamp(Math.round(src.alignY), -50, 50);
       if (typeof src.single === 'boolean') dst.single = src.single;
       if (typeof src.sticky === 'boolean') dst.sticky = src.sticky;
     });
@@ -328,8 +398,16 @@ function readAppearancePref(key, fallback) {
   }
   const sidebarOverrides = readAppearancePref('nocturne-sidebar-color-overrides', {});
   if (sidebarOverrides && typeof sidebarOverrides === 'object') {
-    Object.entries(sidebarOverrides).forEach(([mainVar, color]) => {
-      if (typeof color === 'string' && /^#[0-9a-f]{3,8}$/i.test(color)) window.nocturneSidebarColorOverrides[mainVar] = color;
+    window.nocturneSwatches.forEach(({ varName }) => {
+      const color = sidebarOverrides[varName];
+      if (typeof color === 'string' && /^#[0-9a-f]{3,8}$/i.test(color)) window.nocturneSidebarColorOverrides[varName] = color;
+    });
+  }
+  const mainOverrides = readAppearancePref('nocturne-main-color-overrides', {});
+  if (mainOverrides && typeof mainOverrides === 'object') {
+    window.nocturneSwatches.forEach(({ varName }) => {
+      const color = mainOverrides[varName];
+      if (typeof color === 'string' && /^#[0-9a-f]{3,8}$/i.test(color)) window.nocturneMainColorOverrides[varName] = color;
     });
   }
   const css = readAppearancePref('nocturne-custom-css', '');
@@ -341,40 +419,30 @@ function persistAppearanceState() {
     window.localStorage.setItem('nocturne-pattern-state', JSON.stringify(window.nocturnePatternState));
     window.localStorage.setItem('nocturne-color-overrides', JSON.stringify(window.nocturneColorOverrides));
     window.localStorage.setItem('nocturne-sidebar-color-overrides', JSON.stringify(window.nocturneSidebarColorOverrides));
+    window.localStorage.setItem('nocturne-main-color-overrides', JSON.stringify(window.nocturneMainColorOverrides));
     window.localStorage.setItem('nocturne-custom-css', window.nocturneCustomCss);
   } catch (_) { /* private browsing */ }
   if (typeof window.persistNocturneTheme === 'function') window.persistNocturneTheme(document.documentElement.dataset.theme);
 }
 
-/* ======== Dirty tracking: warn before losing unsaved appearance work ======== */
-// A snapshot of the last "settled" state (defaults after reset, or the state
-// when a premade/shared theme was applied). Changes since then = unsaved.
-let __settledSnapshot = null;
+/* ======== Persisted appearance baseline ======== */
 
 function captureAppearanceSnapshot() {
   return JSON.stringify({
     pattern: window.nocturnePatternState,
     colors: window.nocturneColorOverrides,
+    sidebarColors: window.nocturneSidebarColorOverrides,
+    mainColors: window.nocturneMainColorOverrides,
     css: window.nocturneCustomCss,
     brightness: document.documentElement.dataset.brightness || 'dark'
   });
 }
 
 function markAppearanceSaved() {
-  __settledSnapshot = captureAppearanceSnapshot();
-  // Persist the settled baseline so a reload can compare against it even
-  // though restore-order varies (DOMContentLoaded vs auth-changed).
-  try { window.localStorage.setItem('nocturne-settled-snapshot', __settledSnapshot); } catch (_) {}
+  const snapshot = captureAppearanceSnapshot();
+  try { window.localStorage.setItem('nocturne-settled-snapshot', snapshot); } catch (_) {}
 }
 
-function hasUnsavedAppearanceChanges() {
-  let stored = null;
-  try { stored = window.localStorage.getItem('nocturne-settled-snapshot'); } catch (_) {}
-  // First ever load (no baseline yet) = nothing unsaved.
-  if (stored === null) return false;
-  return captureAppearanceSnapshot() !== stored;
-}
-window.hasUnsavedAppearanceChanges = hasUnsavedAppearanceChanges;
 window.markAppearanceSaved = markAppearanceSaved;
 
 // Reloading the page DISCARDS unsaved edits by design: start every session
@@ -393,6 +461,12 @@ window.markAppearanceSaved = markAppearanceSaved;
     if (baseline.colors && typeof baseline.colors === 'object') {
       try { window.localStorage.setItem('nocturne-color-overrides', JSON.stringify(baseline.colors)); } catch (_) {}
     }
+    if (baseline.sidebarColors && typeof baseline.sidebarColors === 'object') {
+      try { window.localStorage.setItem('nocturne-sidebar-color-overrides', JSON.stringify(baseline.sidebarColors)); } catch (_) {}
+    }
+    if (baseline.mainColors && typeof baseline.mainColors === 'object') {
+      try { window.localStorage.setItem('nocturne-main-color-overrides', JSON.stringify(baseline.mainColors)); } catch (_) {}
+    }
     const css = typeof baseline.css === 'string' ? baseline.css : '';
     try { window.localStorage.setItem('nocturne-custom-css', css); } catch (_) {}
     if (baseline.brightness) {
@@ -401,27 +475,82 @@ window.markAppearanceSaved = markAppearanceSaved;
   } catch (_) { /* malformed baseline — ignore */ }
 })();
 
-function applyFlameAnimation() {
+let dragonFlameAnimationFrame = 0;
+const pausedMotifTimelines = new WeakSet();
+
+// Drive nested SVG timelines explicitly so cloned Studio previews keep animating.
+function updateDragonFlameAnimationDriver() {
   const state = window.nocturnePatternState;
-  const animAllowed = state.animateMotif !== false;
-  document.querySelectorAll('.pattern-motif, .candelabra-flames, .dragon-flames').forEach(group => {
-    const isFlame = group.classList.contains('candelabra-flames') || group.classList.contains('dragon-flames');
-    group.querySelectorAll('animate, animateTransform').forEach(anim => {
-      if (animAllowed && (!isFlame || state.flames)) {
-        anim.removeAttribute('data-flame-paused');
-        try { anim.unpauseAnimation(); } catch (_) {}
-      } else {
-        try { anim.pauseAnimation(); } catch (_) {}
-        anim.setAttribute('data-flame-paused', 'true');
+  const canAnimate = state.animateMotif !== false
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    && [...document.querySelectorAll('.dragon-flames')].some(group =>
+      group.querySelector('animateTransform')
+      && !group.closest('.motif-animation-off')
+      && group.getBoundingClientRect().width > 0
+    );
+  if (!canAnimate) {
+    if (dragonFlameAnimationFrame) cancelAnimationFrame(dragonFlameAnimationFrame);
+    dragonFlameAnimationFrame = 0;
+    return;
+  }
+  if (dragonFlameAnimationFrame) return;
+
+  const advanceDragonFlame = () => {
+    dragonFlameAnimationFrame = 0;
+    if (window.nocturnePatternState.animateMotif === false
+      || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const time = performance.now() / 1000;
+    const svgRoots = new Set();
+    document.querySelectorAll('.dragon-flames').forEach(group => {
+      if (group.querySelector('animateTransform')
+        && !group.closest('.motif-animation-off')
+        && group.getBoundingClientRect().width > 0) {
+        svgRoots.add(group.ownerSVGElement);
       }
     });
-    if (group.classList.contains('candelabra-flames') || group.classList.contains('dragon-flames')) {
-      group.style.filter = state.flames ? '' : 'none';
+    svgRoots.forEach(svg => svg.setCurrentTime(time));
+    dragonFlameAnimationFrame = requestAnimationFrame(advanceDragonFlame);
+  };
+  dragonFlameAnimationFrame = requestAnimationFrame(advanceDragonFlame);
+}
+window.updateDragonFlameAnimationDriver = updateDragonFlameAnimationDriver;
+
+function applyFlameGlow() {
+  const state = window.nocturnePatternState;
+  const motionLayers = [
+    ...document.querySelectorAll('#nocturnePatternLayer, #sidebarPattern, .theme-preview-main-pattern, .theme-preview-sidebar-pattern')
+  ];
+  motionLayers.forEach(layer => layer.classList.toggle('flames-off', !state.flames));
+  motionLayers.flatMap(layer => [...layer.querySelectorAll('.candelabra-flames, .dragon-flames')]).forEach(group => {
+    group.style.filter = state.flames ? '' : 'none';
+  });
+}
+
+function applyFlameAnimation() {
+  const state = window.nocturnePatternState;
+  const animAllowed = state.animateMotif !== false
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  applyFlameGlow();
+  const motionLayers = [
+    ...document.querySelectorAll('#nocturnePatternLayer, #sidebarPattern, .theme-preview-main-pattern, .theme-preview-sidebar-pattern')
+  ];
+  const svgTimelines = new Set(
+    motionLayers.flatMap(layer => [...layer.querySelectorAll('animate, animateTransform')])
+      .map(animation => animation.ownerSVGElement)
+      .filter(Boolean)
+  );
+  svgTimelines.forEach(svg => {
+    if (animAllowed && pausedMotifTimelines.has(svg) && typeof svg.unpauseAnimations === 'function') {
+      svg.unpauseAnimations();
+      pausedMotifTimelines.delete(svg);
+    } else if (!animAllowed && typeof svg.pauseAnimations === 'function') {
+      svg.pauseAnimations();
+      pausedMotifTimelines.add(svg);
     }
   });
-  document.getElementById('nocturnePatternLayer')?.classList.toggle('flames-off', !state.flames);
-  document.getElementById('sidebarPattern')?.classList.toggle('flames-off', !state.flames);
+  updateDragonFlameAnimationDriver();
 }
+window.applyNocturnePatternAnimation = applyFlameAnimation;
 
 function applyPatternGeometry() {
   const state = window.nocturnePatternState;
@@ -442,10 +571,18 @@ function applyPatternGeometry() {
   // Rebuild each SVG from its own layer settings and theme-inheriting markup.
   ['sidebar', 'main'].forEach(layer => {
     const svg = document.querySelector(`#${layer === 'sidebar' ? 'sidebarPattern' : 'nocturnePatternLayer'} svg[data-layer="${layer}"]`);
+    const layerElement = document.getElementById(layer === 'sidebar' ? 'sidebarPattern' : 'nocturnePatternLayer');
+    const config = state[layer] || {};
+    layerElement?.classList.toggle('fireflies-active', config.motif === 'fireflies');
+    layerElement?.classList.toggle('motif-animation-off', state.animateMotif === false);
+    layerElement?.style.setProperty('--firefly-offset-x', `${clamp(Number(config.alignX) || 0, -50, 50)}%`);
+    layerElement?.style.setProperty('--firefly-offset-y', `${clamp(Number(config.alignY) || 0, -50, 50)}%`);
     if (!svg) return;
-    svg.setAttribute('viewBox', '0 0 100 100');
-    svg.setAttribute('preserveAspectRatio', state[layer]?.single ? 'xMidYMid meet' : 'none');
-    svg.innerHTML = buildLayerSvgContent(layer);
+    const coordinateHeight = getLayerCoordinateHeight(layer, svg);
+    svg.setAttribute('viewBox', `0 0 100 ${coordinateHeight}`);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.innerHTML = buildLayerSvgContent(layer, coordinateHeight);
+    svg.dataset.coordinateHeight = String(coordinateHeight);
   });
   // Per-layer opacity + sticky(scroll) attachment via CSS variables.
   const sidebarCfg = state.sidebar || {};
@@ -499,10 +636,63 @@ function updateBackgroundLayerBounds() {
       sidebarPattern.style.bottom = '0';
     }
   }
+  ['sidebar', 'main'].forEach(layer => refreshLayerSvgAspect(layer));
   applyFlameAnimation();
 }
 
 window.addEventListener('resize', updateBackgroundLayerBounds);
+let observedBackgroundSidebar = null;
+let sidebarBoundsObserver = null;
+function observeSidebarForBackgroundBounds() {
+  const sidebar = document.getElementById('appSidebar');
+  if (!sidebar || sidebar === observedBackgroundSidebar || typeof ResizeObserver !== 'function') return;
+  sidebarBoundsObserver?.disconnect();
+  observedBackgroundSidebar = sidebar;
+  sidebarBoundsObserver = new ResizeObserver(updateBackgroundLayerBounds);
+  sidebarBoundsObserver.observe(sidebar);
+}
+if (typeof MutationObserver === 'function' && document.body) {
+  const sidebarMountObserver = new MutationObserver(() => {
+    if (document.getElementById('appSidebar') !== observedBackgroundSidebar) {
+      observeSidebarForBackgroundBounds();
+      if (observedBackgroundSidebar) updateBackgroundLayerBounds();
+    }
+  });
+  sidebarMountObserver.observe(document.body, { childList: true, subtree: true });
+}
+document.addEventListener('transitionend', event => {
+  if (event.target?.id === 'appSidebar' && event.propertyName === 'width') {
+    updateBackgroundLayerBounds();
+  }
+});
+window.addEventListener('nocturne-pattern-updated', () => {
+  requestAnimationFrame(updateDragonFlameAnimationDriver);
+});
+window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', applyFlameAnimation);
+
+function getLayerCoordinateHeight(layer, svg) {
+  const layerId = layer === 'sidebar' ? 'sidebarPattern' : 'nocturnePatternLayer';
+  const rect = document.getElementById(layerId)?.getBoundingClientRect();
+  if (rect?.width > 0 && rect.height > 0) return 100 * rect.height / rect.width;
+  return svg?.viewBox?.baseVal?.height || 100;
+}
+
+function refreshLayerSvgAspect(layer, targetSvg = null, targetLayer = null) {
+  const layerId = layer === 'sidebar' ? 'sidebarPattern' : 'nocturnePatternLayer';
+  const svg = targetSvg || document.querySelector(`#${layerId} svg[data-layer="${layer}"]`);
+  const rect = (targetLayer || document.getElementById(layerId))?.getBoundingClientRect();
+  if (!svg || !rect || rect.width <= 0 || rect.height <= 0) return false;
+  const coordinateHeight = 100 * rect.height / rect.width;
+  const previousHeight = Number(svg.dataset.coordinateHeight) || 100;
+  if (Math.abs(coordinateHeight - previousHeight) < 0.01) return false;
+  svg.setAttribute('viewBox', `0 0 100 ${coordinateHeight}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  svg.innerHTML = buildLayerSvgContent(layer, coordinateHeight);
+  svg.dataset.coordinateHeight = String(coordinateHeight);
+  return true;
+}
+
+window.refreshNocturnePatternSvg = refreshLayerSvgAspect;
 
 // Legacy single-config tile builder retained for theme snapshots; new code
 // uses buildLayerTile() which handles per-layer motif/grid/geometry.
@@ -530,7 +720,44 @@ function applyColorOverrides() {
     if (override) root.style.setProperty(varName, override);
     else root.style.removeProperty(varName);
   });
+  applyMainColorOverrides();
+  applySidebarColorOverrides();
 }
+
+function setScopedColorStyle(styleId, selector, overrides, aliases = {}) {
+  let style = document.getElementById(styleId);
+  if (!style) {
+    style = document.createElement('style');
+    style.id = styleId;
+    document.head.appendChild(style);
+  }
+  const declarations = [];
+  window.nocturneSwatches.forEach(({ varName }) => {
+    const color = overrides[varName];
+    if (typeof color === 'string' && /^#[0-9a-f]{3,8}$/i.test(color)) declarations.push(`${varName}:${color}`);
+  });
+  Object.entries(aliases).forEach(([varName, value]) => declarations.push(`${varName}:${value}`));
+  style.textContent = declarations.length ? `${selector}{${declarations.join(';')}}` : '';
+}
+
+function applyMainColorOverrides() {
+  const colors = window.nocturneMainColorOverrides || {};
+  const aliases = Object.keys(colors).length ? {
+    '--theme-main-bg': 'var(--bg)',
+    '--theme-accent': 'var(--gold)',
+    '--theme-accent-glow': 'var(--gold-dim)',
+    '--theme-fire': 'var(--rose)',
+    '--theme-text': 'var(--text)',
+    '--candelabra-stroke': 'var(--gold)',
+    '--candelabra-fill': 'var(--surface-2)',
+    '--candelabra-flame': 'var(--rose)',
+    '--candelabra-flame-glow': 'var(--gold-dim)'
+  } : {};
+  if (colors['--bg']) aliases['background-color'] = 'var(--theme-main-bg)';
+  else aliases['background-color'] = 'transparent';
+  setScopedColorStyle('nocturne-main-color-style', '#appMain, .theme-preview-main', colors, aliases);
+}
+window.applyNocturneMainColorOverrides = applyMainColorOverrides;
 
 function applyNocturneCustomCss(cssText) {
   const trimmed = String(cssText == null ? '' : cssText).slice(0, 4000);
@@ -587,7 +814,7 @@ window.setNocturneColorOverride = setNocturneColorOverride;
 
 function setNocturnePatternFlames(on) {
   window.nocturnePatternState.flames = !!on;
-  applyFlameAnimation();
+  applyFlameGlow();
   persistAppearanceState();
   emitAppearanceChange();
 }
@@ -665,16 +892,24 @@ function applySidebarColorOverrides() {
   const root = document.documentElement;
   const matchMain = !!window.nocturnePatternState.sidebarMatchMain;
   root.classList.toggle('sidebar-colors-match', matchMain);
-  Object.values(SIDEBAR_COLOR_MAP).forEach(v => {
-    if (matchMain) root.style.removeProperty(v);
-  });
-  if (matchMain) return;
-  // Independent mode: apply each saved override to its sidebar variable.
-  Object.entries(SIDEBAR_COLOR_MAP).forEach(([mainVar, sidebarVar]) => {
-    const color = window.nocturneSidebarColorOverrides[mainVar];
-    if (color && /^#[0-9a-f]{3,8}$/i.test(color)) root.style.setProperty(sidebarVar, color);
-    else root.style.removeProperty(sidebarVar);
-  });
+  Object.values(SIDEBAR_COLOR_MAP).forEach(v => root.style.removeProperty(v));
+  const colors = matchMain ? {} : (window.nocturneSidebarColorOverrides || {});
+  const aliases = Object.keys(colors).length ? {
+    '--theme-sidebar-bg': 'var(--bg-alt)',
+    '--theme-accent': 'var(--gold)',
+    '--theme-accent-glow': 'var(--gold-dim)',
+    '--theme-fire': 'var(--rose)',
+    '--theme-text': 'var(--text)',
+    '--candelabra-stroke': 'var(--gold)',
+    '--candelabra-fill': 'var(--surface-2)',
+    '--candelabra-flame': 'var(--rose)',
+    '--candelabra-flame-glow': 'var(--gold-dim)',
+    '--sidebar-stroke': colors['--gold'] || 'var(--gold)',
+    '--sidebar-fill': colors['--surface-2'] || 'var(--surface-2)',
+    '--sidebar-flame': colors['--rose'] || 'var(--rose)',
+    '--sidebar-flame-glow': colors['--gold-dim'] || 'var(--gold-dim)'
+  } : {};
+  setScopedColorStyle('nocturne-sidebar-color-style', '#appSidebar, .theme-preview-sidebar', colors, aliases);
 }
 
 function setNocturneSidebarMatchMain(match) {
@@ -686,7 +921,7 @@ function setNocturneSidebarMatchMain(match) {
 window.setNocturneSidebarMatchMain = setNocturneSidebarMatchMain;
 
 function setNocturneSidebarColorOverride(mainVar, color) {
-  if (!SIDEBAR_COLOR_MAP[mainVar]) return;
+  if (!window.nocturneSwatches.some(item => item.varName === mainVar)) return;
   if (color && /^#[0-9a-f]{3,8}$/i.test(color)) window.nocturneSidebarColorOverrides[mainVar] = color;
   else delete window.nocturneSidebarColorOverrides[mainVar];
   window.nocturnePatternState.sidebarMatchMain = false;  // overriding = independent
@@ -695,6 +930,16 @@ function setNocturneSidebarColorOverride(mainVar, color) {
   emitAppearanceChange();
 }
 window.setNocturneSidebarColorOverride = setNocturneSidebarColorOverride;
+
+function setNocturneMainColorOverride(varName, color) {
+  if (!window.nocturneSwatches.some(item => item.varName === varName)) return;
+  if (color && /^#[0-9a-f]{3,8}$/i.test(color)) window.nocturneMainColorOverrides[varName] = color;
+  else delete window.nocturneMainColorOverrides[varName];
+  applyMainColorOverrides();
+  persistAppearanceState();
+  emitAppearanceChange();
+}
+window.setNocturneMainColorOverride = setNocturneMainColorOverride;
 
 function setNocturneNoBackground(on) {
   window.nocturnePatternState.noBackground = !!on;
@@ -756,7 +1001,7 @@ window.setNocturneLayerGrid = setNocturneLayerGrid;
 
 function setNocturneLayerSize(layer, value) {
   if (layer !== 'sidebar' && layer !== 'main') return;
-  layerConfig(layer).size = clamp(Math.round(Number(value)), 25, 100);
+  layerConfig(layer).size = clamp(Math.round(Number(value)), MOTIF_SIZE_MIN, MOTIF_SIZE_MAX);
   applyPatternGeometry();
   persistAppearanceState();
   emitAppearanceChange();
@@ -771,6 +1016,16 @@ function setNocturneLayerTilt(layer, value) {
   emitAppearanceChange();
 }
 window.setNocturneLayerTilt = setNocturneLayerTilt;
+
+function setNocturneLayerAlignment(layer, axis, value) {
+  if (layer !== 'sidebar' && layer !== 'main') return;
+  if (axis !== 'alignX' && axis !== 'alignY') return;
+  layerConfig(layer)[axis] = clamp(Math.round(Number(value) || 0), -50, 50);
+  applyPatternGeometry();
+  persistAppearanceState();
+  emitAppearanceChange();
+}
+window.setNocturneLayerAlignment = setNocturneLayerAlignment;
 
 function setNocturneLayerOpacity(layer, value) {
   if (layer !== 'sidebar' && layer !== 'main') return;
@@ -839,12 +1094,13 @@ function setNocturneDisplayMode(mode) {
 window.setNocturneDisplayMode = setNocturneDisplayMode;
 
 function resetNocturneAppearance() {
-  window.nocturnePatternState = { flames: true, tilt: -7.5, tile: 140, svgSize: 70, gridCols: 1, gridRows: 1, opacity: 35, layout: 'stagger', soloMain: false, sidebarPattern: true, noBackground: true, sidebarMatchMain: true, motif: 'candelabra', animateMotif: true,
-    sidebar: { motif: 'candelabra', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, single: false, sticky: true },
-    main: { motif: 'candelabra', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, single: false, sticky: true }
+  window.nocturnePatternState = { flames: true, tilt: -7.5, tile: 140, svgSize: 70, gridCols: 1, gridRows: 1, opacity: 45, layout: 'stagger', soloMain: false, sidebarPattern: true, noBackground: false, sidebarMatchMain: true, motif: 'dragon', animateMotif: true,
+    sidebar: { motif: 'fireflies', gridCols: 2, gridRows: 2, opacity: 35, size: 85, tilt: 0, alignX: 0, alignY: 0, single: false, sticky: true },
+    main: { motif: 'dragon', gridCols: 1, gridRows: 1, opacity: 45, size: 100, tilt: 0, alignX: 0, alignY: 0, single: true, sticky: true }
   };
   window.nocturneColorOverrides = {};
   window.nocturneSidebarColorOverrides = {};
+  window.nocturneMainColorOverrides = {};
   window.nocturneCustomCss = '';
   document.documentElement.dataset.brightness = 'dark';
   document.documentElement.classList.remove('brightness-light');
@@ -872,6 +1128,7 @@ function snapshotNocturneTheme() {
   return {
     colors: { ...window.nocturneColorOverrides },
     sidebarColors: { ...window.nocturneSidebarColorOverrides },
+    mainColors: { ...window.nocturneMainColorOverrides },
     pattern: { ...window.nocturnePatternState },
     css: window.nocturneCustomCss,
     brightness: root.dataset.brightness || 'dark',
@@ -906,8 +1163,10 @@ function applyNocturneThemeSnapshot(snapshot) {
       if (Number.isFinite(src.gridCols)) dst.gridCols = clamp(Math.round(src.gridCols), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.gridRows)) dst.gridRows = clamp(Math.round(src.gridRows), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.opacity)) dst.opacity = clamp(Math.round(src.opacity), OPACITY_MIN, OPACITY_MAX);
-      if (Number.isFinite(src.size)) dst.size = clamp(Math.round(src.size), 25, 100);
+      if (Number.isFinite(src.size)) dst.size = clamp(Math.round(src.size), MOTIF_SIZE_MIN, MOTIF_SIZE_MAX);
       if (Number.isFinite(src.tilt)) dst.tilt = clamp(Math.round(src.tilt), -180, 180);
+      if (Number.isFinite(src.alignX)) dst.alignX = clamp(Math.round(src.alignX), -50, 50);
+      if (Number.isFinite(src.alignY)) dst.alignY = clamp(Math.round(src.alignY), -50, 50);
       if (typeof src.single === 'boolean') dst.single = src.single;
       if (typeof src.sticky === 'boolean') dst.sticky = src.sticky;
     });
@@ -918,9 +1177,15 @@ function applyNocturneThemeSnapshot(snapshot) {
   }
   const sidebarColors = (snapshot.sidebarColors && typeof snapshot.sidebarColors === 'object') ? snapshot.sidebarColors : {};
   window.nocturneSidebarColorOverrides = {};
-  Object.keys(SIDEBAR_COLOR_MAP).forEach(mainVar => {
-    const value = sidebarColors[mainVar];
-    if (typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value)) window.nocturneSidebarColorOverrides[mainVar] = value;
+  window.nocturneSwatches.forEach(({ varName }) => {
+    const value = sidebarColors[varName];
+    if (typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value)) window.nocturneSidebarColorOverrides[varName] = value;
+  });
+  const mainColors = (snapshot.mainColors && typeof snapshot.mainColors === 'object') ? snapshot.mainColors : {};
+  window.nocturneMainColorOverrides = {};
+  window.nocturneSwatches.forEach(({ varName }) => {
+    const value = mainColors[varName];
+    if (typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value)) window.nocturneMainColorOverrides[varName] = value;
   });
   applySidebarColorOverrides();
   const css = typeof snapshot.css === 'string' ? snapshot.css.slice(0, 4000) : '';
@@ -1130,31 +1395,89 @@ function fishMotif() {
 }
 
 function firefliesMotif() {
-  // Three drifting, pulsing fireflies. Drift/pulse animate only when
-  // animateMotif is on.
-  const fly = (cx, cy, dur, delay, r) => {
-    const drift = window.nocturnePatternState.animateMotif
-      ? `<animateTransform attributeName="transform" type="translate" values="0 0; 6 ${-r * 2}; -4 ${r}; 0 0" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/>`
-      : '';
-    const pulse = window.nocturnePatternState.animateMotif
-      ? `<animate attributeName="opacity" values="0.25;1;0.35;0.9;0.25" dur="${(dur * 0.7).toFixed(1)}s" begin="${delay}s" repeatCount="indefinite"/>`
-      : '';
-    return `\
-<g>${drift}\
-<circle cx="${cx}" cy="${cy}" r="${r + 3}" fill="var(--candelabra-flame-glow)" opacity="0.3">${pulse}</circle>\
-<circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--candelabra-flame)" opacity="0.9">${pulse}</circle>\
-<circle cx="${cx}" cy="${cy}" r="1" fill="var(--candelabra-fill)"/>\
-</g>`;
-  };
-  return `\
-<g class="pattern-motif">\
-${fly(30, 34, 5.2, 0, 4)}\
-${fly(64, 26, 6.4, 1.1, 3)}\
-${fly(52, 68, 7.1, 2.0, 3.5)}\
-<path d="M20 78 Q 50 70 80 78" fill="none" stroke="var(--candelabra-stroke)" stroke-width="1.2" opacity="0.35"/>\
-<path d="M24 84 Q 50 78 76 84" fill="none" stroke="var(--candelabra-stroke)" stroke-width="1" opacity="0.25"/>\
-</g>`;
+  return '';
 }
+
+window.nocturneDragonHeadStatus = 'loading';
+let nocturneDragonHeadMarkup = '';
+
+function loadNocturneDragonHead() {
+  const appScript = [...document.scripts].find(script => /(?:^|\/)App\.jsx(?:\?|$)/i.test(script.src));
+  if (!appScript) {
+    window.nocturneDragonHeadStatus = 'error';
+    console.error('Could not locate App.jsx to load the supplied Breathing Dragon SVG.');
+    return;
+  }
+  const artworkUrl = new URL('dragon%20head.svg', appScript.src);
+  fetch(artworkUrl)
+    .then(response => {
+      if (!response.ok) throw new Error(`SVG request failed with status ${response.status}`);
+      return response.text();
+    })
+    .then(source => {
+      const parsed = new DOMParser().parseFromString(source, 'image/svg+xml');
+      const sourceSvg = parsed.documentElement;
+      if (sourceSvg.localName !== 'svg' || parsed.querySelector('parsererror')) {
+        throw new Error('The supplied SVG is not valid XML.');
+      }
+      const viewBox = sourceSvg.getAttribute('viewBox') || '0 0 1024 1024';
+      const firePaths = [...sourceSvg.querySelectorAll('path')].filter(path =>
+        /fill\s*:\s*rgb\(\s*204\s*,\s*53\s*,\s*0\s*\)/i.test(path.getAttribute('style') || '')
+      );
+      if (!firePaths.length) throw new Error('The supplied SVG has no identifiable fire paths.');
+      const flameMotions = [
+        { values: '0 0; 0 -3; 2.5 -1.5; 0 0', duration: '3.8s' },
+        { values: '0 0; 1.5 -2.5; -2 -1; 0 0', duration: '4.1s' },
+        { values: '0 0; -1 -3.5; 2 -2; 0 0', duration: '3.5s' },
+        { values: '0 0; 2 -2; -1.5 0.5; 0 0', duration: '4.4s' }
+      ];
+      let flameIndex = 0;
+      sourceSvg.querySelectorAll('path').forEach(path => {
+        const isFire = firePaths.includes(path);
+        path.setAttribute('fill', isFire ? 'var(--candelabra-flame)' : 'var(--candelabra-stroke)');
+        if (isFire) {
+          const flameMotion = flameMotions[flameIndex++ % flameMotions.length];
+          path.classList.add('dragon-fire');
+          const flamesGroup = path.parentElement;
+          flamesGroup?.classList.add('dragon-flames');
+          path.style.removeProperty('fill');
+          const animation = parsed.createElementNS('http://www.w3.org/2000/svg', 'animate');
+          animation.setAttribute('attributeName', 'opacity');
+          animation.setAttribute('values', '0.9;0.96;0.91;0.94;0.9');
+          animation.setAttribute('keyTimes', '0;0.25;0.5;0.75;1');
+          animation.setAttribute('keySplines', '0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1');
+          animation.setAttribute('calcMode', 'spline');
+          animation.setAttribute('dur', '2.8s');
+          animation.setAttribute('repeatCount', 'indefinite');
+          path.appendChild(animation);
+          const wave = parsed.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+          wave.setAttribute('attributeName', 'transform');
+          wave.setAttribute('type', 'translate');
+          wave.setAttribute('values', flameMotion.values);
+          wave.setAttribute('keyTimes', '0;0.33;0.67;1');
+          wave.setAttribute('keySplines', '0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1');
+          wave.setAttribute('calcMode', 'spline');
+          wave.setAttribute('dur', flameMotion.duration);
+          wave.setAttribute('repeatCount', 'indefinite');
+          path.appendChild(wave);
+        }
+      });
+      nocturneDragonHeadMarkup = `<g class="dragon-head"><svg x="0" y="0" width="100" height="100" viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet">${sourceSvg.innerHTML}</svg></g>`;
+      window.nocturneDragonHeadStatus = 'ready';
+      window.dispatchEvent(new CustomEvent('nocturne-dragon-head-ready'));
+      if (window.nocturnePatternState) {
+        applyPatternGeometry();
+        emitAppearanceChange();
+      }
+    })
+    .catch(error => {
+      window.nocturneDragonHeadStatus = 'error';
+      console.error('Could not load the supplied Breathing Dragon SVG artwork.', error);
+      window.dispatchEvent(new CustomEvent('nocturne-dragon-head-error', { detail: error }));
+    });
+}
+
+loadNocturneDragonHead();
 
 const MOTIF_BUILDERS = {
   candelabra: candelabraMotif,
@@ -1203,30 +1526,15 @@ function candelabraMotif() {
 }
 
 function dragonHeadMotif() {
-  return `\
-<g class="dragon-head">\
-<path d="M75 38 C68 31 58 28 48 28 C39 28 34 22 36 11 C28 20 31 32 41 37 C32 34 23 34 15 38 L7 42 L23 43 L12 48 L27 49 C21 53 19 58 22 64 L31 57 C36 64 44 67 53 66 C61 65 67 61 72 56 L82 58 L91 53 L80 47 L87 43 L77 42 Z" fill="var(--candelabra-stroke)" stroke="var(--candelabra-fill)" stroke-width="1.3" stroke-linejoin="round"/>\
-<path d="M67 36 C72 27 72 19 67 9 C79 16 84 25 81 37 M57 31 C58 22 55 15 49 8 C62 11 68 18 69 29" fill="none" stroke="var(--candelabra-stroke)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>\
-<path d="M70 52 L82 55 L89 62 L76 60 M60 61 L69 70 L78 73 L70 63 M48 65 L53 75 L62 81 L58 67 M37 62 L36 73 L41 82 L45 65" fill="var(--candelabra-stroke)" stroke="var(--candelabra-fill)" stroke-width="1.2" stroke-linejoin="round"/>\
-<path d="M20 40 L31 39 L21 42 Z" fill="var(--candelabra-fill)"/>\
-<path d="M24 46 Q33 45 39 48" fill="none" stroke="var(--candelabra-fill)" stroke-width="1.5" stroke-linecap="round"/>\
-<path d="M29 40 L33 39" stroke="var(--candelabra-flame)" stroke-width="2.2" stroke-linecap="round"/>\
-<g class="dragon-flames">\
-<path class="dragon-fire" d="M23 48 C17 44 13 40 7 39 C10 44 12 46 4 46 C9 49 13 50 5 54 C12 54 15 53 11 59 C18 57 21 54 26 52 Z" fill="var(--candelabra-flame)" opacity="0.95">\
-<animateTransform attributeName="transform" type="scale" values="1 1;1.08 0.94;0.96 1.06;1 1" dur="1.15s" repeatCount="indefinite"/>\
-</path>\
-<path class="dragon-fire-core" d="M22 49 C17 47 14 45 10 45 C13 48 13 49 10 51 C15 51 18 50 22 51 Z" fill="var(--candelabra-flame-glow)" opacity="0.9">\
-<animate attributeName="opacity" values="0.65;1;0.72;0.9" dur="0.8s" repeatCount="indefinite"/>\
-</path>\
-</g>\
-</g>`;
+  return nocturneDragonHeadMarkup;
 }
 
 // SVG's pattern viewBox maps one 100×100 motif into each exact grid cell.
-function buildLayerSvgContent(layer) {
+function buildLayerSvgContent(layer, coordinateHeight = 100) {
   const state = window.nocturnePatternState;
   const cfg = (state && state[layer]) || {};
   const motif = cfg.motif || state.motif || 'candelabra';
+  if (motif === 'fireflies') return '';
   const build = MOTIF_BUILDERS[motif] || candelabraMotif;
   const savedMotif = state.motif;
   state.motif = motif;              // motif builders read state.motif
@@ -1234,25 +1542,47 @@ function buildLayerSvgContent(layer) {
   try { markup = build(); } finally { state.motif = savedMotif; }
   const cols = clamp(Math.round(cfg.gridCols) || 1, GRID_MIN, GRID_MAX);
   const rows = clamp(Math.round(cfg.gridRows) || 1, GRID_MIN, GRID_MAX);
-  const size = clamp(Number(cfg.size) || 85, 25, 100);
+  const size = clamp(Number(cfg.size) || 85, MOTIF_SIZE_MIN, MOTIF_SIZE_MAX);
   const tilt = clamp(Number(cfg.tilt) || 0, -180, 180);
-  const transform = `translate(50 50) rotate(${tilt}) scale(${(size / 100).toFixed(3)}) translate(-50 -50)`;
+  const alignX = clamp(Number(cfg.alignX) || 0, -50, 50);
+  const alignY = clamp(Number(cfg.alignY) || 0, -50, 50);
+  const centerY = coordinateHeight / 2;
   if (cfg.single) {
+    const singleScale = (size / 100) * Math.min(1, coordinateHeight / 100);
+    const transform = `translate(${50 + alignX} ${centerY + alignY}) rotate(${tilt}) scale(${singleScale.toFixed(3)}) translate(-50 -50)`;
     return `<g class="pattern-motif" transform="${transform}">${markup}</g>`;
   }
+  const transform = `translate(${50 + alignX} ${50 + alignY}) rotate(${tilt}) scale(${(size / 100).toFixed(3)}) translate(-50 -50)`;
   const cellW = (100 / cols).toFixed(4);
-  const cellH = (100 / rows).toFixed(4);
-  return `<defs><pattern id="nocturne-${layer}-motif" width="${cellW}" height="${cellH}" patternUnits="userSpaceOnUse" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><g class="pattern-motif" transform="${transform}">${markup}</g></pattern></defs><rect width="100" height="100" fill="url(#nocturne-${layer}-motif)"/>`;
+  const cellH = (coordinateHeight / rows).toFixed(4);
+  return `<defs><pattern id="nocturne-${layer}-motif" width="${cellW}" height="${cellH}" patternUnits="userSpaceOnUse" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><g class="pattern-motif" transform="${transform}">${markup}</g></pattern></defs><rect width="100" height="${coordinateHeight}" fill="url(#nocturne-${layer}-motif)"/>`;
 }
 
 function CandelabraPattern({ id, layer }) {
-  return h('svg', {
-    xmlns: 'http://www.w3.org/2000/svg',
-    width: '100%', height: '100%', viewBox: '0 0 100 100',
-    preserveAspectRatio: 'none',
-    'aria-hidden': true, focusable: false, 'data-layer': layer || 'main',
-    dangerouslySetInnerHTML: { __html: buildLayerSvgContent(layer || 'main') }
-  });
+  const fireflies = Array.from({ length: 42 }, (_, index) => {
+    const left = 2 + (index * 37 + 11) % 96;
+    const top = 2 + (index * 61 + 23) % 96;
+    const size = 2 + (index * 5) % 3;
+    const duration = 5 + (index * 13 % 60) / 10;
+    const delay = -((index * 7) % 50) / 10;
+    const driftX = (index * 17) % 49 - 24;
+    const driftY = (index * 29) % 49 - 24;
+    return `<span class="nocturne-firefly-particle" style="--firefly-left:${left}%;--firefly-top:${top}%;--firefly-size:${size}px;--firefly-duration:${duration}s;--firefly-delay:${delay}s;--firefly-drift-x:${driftX}px;--firefly-drift-y:${driftY}px;--firefly-return-x:${driftX * -0.5}px;--firefly-return-y:${driftY * -0.5}px"></span>`;
+  }).join('');
+  return h(React.Fragment, null,
+    h('svg', {
+      xmlns: 'http://www.w3.org/2000/svg',
+      width: '100%', height: '100%', viewBox: '0 0 100 100',
+      preserveAspectRatio: 'xMidYMid meet', 'data-coordinate-height': '100',
+      'aria-hidden': true, focusable: false, 'data-layer': layer || 'main',
+      dangerouslySetInnerHTML: { __html: buildLayerSvgContent(layer || 'main') }
+    }),
+    h('div', {
+      className: 'nocturne-fireflies-particles',
+      'aria-hidden': true,
+      dangerouslySetInnerHTML: { __html: fireflies }
+    })
+  );
 }
 
 // Raw motif markup — rebuilt on demand since motif selection changes.
@@ -1333,7 +1663,7 @@ function Sidebar() {
           h('button', { className: 'inbox-button', id: 'inboxButton', title: 'DM requests', onClick: () => window.togglePasswordInbox() }, h('span', { className: 'email-icon', 'aria-hidden': true }, '✉'), h('span', { className: 'notification-bubble', id: 'inboxCount', style: { display: 'none' } }, '0'))), h('div', { className: 'password-inbox', id: 'passwordInbox', style: { display: 'none' } })),
     h('div', { className: 'sidebar-resize-handle', role: 'separator', 'aria-label': 'Resize navigation menu', 'aria-orientation': 'vertical', onPointerDown: startSidebarResize }),
     h('ul', { className: 'navlist', id: 'navlist' },
-      h('li', { style: { padding: '0 4px' } }, h('button', { className: 'nav-chat-btn', onClick: () => { window.setMobileNavOpen(false); window.openChatModal(); } },
+      h('li', { style: { padding: '0 4px' } }, h('button', { className: 'nav-chat-btn', 'data-target': 'session-chats', onClick: () => { window.setMobileNavOpen(false); window.openChatModal(); } },
         h('span', { className: 'nav-chat-label' }, h('span', { className: 'nav-icon', 'aria-hidden': true }, '◈'), h('span', null, 'Session Chats')),
         h('span', { id: 'navLiveBadge', className: 'nav-live-badge', style: { display: 'none' } }, 'LIVE')
       )),
@@ -1357,13 +1687,21 @@ function ContentSections() {
   return h('main', { id: 'appMain', className: 'site-main', style: { display: 'none' } },
     h(HomePage), h(WorldbookPage), h(NpcsPage), h(CharactersPage),
     h(CommonRoomsPage), h(GamesHub), h(SummariesPage), h(QuestBoardPage), h(LootPage), h(PrimerPage), h(RestrictedPage),
-    h(ThemeStudio)
+    h(SessionChatsPage), h(ThemeStudio)
   );
 }
 
-function ChatModal() {
-  return h('div', { id: 'chatModalOverlay', className: 'chat-modal-overlay' }, h('div', { className: 'chat-modal' },
-    h('div', { className: 'chat-header' }, h('div', { className: 'chat-header-left' }, h('button', { className: 'btn btn-sm btn-secondary chat-drawer-toggle', onClick: () => window.toggleChatDrawer(), title: 'Toggle Session List', 'aria-expanded': 'false' }, '☰'), h('h4', { id: 'modalChatTitle' }, 'Session Chat')), h('div', { className: 'chat-header-actions' }, h('span', { id: 'chatStatusBadge', className: 'status-badge' }, 'Locked'), h('button', { className: 'btn btn-sm btn-secondary', onClick: () => window.closeChatModal() }, '✕'))),
+function SessionChatsPage() {
+  return h('section', { id: 'session-chats', className: 'session-chats-page' },
+    h('button', {
+      type: 'button',
+      className: 'btn btn-secondary page-back-button',
+      hidden: true,
+      'aria-label': 'Go back to the previous page',
+      onClick: () => window.navigateBack()
+    }, '← Back'),
+    h('div', { className: 'chat-page-shell' },
+    h('div', { className: 'chat-header' }, h('div', { className: 'chat-header-left' }, h('button', { className: 'btn btn-sm btn-secondary chat-drawer-toggle', onClick: () => window.toggleChatDrawer(), title: 'Toggle Session List', 'aria-expanded': 'false' }, '☰'), h('h4', { id: 'modalChatTitle' }, 'Session Chat')), h('div', { className: 'chat-header-actions' }, h('span', { id: 'chatStatusBadge', className: 'status-badge' }, 'Locked'), h('button', { className: 'btn btn-sm btn-secondary', 'aria-label': 'Back to previous page', onClick: () => window.closeChatModal() }, '← Back'))),
     h('div', { id: 'chatDrawerScrim', className: 'chat-drawer-scrim', onClick: () => window.closeChatDrawer() }),
     h('div', { id: 'chatMenuDrawer', className: 'chat-menu-drawer' },
       h('button', { id: 'newSessionChatBtn', className: 'btn btn-sm new-session-btn', type: 'button', onClick: () => window.showNewSessionChatForm(), style: { display: 'none' } }, '＋ New Session'),
@@ -1399,7 +1737,8 @@ function ChatModal() {
       h('form', { id: 'chatForm', className: 'chat-form', onSubmit: event => window.handleChatSubmit(event) }, h(ChatGifButton), h('div', { id: 'chatGifPanel', className: 'chat-gif-panel', style: { display: 'none' }, 'aria-label': 'Approved GIFs' }), h('input', { id: 'chatInput', className: 'input-control', placeholder: 'Type /help for chat commands...', disabled: true }), h('button', { id: 'chatSendBtn', className: 'btn', type: 'submit', disabled: true }, 'Send'), h('span', { className: 'dice-menu-anchor' }, h('button', { id: 'diceRollBtn', className: 'btn dice-roll-button', type: 'button', title: 'Open dice roller', disabled: true }, 'Roll dice'), h('span', { id: 'diceRollMenu', className: 'dice-roll-menu', style: { display: 'none' } }, h('span', { className: 'dice-menu-title' }, 'Roll dice'), h('label', null, 'Number of dice', h('input', { id: 'diceCountInput', className: 'input-field', type: 'number', min: 1, max: 100, defaultValue: 1 })), h('label', null, 'Dice type', h('select', { id: 'diceTypeInput', className: 'input-field', defaultValue: '20' }, h('option', { value: '4' }, 'd4'), h('option', { value: '6' }, 'd6'), h('option', { value: '8' }, 'd8'), h('option', { value: '10' }, 'd10'), h('option', { value: '12' }, 'd12'), h('option', { value: '20' }, 'd20'), h('option', { value: '100' }, 'd100'))), h('label', null, 'Modifier', h('input', { id: 'diceModifierInput', className: 'input-field', type: 'number', defaultValue: 0 })), h('button', { id: 'rollConfiguredDiceBtn', className: 'btn', type: 'button' }, 'Roll')))),
       h('p', { className: 'chat-help' }, 'Type ', h('code', null, '/help'), ' for commands. Whispers show the sender and intended recipient.')
     )
-  ));
+    )
+  );
 }
 
 function RuneDuelRequestPopup() {
@@ -1457,13 +1796,13 @@ function App() {
     ),
     h(Sidebar),
     h(ContentSections),
-    h(RuneDuelRequestPopup),
-    h(ChatModal)
+    h(RuneDuelRequestPopup)
   );
 }
 
 ReactDOM.createRoot(document.getElementById('react-root')).render(h(App));
 updateBackgroundLayerBounds();
+applyPatternGeometry();
 if (typeof ResizeObserver === 'function') {
   const sidebarForBackgrounds = document.getElementById('appSidebar');
   if (sidebarForBackgrounds) new ResizeObserver(updateBackgroundLayerBounds).observe(sidebarForBackgrounds);

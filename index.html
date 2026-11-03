@@ -191,16 +191,16 @@
   nav.sidebar.collapsed .brand { padding-left: 10px; padding-right: 10px; }
   nav.sidebar.collapsed .brand-title-copy,
   nav.sidebar.collapsed .role-pill,
-  nav.sidebar.collapsed .theme-select,
+  nav.sidebar.collapsed .theme-select-inline,
+  nav.sidebar.collapsed #inboxButton,
   nav.sidebar.collapsed .nav-label,
   nav.sidebar.collapsed .nav-chat-label > span:last-child,
   nav.sidebar.collapsed .suggestion-box,
   nav.sidebar.collapsed .logout-label,
   nav.sidebar.collapsed .password-inbox { display: none !important; }
-  nav.sidebar.collapsed .brand-title-row { justify-content: center; gap: 4px; }
-  nav.sidebar.collapsed .brand-meta-row { display: block; margin-top: 12px; }
+  nav.sidebar.collapsed .brand-title-row { flex-direction: column; justify-content: center; gap: 8px; }
+  nav.sidebar.collapsed .brand-meta-row { display: block; margin-top: 8px; }
   nav.sidebar.collapsed .brand-meta-actions { justify-content: center; }
-  nav.sidebar.collapsed .inbox-button { display: block !important; margin: 0 auto; }
   nav.sidebar.collapsed .navlist { padding-left: 8px; padding-right: 8px; }
   nav.sidebar.collapsed .navlist button { justify-content: center; padding-left: 8px; padding-right: 8px; }
   nav.sidebar.collapsed .nav-icon { margin: 0; }
@@ -247,7 +247,7 @@
     position: fixed; top: 0; left: var(--nocturne-main-left, var(--sidebar-width, 260px)); right: 0; height: 100vh; z-index: 0; pointer-events: none;
     background-attachment: var(--candelabra-bg-attachment, fixed);
     opacity: var(--candelabra-pattern-opacity);
-    transition: opacity 0.3s ease;
+    transition: left 0.2s ease, opacity 0.3s ease;
     will-change: opacity;
   }
   #nocturnePatternLayer svg,
@@ -258,7 +258,7 @@
     pointer-events: none;
     background-attachment: var(--candelabra-bg-attachment-sidebar, fixed);
     opacity: var(--candelabra-pattern-opacity-sidebar);
-    transition: opacity 0.3s ease, filter 0.3s ease;
+    transition: left 0.2s ease, width 0.2s ease, opacity 0.3s ease, filter 0.3s ease;
   }
   /* (Sidebar-local inversion removed — inversion is now whole-page via
      :root.pattern-inverted, toggled in Theme Studio.) */
@@ -314,21 +314,17 @@
   #nocturnePatternLayer.flames-off .candelabra-flames,
   #sidebarPattern.flames-off .candelabra-flames { opacity: 0.55; }
   #nocturnePatternLayer:not(.flames-off) .dragon-fire,
-  #sidebarPattern:not(.flames-off) .dragon-fire {
-    filter: drop-shadow(0 0 3px var(--candelabra-flame)) drop-shadow(0 0 10px var(--candelabra-flame-glow));
+  #sidebarPattern:not(.flames-off) .dragon-fire,
+  .theme-preview-main-pattern:not(.flames-off) .dragon-fire,
+  .theme-preview-sidebar-pattern:not(.flames-off) .dragon-fire {
+    filter: drop-shadow(0 0 3px var(--candelabra-flame)) drop-shadow(0 0 10px var(--candelabra-flame));
   }
   #nocturnePatternLayer:not(.flames-off) .dragon-fire-core,
   #sidebarPattern:not(.flames-off) .dragon-fire-core {
-    filter: drop-shadow(0 0 7px var(--candelabra-flame-glow));
+    filter: drop-shadow(0 0 7px var(--candelabra-flame));
   }
   #nocturnePatternLayer.flames-off .dragon-flames,
   #sidebarPattern.flames-off .dragon-flames { filter: none; opacity: 0.55; }
-  @media (prefers-reduced-motion: reduce) {
-    #nocturnePatternLayer .dragon-flames animate,
-    #sidebarPattern .dragon-flames animate,
-    #nocturnePatternLayer .dragon-flames animateTransform,
-    #sidebarPattern .dragon-flames animateTransform { display: none; }
-  }
   .navlist .nav-icon { color: var(--symbol); }
   .navlist button:hover .nav-icon { color: var(--gold); }
   .nav-chat-btn { color: var(--gold); }
@@ -348,14 +344,16 @@
   .theme-select-inline option { background: var(--surface); color: var(--text); }
 
   /* ============ Whole-page pattern inversion ============ */
-  .full-page-pattern, #sidebarPattern { transition: filter 0.3s ease; }
+  .full-page-pattern, #sidebarPattern, .theme-preview-main-pattern, .theme-preview-sidebar-pattern { transition: filter 0.3s ease; }
   /* Each filtered element is a full-bleed fixed layer; inverting the layer
      itself (not an ancestor) keeps pixel registration identical. Explicit
      sizing + overflow control prevents partial-layer clipping of the grid. */
   .full-page-pattern { inset: 0; width: 100%; overflow: visible; }
   #sidebarPattern { inset: 0; width: 100%; height: 100%; overflow: hidden; }
   :root.pattern-inverted .full-page-pattern,
-  :root.pattern-inverted #sidebarPattern {
+  :root.pattern-inverted #sidebarPattern,
+  :root.pattern-inverted .theme-preview-main-pattern,
+  :root.pattern-inverted .theme-preview-sidebar-pattern {
     filter: invert(1) hue-rotate(180deg);
     will-change: filter;
   }
@@ -544,6 +542,201 @@
   }
   .css-editor-status { color: var(--gold); font-size: 12px; margin: 6px 0 0; }
 
+  .css-color-studio { display: grid; gap: 18px; }
+  .css-color-studio-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  }
+  .css-color-studio-header h2 { margin: 0 0 5px; }
+  .css-color-studio-header .eyebrow { margin: 0 0 4px; }
+  .css-color-studio-layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+    gap: 18px; align-items: start;
+  }
+  .css-color-controls, .css-color-preview {
+    min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  }
+  .css-color-controls { display: grid; gap: 14px; }
+  .css-color-scope-bar {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .css-color-scope-tabs, .css-color-mode-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .css-color-scope-tabs button {
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+    background: var(--bg-alt); color: var(--text-dim); cursor: pointer;
+  }
+  .css-color-scope-tabs button[aria-selected="true"],
+  .css-color-mode-tabs button[aria-pressed="true"] {
+    border-color: var(--gold); background: var(--surface-2); color: var(--gold);
+    box-shadow: 0 0 0 1px var(--gold-dim);
+  }
+  .css-color-scope-description {
+    display: grid; gap: 3px; padding: 10px 12px; border-left: 3px solid var(--gold);
+    border-radius: 4px 8px 8px 4px; background: var(--bg-alt); color: var(--text-dim); font-size: 12px;
+  }
+  .css-color-scope-description strong { color: var(--text); font-size: 13px; }
+  .css-color-group { border: 1px solid var(--line); border-radius: 9px; background: var(--bg-alt); }
+  .css-color-group > summary { padding: 10px 12px; color: var(--gold); cursor: pointer; font-weight: 600; }
+  .css-color-variable-grid { display: grid; gap: 9px; padding: 0 10px 10px; }
+  .css-color-variable {
+    min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  }
+  .css-color-variable-heading {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px;
+  }
+  .css-color-variable-name { display: flex; align-items: center; gap: 6px; color: var(--text); font-size: 13px; }
+  .css-color-variable code { display: block; margin-top: 3px; color: var(--text-faint); font-size: 10px; }
+  .css-color-variable-help {
+    display: block; max-width: 440px; margin-top: 5px; color: var(--text-dim); font-size: 11px; line-height: 1.4;
+  }
+  .css-color-help {
+    display: inline-grid; place-items: center; flex: 0 0 19px; width: 19px; height: 19px;
+    padding: 0; border: 1px solid var(--gold-dim); border-radius: 50%; background: transparent;
+    color: var(--gold); font-size: 12px; font-weight: 700; cursor: help;
+  }
+  .css-color-variable-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
+  .css-color-variable-actions > code { color: var(--text-dim); font-size: 11px; }
+  .css-color-alignment { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; }
+  .css-color-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .css-color-section-heading h3, .css-color-preview-heading h3 { margin: 0; font-size: 18px; }
+  .css-color-section-heading p, .css-color-preview-heading p { margin: 4px 0 0; color: var(--text-faint); font-size: 11px; }
+  .css-color-alignment-grid { display: grid; grid-template-columns: repeat(3, 34px); gap: 5px; }
+  .css-color-alignment-grid button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+  .css-color-alignment-offsets { display: grid; gap: 8px; }
+  .css-color-preview { position: sticky; top: 16px; display: grid; gap: 12px; }
+  .css-color-preview-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .css-color-preview-heading h3 { color: var(--gold); }
+  .css-color-device-tabs { display: flex; gap: 5px; }
+  .css-color-device-tabs button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+  .css-color-preview-canvas {
+    min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 10px;
+    background: radial-gradient(ellipse 900px 500px at 15% -10%, var(--glow-primary), transparent 60%), radial-gradient(ellipse 700px 500px at 100% 10%, var(--glow-secondary), transparent 55%), var(--theme-main-bg);
+    overflow: auto;
+  }
+  .theme-preview-fit-frame { position: relative; margin-inline: auto; overflow: hidden; }
+  .theme-preview-site {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); position: relative;
+    min-width: 0; min-height: min(74vh, 900px); overflow: hidden;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: radial-gradient(ellipse 900px 500px at 15% -10%, var(--glow-primary), transparent 60%), radial-gradient(ellipse 700px 500px at 100% 10%, var(--glow-secondary), transparent 55%), var(--theme-main-bg);
+  }
+  .theme-preview-site.is-desktop { min-height: 0; }
+  .theme-preview-sidebar-slot { min-width: 0; position: relative; z-index: 1; }
+  .theme-preview-site nav.theme-preview-sidebar {
+    position: relative; top: auto; z-index: 1; height: 100%; min-height: 100%;
+    max-height: none; transform: none; visibility: visible; box-shadow: none;
+  }
+  .theme-studio-fullscreen .theme-preview-site #appSidebar { display: flex !important; }
+  .theme-studio-fullscreen .theme-preview-site #appMain {
+    display: block !important; position: relative; width: 100%; height: 100%;
+    min-height: 0; max-width: 900px; padding: 56px 64px; overflow-x: hidden;
+    overflow-y: auto; flex: 1 1 900px;
+  }
+  .theme-studio-fullscreen .theme-preview-site #appMain > #home { display: block !important; }
+  .theme-studio-fullscreen .theme-preview-site #nocturnePatternLayer {
+    position: absolute !important; inset: 0 !important; width: auto !important;
+    height: auto !important; right: 0 !important; bottom: 0 !important; z-index: 0;
+  }
+  .theme-studio-fullscreen .theme-preview-site.is-mobile #appMain {
+    width: 100%; height: 664px; max-width: none; min-height: 664px;
+    padding: 24px 16px 48px; overflow-y: auto;
+  }
+  .theme-preview-sidebar-pattern { position: absolute; }
+  .theme-preview-sidebar-pattern[hidden] { display: none !important; }
+  .theme-preview-mobile-bar { display: none; }
+  .theme-preview-site .theme-preview-main {
+    position: relative; isolation: isolate; min-width: 0; width: 100%; max-width: 900px;
+    min-height: 100%; padding: 56px 64px; overflow-x: hidden; background: transparent;
+  }
+  .theme-preview-home-slot { position: relative; z-index: 1; min-width: 0; }
+  .theme-preview-home-slot > .theme-preview-home { min-width: 0; }
+  .theme-preview-dashboard-content { container: campaign-dashboard / inline-size; }
+  .theme-preview-main-pattern {
+    position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+    opacity: var(--candelabra-pattern-opacity, 0.35);
+  }
+  .theme-preview-main-pattern[hidden] { display: none !important; }
+  .theme-preview-main-pattern svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .theme-preview-main-pattern:not(.flames-off) .candelabra-flames path,
+  .theme-preview-sidebar-pattern:not(.flames-off) .candelabra-flames path {
+    filter: drop-shadow(0 0 2px var(--candelabra-flame)) drop-shadow(0 0 6px var(--candelabra-flame-glow));
+  }
+  .theme-preview-main-pattern:not(.flames-off) .dragon-fire,
+  .theme-preview-sidebar-pattern:not(.flames-off) .dragon-fire {
+    filter: drop-shadow(0 0 3px var(--candelabra-flame)) drop-shadow(0 0 10px var(--candelabra-flame));
+  }
+  .theme-preview-main-pattern:not(.flames-off) .dragon-fire-core,
+  .theme-preview-sidebar-pattern:not(.flames-off) .dragon-fire-core {
+    filter: drop-shadow(0 0 7px var(--candelabra-flame));
+  }
+  .css-color-preview-canvas.is-mobile { max-width: 430px; margin-inline: auto; }
+  .theme-preview-site.is-mobile { display: block; min-height: 720px; }
+  .theme-preview-site.is-mobile .theme-preview-mobile-bar {
+    display: flex; position: relative; top: auto; z-index: 2; min-height: 56px;
+    align-items: center; padding: 8px 16px; background: var(--bg-alt); border-bottom: 1px solid var(--line);
+  }
+  .theme-preview-site.is-mobile .theme-preview-sidebar-slot { display: none; }
+  .theme-preview-site.is-mobile .theme-preview-main {
+    max-width: none; min-height: 664px; padding: 24px 16px 48px;
+  }
+  .theme-preview-site.is-mobile .theme-preview-home-slot .title {
+    margin-bottom: 4px; font-size: 30px; line-height: 1.15; overflow-wrap: anywhere;
+  }
+  .theme-preview-site.is-mobile .theme-preview-home-slot .subtitle { margin-bottom: 22px; font-size: 13px; line-height: 1.45; }
+  .theme-preview-site.is-mobile .theme-preview-home-slot > p { line-height: 1.55; }
+  .theme-preview-site.is-mobile .theme-preview-home-slot .card { padding: 14px; margin-bottom: 16px !important; }
+  .theme-preview-site.is-mobile .theme-preview-home-slot h3 { font-size: 20px; }
+  .theme-preview-site.is-mobile .theme-preview-home img {
+    display: block; max-width: 100%; max-height: 40vh; height: auto; object-fit: contain;
+  }
+  .theme-preview-site.is-mobile .theme-preview-home .campaign-dashboard-house-label img {
+    flex: 0 0 22px; width: 22px; height: 22px; max-height: none;
+  }
+  .theme-preview-site.is-mobile .campaign-dashboard-house-row { grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+  .theme-preview-site.is-mobile .campaign-dashboard-house-label { min-width: 0; font-size: 0.8rem; }
+  .theme-preview-site.is-mobile .campaign-dashboard-house-score { font-size: 0.72rem; }
+  .theme-preview-site.is-mobile .campaign-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+  .theme-preview-site.is-mobile .theme-preview-dashboard-content { container-type: normal; }
+  .theme-studio-background-controls {
+    display: grid; gap: 14px; margin-top: 6px; padding: 14px;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--bg-alt);
+  }
+  .theme-studio-background-controls h3 { margin: 0; color: var(--gold); }
+
+  .theme-studio-fullscreen body { display: block; overflow: hidden; }
+  .theme-studio-fullscreen #react-root { display: block; width: 100%; height: 100vh; min-height: 100vh; }
+  .theme-studio-fullscreen #appSidebar,
+  .theme-studio-fullscreen .mobile-nav-bar,
+  .theme-studio-fullscreen #mobileNavBackdrop,
+  .theme-studio-fullscreen .full-page-pattern { display: none !important; }
+  .theme-studio-fullscreen #appMain {
+    display: block !important; position: relative; width: 100%; height: 100vh; min-height: 100vh;
+    max-width: none; padding: 0; overflow: hidden; flex: none;
+  }
+  .theme-studio-fullscreen #appMain > section:not(#theme-studio) { display: none !important; }
+  .theme-studio-fullscreen #appMain > #theme-studio { display: block; width: 100%; height: 100%; }
+  .theme-studio-page {
+    width: 100%; height: 100%; min-height: 100vh; padding: 16px 20px 20px;
+    overflow: auto; background: transparent;
+  }
+  .theme-studio-page-header {
+    display: grid; grid-template-columns: auto minmax(200px, 0.7fr) minmax(350px, 1.3fr);
+    align-items: center; gap: 18px; margin-bottom: 14px;
+  }
+  .theme-studio-exit { justify-self: start; white-space: nowrap; }
+  .theme-studio-page-title .eyebrow { margin: 0 0 2px; }
+  .theme-studio-page-title h2 { margin: 0; color: var(--text); font: 600 26px var(--font-title); }
+  .theme-studio-page-title > p:last-child { margin: 3px 0 0; color: var(--text-faint); font-size: 11px; }
+  .theme-studio-page-header .theme-studio-header-bar { margin: 0; }
+  .theme-studio-page .css-color-studio { min-height: calc(100vh - 112px); }
+  .theme-studio-page .css-color-studio-header { display: none; }
+  .theme-studio-page .css-color-studio-layout { flex: 1; grid-template-columns: minmax(350px, 0.8fr) minmax(430px, 1.2fr); align-items: start; }
+  .theme-studio-page .css-color-controls { max-height: none; overflow: visible; align-content: start; }
+  .theme-studio-page .css-color-preview { position: sticky; top: 18px; align-self: start; max-height: none; overflow: visible; }
+  .theme-studio-page .css-color-preview-canvas { min-height: 70vh; }
+  .theme-studio-page .theme-preview-site { min-height: 68vh; }
+  .theme-studio-page .theme-studio-css-row { margin: 72px 0 24px; }
+
   /* Light-brightness mode: force light surfaces regardless of base theme. */
   :root.brightness-light {
     --bg: #f3eadc; --bg-alt: #e9ddce; --surface: #fff8ec; --surface-2: #e4d4c2;
@@ -558,6 +751,24 @@
   @media (max-width: 900px) {
     .theme-studio-layout { grid-template-columns: minmax(0, 1fr); }
     .theme-studio-editor { position: static; max-height: none; }
+    .css-color-studio-layout { grid-template-columns: minmax(0, 1fr); }
+    .css-color-preview { position: static; }
+    .theme-studio-page-header { grid-template-columns: auto minmax(0, 1fr); }
+    .theme-studio-page-header .theme-studio-header-bar { grid-column: 1 / -1; }
+    .theme-studio-page .css-color-studio-layout { grid-template-columns: minmax(0, 1fr); }
+    .theme-studio-page .css-color-controls,
+    .theme-studio-page .css-color-preview { max-height: none; }
+    .theme-studio-page .css-color-preview { position: static; }
+  }
+  @media (max-width: 560px) {
+    .css-color-studio-header { align-items: flex-start; flex-direction: column; }
+    .css-color-controls, .css-color-preview { padding: 11px; }
+    .css-color-variable-heading { flex-direction: column; }
+    .css-color-variable-actions { justify-content: flex-start; }
+    .theme-studio-page { padding: 12px; }
+    .theme-studio-page-header { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .theme-studio-page-header .theme-studio-header-bar { grid-column: 1; }
+    .theme-studio-page .css-color-studio-layout { grid-template-columns: minmax(0, 1fr); }
   }
 
   main { flex: 1 1 900px; min-width: 0; width: 100%; padding: 56px 64px; max-width: 900px; overflow-x: hidden; background: transparent; }
@@ -598,6 +809,10 @@
   }
 
   .faction-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 12px;
     margin-bottom: 28px;
     background: var(--surface);
     border: 1px solid var(--line);
@@ -606,13 +821,14 @@
   }
 
   .faction-title {
+    grid-column: 1 / -1;
     font-family: var(--font-title);
     font-size: 24px;
     font-weight: 600;
     color: var(--gold);
     border-bottom: 1px solid var(--line);
     padding-bottom: 8px;
-    margin-bottom: 16px;
+    margin: 0 0 4px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -754,29 +970,62 @@
     50% { opacity: 0.6; box-shadow: 0 0 1px rgba(201,162,75,0.2); }
   }
 
-  /* Chat Modal Container */
-  .chat-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.75);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-  }
-  .chat-modal-overlay.open { display: flex; }
-
-  .chat-modal {
-    width: 90%;
-    max-width: 750px;
-    height: 80vh;
-    background: var(--bg-card, #1e1e24);
-    border: 1px solid var(--line, #333);
-    border-radius: 8px;
+  .chat-page-shell {
+    position: relative;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    height: min(76vh, 900px);
+    min-height: 560px;
+    margin-top: 20px;
+    background: color-mix(in srgb, var(--surface) 42%, transparent);
+    border: 1px solid var(--line, #333);
+    border-radius: 10px;
     overflow: hidden;
-    position: relative;
+  }
+  #appMain.session-chats-active {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    min-height: 0;
+    max-width: none;
+    padding: 20px;
+    overflow: hidden;
+  }
+  #appMain.session-chats-active > #session-chats.active {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #session-chats .chat-page-shell {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    margin-top: 0;
+  }
+  #session-chats .chat-header {
+    background: color-mix(in srgb, var(--surface) 58%, transparent);
+  }
+  #session-chats .chat-messages {
+    background: color-mix(in srgb, var(--bg) 42%, transparent);
+    backdrop-filter: blur(2px);
+  }
+  #session-chats .chat-msg-row:not([style*="rgba(138, 104, 214"]) {
+    background: color-mix(in srgb, var(--surface) 58%, transparent) !important;
+  }
+  .chat-page-shell .chat-body { min-height: 0; }
+  @media (max-width: 560px) {
+    #appMain.session-chats-active {
+      height: calc(100dvh - 57px);
+      padding: 10px;
+    }
+    #session-chats .chat-page-shell { height: auto; min-height: 0; }
+    .chat-page-shell .chat-header { align-items: flex-start; gap: 8px; padding: 10px; }
+    .chat-page-shell .chat-header-actions { gap: 6px; }
+    .chat-page-shell .chat-header h4 { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-page-shell .chat-body { padding: 10px; }
   }
 
   /* Modal Header & Hamburger Sidebar */
@@ -993,6 +1242,11 @@
   transition: all 0.2s ease-in-out;
 }
 
+#restricted .hub-card {
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
+  backdrop-filter: blur(8px);
+}
+
 .hub-card:hover {
   transform: translateY(-3px);
   border-color: var(--gold, #c9a050);
@@ -1138,6 +1392,45 @@
 .character-card-featured { grid-column: 1 / -1; }
 .character-card-portrait { width: 112px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; border: 1px solid var(--gold-dim); background: var(--surface-2); }
 .character-card-portrait-placeholder { display: grid; place-items: center; color: var(--text-faint); font-size: 2rem; }
+.inventory-system { padding: clamp(16px, 2.5vw, 26px); border-color: var(--gold-dim); background: color-mix(in srgb, var(--surface-2) 78%, transparent); }
+.inventory-system-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.inventory-system-heading h3 { margin: 0; padding: 0; border: 0; }
+.inventory-system-heading p { max-width: 520px; margin-top: 6px; color: var(--text-faint); font-size: 13px; }
+.inventory-toolbar { display: flex; align-items: end; gap: 12px; margin-bottom: 16px; }
+.inventory-player-select { display: grid; flex: 0 1 300px; gap: 6px; }
+.inventory-player-select label, .inventory-search label { color: var(--text-faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.inventory-player-select select, .inventory-search input { width: 100%; min-height: 42px; }
+.inventory-search { display: grid; flex: 1 1 260px; gap: 6px; }
+.inventory-results-summary { margin: 0 0 12px; color: var(--text-faint); font-size: 12px; }
+.inventory-card-grid, .loot-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.inventory-card-grid > .block-card, .loot-card-grid > .block-card { height: 100%; margin: 0; }
+.inventory-item-card { display: flex; flex-direction: column; min-width: 0; padding: 16px; background: color-mix(in srgb, var(--surface) 80%, transparent); }
+.inventory-item-view { display: flex; flex: 1; min-height: 100%; flex-direction: column; justify-content: flex-start !important; gap: 12px; }
+.inventory-item-copy { width: 100%; }
+.inventory-item-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.inventory-item-heading strong { color: var(--gold); font-family: var(--font-title); font-size: 17px; }
+.inventory-item-meta { color: var(--text-faint); font-family: var(--font-mono); font-size: 11px; }
+.inventory-item-description { margin-top: 9px; color: var(--text-dim); font-size: 13px; line-height: 1.55; }
+.inventory-item-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+.inventory-item-edit { padding-top: 14px; border-top: 1px solid var(--line); }
+.inventory-item-edit .card-edit-form { display: grid; gap: 10px; }
+.inventory-item-edit .form-group { margin: 0; }
+.inventory-item-edit .character-image-upload { margin: 4px 0; }
+.inventory-empty-state { padding: 22px; border: 1px dashed var(--line); border-radius: 10px; text-align: center; }
+.inventory-empty-state p { margin: 0 0 10px; color: var(--text-faint); }
+.loot-add-toolbar { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.loot-card-grid .block-card { display: flex; flex-direction: column; }
+.loot-card-grid .loot-view-mode { display: flex; flex: 1; flex-direction: column; }
+.loot-card-grid .loot-view-mode > .block-body { flex: 1; }
+.restricted-tabs {
+  position: static; z-index: 20; display: flex; justify-content: flex-end; gap: 5px;
+  width: max-content; max-width: 100%; margin: 0 0 20px auto; padding: 6px; overflow-x: auto; border: 1px solid var(--line);
+  border-radius: 12px; background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 8px 24px rgba(0,0,0,.24); backdrop-filter: blur(14px);
+}
+#restricted.active .restricted-tabs { position: sticky; top: 12px; }
+.restricted-tabs button { flex: 0 0 auto; min-height: 34px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--text-dim); background: var(--bg); font-size: 11px; white-space: nowrap; }
+.restricted-tabs button:hover, .restricted-tabs button[aria-current="page"] { border-color: var(--gold); color: var(--gold); background: var(--surface-2); }
 .character-public-appearance { margin: 12px 0 0; color: var(--text-dim); line-height: 1.55; }
 .character-private-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 12px; }
 .character-private-detail { padding: 10px; border: 1px solid rgba(138,104,214,0.25); border-radius: 7px; background: rgba(138,104,214,0.05); }
@@ -1152,6 +1445,16 @@
 @media (max-width: 900px) {
   .character-roster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .character-card-featured { grid-column: span 2; }
+  .inventory-card-grid, .loot-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .inventory-card-grid, .loot-card-grid { grid-template-columns: minmax(0, 1fr); }
+  .faction-group { grid-template-columns: minmax(0, 1fr); padding: 14px; }
+  .inventory-system-heading { flex-direction: column; }
+  .inventory-toolbar { align-items: stretch; flex-direction: column; }
+  .inventory-player-select, .inventory-search { flex-basis: auto; }
+  .restricted-tabs { top: 6px; gap: 6px; padding: 7px; }
+  .restricted-tabs button { min-height: 36px; padding: 7px 10px; }
 }
 
 :root[data-theme="alucard"] .block-card,
@@ -1224,6 +1527,8 @@
 }
 
 .npc-card { padding: 18px 20px; }
+.faction-group > .npc-card { min-width: 0; margin: 0; }
+.npc-new-draft { margin-bottom: 18px; }
 .npc-view-mode { display: flex; flex-direction: column; gap: 12px; }
 .npc-card-header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; min-width: 0; }
 .npc-card-header h4 { min-width: 0; margin: 0; overflow-wrap: anywhere; line-height: 1.2; text-align: left; }
@@ -1558,6 +1863,16 @@
 .points-history-row.house-fox .points-history-details strong { color: #d9a13f; }
 .points-history-row.house-selkie .points-history-details strong { color: #72b9bd; }
 .points-history-amount { font-family: var(--font-mono); font-size: 18px; color: var(--gold); flex: 0 0 auto; }
+.npc-relationship-player-list { display: grid; gap: 16px; }
+.npc-relationship-player { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--surface) 78%, transparent); }
+.npc-relationship-player h4 { margin: 0; padding: 14px 16px; border-bottom: 1px solid var(--line); color: var(--gold); font-family: var(--font-title); font-size: 17px; }
+.npc-relationship-table-wrap { overflow-x: auto; }
+.npc-relationship-table { width: 100%; border-collapse: collapse; }
+.npc-relationship-table th, .npc-relationship-table td { padding: 11px 16px; border-bottom: 1px solid var(--line); text-align: left; }
+.npc-relationship-table th { color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.npc-relationship-table tbody tr:last-child td { border-bottom: 0; }
+.npc-relationship-table .npc-fp-cell { width: 1%; color: var(--gold); font-family: var(--font-mono); font-size: 14px; text-align: right; white-space: nowrap; }
+.npc-relationship-empty { margin: 0; padding: 14px 16px; color: var(--text-faint); font-size: 13px; }
 .games-session-summary .games-session-winner { color: var(--gold); font-weight: 700; text-transform: capitalize; }
 .games-view-more { margin-top: 12px; }
 .games-session-status { padding: 3px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-faint); font-family: var(--font-mono); font-size: 9px; font-weight: 400; text-transform: uppercase; }
@@ -1679,13 +1994,55 @@
   .house-choice-card:hover .house-choice-action, .house-choice-card:focus-visible .house-choice-action,
   .house-choice-card:hover .house-choice-action::before, .house-choice-card:focus-visible .house-choice-action::before { animation: none; }
 }
+
+.block-card, .card, .faction-group, .house-room-card {
+  background-color: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+.nocturne-fireflies-particles {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+#nocturnePatternLayer.fireflies-active > svg[data-layer="main"],
+#sidebarPattern.fireflies-active > svg[data-layer="sidebar"] { display: none; }
+.fireflies-active > .nocturne-fireflies-particles { display: block; }
+.nocturne-firefly-particle {
+  position: absolute;
+  left: calc(var(--firefly-left) + var(--firefly-offset-x, 0%));
+  top: calc(var(--firefly-top) + var(--firefly-offset-y, 0%));
+  width: var(--firefly-size);
+  height: var(--firefly-size);
+  border-radius: 50%;
+  background: var(--theme-fire);
+  box-shadow: 0 0 5px var(--theme-fire), 0 0 12px var(--theme-accent-glow), 0 0 20px color-mix(in srgb, var(--theme-fire) 55%, transparent);
+  opacity: 0.25;
+  animation: nocturne-firefly-drift var(--firefly-duration) ease-in-out var(--firefly-delay) infinite;
+}
+.nocturne-firefly-particle::after {
+  position: absolute;
+  inset: 25%;
+  border-radius: inherit;
+  background: var(--theme-accent);
+  content: "";
+}
+.motif-animation-off .nocturne-firefly-particle { animation-play-state: paused; }
+@keyframes nocturne-firefly-drift {
+  0%, 100% { opacity: 0.2; transform: translate3d(0, 0, 0) scale(0.65); }
+  28% { opacity: 0.95; transform: translate3d(var(--firefly-drift-x), var(--firefly-drift-y), 0) scale(1.15); }
+  62% { opacity: 0.45; transform: translate3d(var(--firefly-return-x), var(--firefly-return-y), 0) scale(0.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nocturne-firefly-particle { animation-play-state: paused; }
+}
 </style>
 </head>
 <body>
 
 <div id="react-root"></div>
 <script type="text/babel" src="pages/PageSection.jsx"></script>
-<script type="text/babel" src="pages/ThemeStudio.jsx?v=20261102-dual-bg-editor"></script>
+<script type="text/babel" src="pages/ThemeStudio.jsx?v=20261103-dragon-hero-particle-backgrounds-v1"></script>
 <script type="text/babel" src="pages/HomePage.jsx"></script>
 <script type="text/babel" src="pages/WorldbookPage.jsx"></script>
 <script type="text/babel" src="pages/NpcsPage.jsx"></script>
@@ -1701,7 +2058,7 @@
 <script type="text/babel" src="pages/games/RuneDuel.jsx?v=20261102-testmode-standalone"></script>
 <script type="text/babel" src="pages/games/SharedConstellation.jsx"></script>
 <script type="text/babel" src="pages/games/GamesHub.jsx?v=20261102-testmode-standalone"></script>
-<script type="text/babel" src="App.jsx?v=20261102-pattern-scale-fix2"></script>
+<script type="text/babel" src="App.jsx?v=20261103-dragon-hero-particle-backgrounds-v1"></script>
 <div id="legacy-app" style="display:none;">
 
 <!-- ================= AUTH SCREEN ================= -->
@@ -1748,7 +2105,7 @@
   </div>
   <ul class="navlist" id="navlist">
     <li style="padding: 0 4px;">
-      <button class="nav-chat-btn" onclick="openChatModal()">
+      <button class="nav-chat-btn" data-target="session-chats" onclick="openChatModal()">
         <div style="display:flex; align-items:center; gap:8px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -1759,12 +2116,12 @@
       </button>
     </li>
     <li><button data-target="home" class="active"><span class="dot"></span>Home</button></li>
-    <li><button data-target="worldbook"><span class="dot"></span>Worldbook</button></li>
-    <li><button data-target="npcs"><span class="dot"></span>NPCs &amp; Friendship Points</button></li>
     <li><button data-target="characters"><span class="dot"></span>Players</button></li>
+    <li><button data-target="loot"><span class="dot"></span>Inventory</button></li>
+    <li><button data-target="npcs"><span class="dot"></span>NPCs &amp; Friendship Points</button></li>
     <li><button data-target="session-zero"><span class="dot"></span>Session Zero &amp; Rules</button></li>
     <li><button data-target="summaries"><span class="dot"></span>Session Summaries</button></li>
-    <li><button data-target="loot"><span class="dot"></span>Loot &amp; Rewards</button></li>
+    <li><button data-target="worldbook"><span class="dot"></span>Worldbook</button></li>
     <li><button data-target="primer"><span class="dot"></span>Player Primer</button></li>
     <li><button data-target="restricted" class="dm-nav-btn" id="dmNavBtn" style="display:none;"><span class="dot" style="background:var(--rose);"></span>&#128274; Restricted Archives</button></li>
   </ul>
@@ -1837,21 +2194,26 @@
 
   <section id="loot">
     <div class="eyebrow">Treasure & Inventory</div>
-    <h2 class="title">Loot &amp; Homebrew Inventory</h2>
+    <h2 class="title">Campaign Loot &amp; Character Inventory</h2>
     <p class="subtitle">Party rewards, items, and personal character inventories.</p>
     
-    <!-- Personal Inventory System Container -->
-    <div class="block-card" style="border-color: var(--gold-dim); background: var(--surface-2); margin-bottom:24px;">
-      <h3 style="margin-top:0; border-bottom:1px solid var(--line); padding-bottom:8px;">🎒 Personal Private Inventory</h3>
-      <p style="font-size:0.88rem; color:var(--text-faint);">Items assigned specifically to player accounts.</p>
-
-      <div style="display:flex; gap:16px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
-        <label style="font-size:0.85rem; text-transform:uppercase; color:var(--text-faint);">View Inventory For:</label>
-        <select id="playerInventorySelector" class="input-field" style="width:220px;" onchange="loadPlayerPrivateInventory()">
-          <!-- Populated dynamically -->
-        </select>
+    <div class="block-card inventory-system">
+      <header class="inventory-system-heading">
+        <div>
+          <h3>🎒 Personal Inventory</h3>
+          <p>All character items live together here, including manually added items and campaign loot granted by the DM.</p>
+        </div>
+      </header>
+      <div class="inventory-toolbar">
+        <div class="inventory-player-select">
+          <label for="playerInventorySelector">Character inventory</label>
+          <select id="playerInventorySelector" class="input-field" onchange="loadPlayerPrivateInventory()"></select>
+        </div>
+        <div class="inventory-search">
+          <label for="player-inventory-search">Find an item</label>
+          <input id="player-inventory-search" class="input-field" type="search" placeholder="Search name, description, or value" oninput="filterPlayerInventoryCards(this.value)" />
+        </div>
       </div>
-
       <div id="player-private-inventory-list">
         <p class="empty-note">Loading private inventory...</p>
       </div>
@@ -1920,71 +2282,6 @@
   </section>
 
 </main>
-
-<!-- ================= SESSION CHAT MODAL ================= -->
-<div id="chatModalOverlay" class="chat-modal-overlay">
-  <div class="chat-modal">
-    <!-- Header -->
-    <div class="chat-header">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <button class="btn btn-sm btn-secondary chat-drawer-toggle" onclick="toggleChatDrawer()" title="Toggle Session List" aria-expanded="false">☰</button>
-        <h4 id="modalChatTitle" style="margin:0; font-family:var(--font-title); font-size:20px; color:var(--text);">Session Chat</h4>
-      </div>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span id="chatStatusBadge" class="status-badge">Locked</span>
-        <button class="btn btn-sm btn-secondary" onclick="closeChatModal()">✕</button>
-      </div>
-    </div>
-
-    <!-- Slide-out Hamburger Menu for Stored Chats -->
-    <div id="chatMenuDrawer" class="chat-menu-drawer">
-      <button id="newSessionChatBtn" class="btn btn-sm new-session-btn" type="button" onclick="showNewSessionChatForm()" style="display:none;">＋ New Session</button>
-      <form id="newSessionChatPanel" class="new-session-panel" style="display:none;" onsubmit="createNewSessionChat(event)">
-        <label class="new-session-label" for="newSessionChatName">Session name</label>
-        <input id="newSessionChatName" class="input-control" type="text" maxlength="60" placeholder="e.g. Session 4 — The Vaults" autocomplete="off" />
-        <p id="newSessionChatError" class="inline-status error" style="display:none;"></p>
-        <div class="new-session-actions">
-          <button class="btn btn-sm" type="submit">Create</button>
-          <button class="btn btn-sm btn-secondary" type="button" onclick="cancelNewSessionChat()">Cancel</button>
-        </div>
-      </form>
-      <div class="chat-drawer-header">
-        <strong>Past Sessions</strong>
-      </div>
-      <div id="previousChatsList">
-        <!-- Rendered dynamically -->
-      </div>
-    </div>
-    <div id="chatDrawerScrim" class="chat-drawer-scrim" onclick="closeChatDrawer()"></div>
-
-    <!-- Chat Body -->
-    <div style="flex:1; display:flex; flex-direction:column; padding:16px; overflow:hidden;">
-      <!-- DM Controls Bar -->
-      <div id="dmChatControls" style="display:none; margin-bottom:10px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-          <div style="display:flex; align-items:center;">
-            <label class="switch">
-              <input type="checkbox" id="sessionOpenToggle" onchange="toggleSessionChat(this.checked)">
-              <span class="slider"></span>
-            </label>
-            <span style="font-size:12px; margin-left:6px; color:var(--text-dim);">Unlock Chat for Players</span>
-          </div>
-          <button class="btn btn-sm btn-secondary" onclick="clearAllSessionMessages()" style="color:var(--rose); border-color:var(--rose-dim);">Clear All Messages</button>
-        </div>
-      </div>
-
-      <!-- Messages Window -->
-      <div id="chatMessages" style="flex:1; overflow-y:auto; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:12px; display:flex; flex-direction:column; gap:8px;"></div>
-
-      <!-- Message Form (React renders the live form; this legacy copy is unused) -->
-      <form id="chatFormLegacy" style="display:flex; gap:8px;">
-        <input type="text" id="chatInputLegacy" class="input-control" placeholder="Session locked..." disabled style="flex:1;">
-        <button type="submit" id="chatSendBtnLegacy" class="btn" disabled>Send</button>
-      </form>
-      <p style="font-size:11px; color:var(--text-faint); margin:6px 0 0 0;">Tip: Type <code>/whisper [Name] message</code> to send a private note. Type <code>/roll 1d20+5</code> to roll dice.</p>
-    </div>
-  </div>
-</div>
 
  </div>
 <script>
@@ -2465,18 +2762,27 @@
     if (!e.target.closest('#chatGifPanel') && !e.target.closest('#chatGifBtn')) toggleGifPanel(false);
   });
 
-  async function openChatModal() {
-    document.getElementById('chatModalOverlay').classList.add('open');
+  async function loadSessionChatPage() {
     updateNewSessionButtonVisibility();
     await loadPreviousChatsMenu(true);
-    document.getElementById('modalChatTitle').innerText = currentSessionId.replace('_', ' ').toUpperCase();
+    const title = document.getElementById('modalChatTitle');
+    if (title) title.innerText = currentSessionId.replace('_', ' ').toUpperCase();
     initSessionChat(currentSessionId);
+  }
+  window.loadSessionChatPage = loadSessionChatPage;
+
+  function openChatModal() {
+    window.navigateTo('session-chats');
   }
   window.openChatModal = openChatModal;
 
   function closeChatModal() {
-    document.getElementById('chatModalOverlay').classList.remove('open');
     closeChatDrawer();
+    if (window.history.state?.nocturnePage === 'session-chats' && window.history.state.nocturneIndex > 0) {
+      window.navigateBack();
+    } else {
+      window.navigateTo('home');
+    }
   }
   window.closeChatModal = closeChatModal;
 
@@ -2523,8 +2829,7 @@
     if (e.key === 'Escape') {
       const drawer = document.getElementById('chatMenuDrawer');
       if (drawer?.classList.contains('open')) { closeChatDrawer(); return; }
-      const overlay = document.getElementById('chatModalOverlay');
-      if (overlay?.classList.contains('open')) closeChatModal();
+      if (document.querySelector('#react-root #session-chats.active')) closeChatModal();
     }
   });
 
@@ -3789,6 +4094,7 @@
 
   /* ===================== LOOT & PLAYER PRIVATE INVENTORY SYSTEM ===================== */
 let activeLootItems = [];
+let playerInventorySearch = '';
 
 async function loadLoot() {
   const container = document.getElementById('loot-container');
@@ -3797,13 +4103,6 @@ async function loadLoot() {
   // Always build the dropdown selector for player inventories
   await populatePlayerSelector();
 
-  // If NOT the DM, do not display the Campaign Loot Pool
-  if (!isDM) {
-    container.innerHTML = '<p class="empty-note">The campaign loot pool is managed by the DM.</p>';
-    return;
-  }
-
-  // DM-only query to fetch the campaign loot pool
   let { data, error } = await sb.from('loot').select('*').order('created_at', { ascending: false });
 
   if (error && error.message.includes('created_at')) {
@@ -3819,15 +4118,18 @@ async function loadLoot() {
 
   activeLootItems = data || [];
 
-  let html = `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addLootItem()">+ Add Inventory Item</button>`;
+  let html = isDM
+    ? `<button class="btn btn-secondary btn-sm add-block-btn" onclick="addLootItem()">+ Add Campaign Loot Item</button>`
+    : '';
 
-  if (!data || data.length === 0) {
-    html += '<p class="empty-note">No loot recorded in the main pool yet.</p>';
+  const visibleItems = (data || []).filter(item => isDM || item.visible_to_players !== false);
+  if (!visibleItems.length) {
+    html += `<p class="empty-note">${data?.length ? 'No public items are available in the campaign loot pool.' : 'No loot recorded in the main pool yet.'}</p>`;
     container.innerHTML = html;
     return;
   }
 
-  html += data.map(item => renderLootCard(item)).join('');
+  html += `<div class="loot-card-grid">${visibleItems.map(item => renderLootCard(item)).join('')}</div>`;
   container.innerHTML = html;
 }
 
@@ -3935,21 +4237,24 @@ async function loadPlayerPrivateInventory() {
     const itemDesc = inv.item_description ?? item.description ?? item.body ?? '';
     const itemValue = inv.item_value ?? item.value ?? '';
     const qty = inv.quantity ?? item.quantity ?? 1;
+    const searchText = [itemName, itemDesc, itemValue].join(' ').toLowerCase();
     const canManage = isDM || inv.user_id === currentUser?.id;
     const editControls = canManage ? `
-      <div style="display:flex; gap:6px; flex-shrink:0;">
+      <div class="inventory-item-actions">
         <button class="btn btn-sm btn-secondary" onclick="toggleInventoryItemEdit('${inv.id}')">Edit</button>
         <button class="btn btn-sm btn-secondary" onclick="removeInventoryItem('${inv.id}')" style="color:var(--rose);">Remove</button>
       </div>
     ` : '';
 
     return `
-      <article id="inventory-item-${inv.id}" class="block-card" style="padding:12px 14px;">
-        <div class="inventory-item-view" style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
-          <div>
-            <strong style="color:var(--gold);">${escapeHtml(itemName)}</strong>
-            <span style="font-size:0.85rem; color:var(--text-faint); font-family:var(--font-mono);"> (Qty: ${escapeHtml(String(qty))}${itemValue ? ` | Value: ${escapeHtml(itemValue)}` : ''})</span>
-            ${itemDesc ? `<div class="block-body" style="margin-top:4px; font-size:0.85rem;">${renderMarkdown(itemDesc)}</div>` : ''}
+      <article id="inventory-item-${inv.id}" class="block-card inventory-item-card" data-inventory-search="${escapeHtml(searchText)}">
+        <div class="inventory-item-view">
+          <div class="inventory-item-copy">
+            <div class="inventory-item-heading">
+              <strong>${escapeHtml(itemName)}</strong>
+              <span class="inventory-item-meta">Qty ${escapeHtml(String(qty))}${itemValue ? ` · ${escapeHtml(itemValue)}` : ''}</span>
+            </div>
+            ${itemDesc ? `<div class="inventory-item-description">${renderMarkdown(itemDesc)}</div>` : '<p class="inventory-item-description">No description provided.</p>'}
             ${inv.image_url || item.image_url ? `<img class="character-card-portrait" src="${escapeHtml(inv.image_url || item.image_url)}" alt="Picture of ${escapeHtml(itemName)}" />` : ''}
           </div>
           ${editControls}
@@ -3986,12 +4291,36 @@ async function loadPlayerPrivateInventory() {
   }).join('');
 
   container.innerHTML = `
-    <div style="margin-bottom:12px;">
-      <button class="btn btn-secondary btn-sm" onclick="showNewInventoryItemForm()">+ Add Homebrew Item</button>
+    <p class="inventory-results-summary" id="inventory-results-summary" aria-live="polite"></p>
+    <div class="inventory-item-actions" style="margin:0 0 14px; padding:0; border:0;">
+      <button class="btn btn-secondary btn-sm" onclick="showNewInventoryItemForm()">+ Add Inventory Item</button>
     </div>
     <div id="new-inventory-item-form"></div>
-    ${inventoryItems || '<p class="empty-note">Inventory is currently empty for this player.</p>'}
+    ${inventoryItems
+      ? `<div class="inventory-card-grid">${inventoryItems}</div>`
+      : `<div class="inventory-empty-state"><p>This inventory is empty.</p><button class="btn btn-secondary btn-sm" onclick="showNewInventoryItemForm()">Add the first item</button></div>`}
+    <p id="inventory-no-search-results" class="empty-note" hidden>No items match that search.</p>
   `;
+  filterPlayerInventoryCards(document.getElementById('player-inventory-search')?.value || playerInventorySearch);
+}
+
+function filterPlayerInventoryCards(value) {
+  playerInventorySearch = String(value || '').trim().toLowerCase();
+  const cards = Array.from(document.querySelectorAll('#player-private-inventory-list [data-inventory-search]'));
+  let visibleCount = 0;
+  cards.forEach(card => {
+    const matches = !playerInventorySearch || card.dataset.inventorySearch.includes(playerInventorySearch);
+    card.hidden = !matches;
+    if (matches) visibleCount += 1;
+  });
+  const summary = document.getElementById('inventory-results-summary');
+  if (summary) summary.textContent = cards.length
+    ? `Showing ${visibleCount} of ${cards.length} ${cards.length === 1 ? 'item' : 'items'}`
+    : '';
+  const noResults = document.getElementById('inventory-no-search-results');
+  const emptyState = document.querySelector('#player-private-inventory-list .inventory-empty-state');
+  if (emptyState) emptyState.hidden = Boolean(playerInventorySearch);
+  if (noResults) noResults.hidden = visibleCount > 0 || !playerInventorySearch;
 }
 
 function showNewInventoryItemForm() {
@@ -3999,7 +4328,7 @@ function showNewInventoryItemForm() {
   if (!formContainer) return;
   formContainer.innerHTML = `
     <div class="block-card">
-      <h4 style="margin:0 0 10px; color:var(--gold);">Add Homebrew Item</h4>
+      <h4 style="margin:0 0 10px; color:var(--gold);">Add Inventory Item</h4>
       <div class="form-group">
         <label>Item Name</label>
         <input type="text" id="new-inventory-name" class="input-field" required />
@@ -4021,7 +4350,7 @@ function showNewInventoryItemForm() {
       ${renderEditableImageField('new-inventory', 'item', '', 'Item Picture', 'Upload a picture for this item.')}
       <div id="new-inventory-error" class="inline-status error" style="display:none;"></div>
       <div style="display:flex; gap:8px;">
-        <button class="btn btn-sm" onclick="addHomebrewInventoryItem()">Add Item</button>
+        <button class="btn btn-sm" onclick="addInventoryItem()">Add Item</button>
         <button class="btn btn-sm btn-secondary" onclick="document.getElementById('new-inventory-item-form').innerHTML = ''">Cancel</button>
       </div>
     </div>
@@ -4038,7 +4367,7 @@ function toggleInventoryItemEdit(invId) {
   edit.style.display = isEditing ? 'none' : 'block';
 }
 
-async function addHomebrewInventoryItem() {
+async function addInventoryItem() {
   const selector = document.getElementById('playerInventorySelector');
   const name = document.getElementById('new-inventory-name')?.value.trim();
   const quantityInput = document.getElementById('new-inventory-quantity');
@@ -4048,6 +4377,13 @@ async function addHomebrewInventoryItem() {
   const userId = selector?.value;
   const quantity = Number(quantityInput?.value);
 
+  if (!userId) {
+    if (errorEl) {
+      errorEl.textContent = 'Select a character before adding an inventory item.';
+      errorEl.style.display = 'block';
+    }
+    return;
+  }
   if (!isDM && userId !== currentUser?.id) {
     if (errorEl) {
       errorEl.textContent = 'You can only add items to your own inventory.';
@@ -4242,7 +4578,11 @@ async function addLootItem() {
   }).select();
 
   if (error) {
-    alert("Failed to add loot item: " + error.message);
+    if (error.code === '23505' && error.message.includes('loot_pkey')) {
+    alert('Failed to add loot item because its ID generator is out of sync. Run supabase-loot-sequence.sql in the Supabase SQL editor, then try again.');
+    } else {
+      alert("Failed to add loot item: " + error.message);
+    }
   } else {
     await loadLoot();
     if (data && data.length > 0) {
@@ -4295,11 +4635,29 @@ function toggleInlineEdit(type, id) {
     showRestrictedHub();
   }
 
+  function renderRestrictedNavigation(activeSection) {
+    const tabs = [
+      ['overview', 'Overview', "showRestrictedHub()"],
+      ['encounters', 'Encounters', "openRestrictedSubSection('encounters', 'Encounters & Stat Blocks', 'Monsters, NPC combat stats, and tactical notes with HP trackers.', 'Encounter')"],
+      ['lore', 'Deep Lore', "openRestrictedSubSection('lore', 'Deep Lore', 'Behind-the-scenes world history, truths, and campaign secrets.', 'Lore Entry')"],
+      ['session_skeletons', 'Session Outlines', "openRestrictedSubSection('session_skeletons', 'Session Skeletons', 'Upcoming session outlines, beats, and contingencies.', 'Session Skeleton')"],
+      ['character_template_secrets', 'Templates', "openRestrictedSubSection('character_template_secrets', 'Template Characters', 'Pre-made character archetypes, secret stats, and player templates.', 'Template Character')"],
+      ['points', 'Points History', 'openPointsHistory()'],
+      ['relationships', 'NPC Relationships', 'openNpcRelationships()']
+    ];
+    return `<nav class="restricted-tabs" aria-label="Restricted archive sections">
+      ${tabs.map(([id, label, action]) => `
+        <button type="button" aria-current="${activeSection === id ? 'page' : 'false'}" onclick="${action}">${label}</button>
+      `).join('')}
+    </nav>`;
+  }
+
   function showRestrictedHub() {
     const container = document.getElementById('restricted-container');
     if (!container) return;
 
     container.innerHTML = `
+      ${renderRestrictedNavigation('overview')}
       <div class="restricted-grid">
         <div class="hub-card" onclick="openRestrictedSubSection('encounters', 'Encounters & Stat Blocks', 'Monsters, NPC combat stats, and tactical notes with HP trackers.', 'Encounter')">
           <h4>⚔️ Encounters</h4>
@@ -4328,7 +4686,7 @@ function toggleInlineEdit(type, id) {
 
         <div class="hub-card" onclick="openNpcRelationships()">
           <h4>NPC Relationships</h4>
-          <p class="hub-desc">Review every player's friendship points with each NPC.</p>
+          <p class="hub-desc">View a separate NPC friendship-points table for every player.</p>
         </div>
       </div>
     `;
@@ -4339,9 +4697,7 @@ function toggleInlineEdit(type, id) {
     if (!container) return;
 
     container.innerHTML = `
-      <div style="margin-bottom: 20px;">
-        <button class="btn btn-secondary btn-sm" onclick="showRestrictedHub()">← Back to Restricted Hub</button>
-      </div>
+      ${renderRestrictedNavigation('points')}
       <h3 style="margin-top: 0;">House Points History</h3>
       <p class="subtitle" style="margin-bottom: 20px;">Every award recorded for the house leaderboard, from tournament victories and common room games.</p>
       <div id="points-history-container"><p class="empty-note">Loading…</p></div>
@@ -4391,36 +4747,68 @@ function toggleInlineEdit(type, id) {
     const container = document.getElementById('restricted-container');
     if (!container) return;
     container.innerHTML = `
-      <div style="margin-bottom:20px;"><button class="btn btn-secondary btn-sm" onclick="showRestrictedHub()">← Back to Restricted Hub</button></div>
+      ${renderRestrictedNavigation('relationships')}
       <h3 style="margin-top:0;">NPC Relationships</h3>
-      <p class="subtitle" style="margin-bottom:20px;">Friendship points by player and NPC.</p>
+      <p class="subtitle" style="margin-bottom:20px;">Each player has a table of NPCs they have friendship points with and their current FP.</p>
       <div id="npc-relationships-container"><p class="empty-note">Loading…</p></div>`;
     const target = document.getElementById('npc-relationships-container');
     const [{ data: npcs, error: npcError }, { data: players, error: playerError }, { data: points, error: pointsError }] = await Promise.all([
       sb.from('npcs').select('id, name').order('name'),
       sb.from('profiles').select('id, email').neq('role', 'dm').order('email'),
-      sb.from('npc_friendship_points').select('npc_id, player_id, points, updated_at').order('updated_at', { ascending: false })
+      sb.from('npc_friendship_points').select('npc_id, player_id, points')
     ]);
     const error = npcError || playerError || pointsError;
     if (error) {
       target.innerHTML = `<p class="error-msg">Couldn't load NPC relationships: ${escapeHtml(error.message)}</p>`;
       return;
     }
-    if (!points?.length) {
-      target.innerHTML = '<p class="empty-note">No NPC friendship points have been recorded yet.</p>';
-      return;
-    }
     const npcNames = new Map((npcs || []).map(npc => [String(npc.id), npc.name || 'Unnamed NPC']));
-    const playerNames = new Map((players || []).map(player => [String(player.id), player.email || player.id]));
-    target.innerHTML = `<div class="points-history-list">${points.map(row => `
-      <div class="points-history-row">
-        <div class="points-history-details">
-          <strong>${escapeHtml(npcNames.get(String(row.npc_id)) || 'Unknown NPC')}</strong>
-          <span>${escapeHtml(playerNames.get(String(row.player_id)) || 'Unknown player')}</span>
-          <small>Updated ${escapeHtml(new Date(row.updated_at).toLocaleString())}</small>
-        </div>
-        <span class="points-history-amount">${Number(row.points) || 0} FP</span>
-      </div>`).join('')}</div>`;
+    const playerGroups = new Map((players || []).map(player => [
+      String(player.id),
+      {
+        name: player.email ? formatPlayerName(player.email) : String(player.id),
+        relationships: []
+      }
+    ]));
+    (points || []).forEach(row => {
+      const playerId = String(row.player_id);
+      if (!playerGroups.has(playerId)) {
+        playerGroups.set(playerId, { name: 'Unknown player', relationships: [] });
+      }
+      playerGroups.get(playerId).relationships.push({
+        npc: npcNames.get(String(row.npc_id)) || 'Unknown NPC',
+        points: Number(row.points) || 0
+      });
+    });
+
+    const playerSections = Array.from(playerGroups.values())
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(player => {
+        const rows = player.relationships
+          .sort((a, b) => a.npc.localeCompare(b.npc))
+          .map(relationship => `
+            <tr>
+              <td>${escapeHtml(relationship.npc)}</td>
+              <td class="npc-fp-cell">${relationship.points} FP</td>
+            </tr>`)
+          .join('');
+        return `
+          <article class="npc-relationship-player">
+            <h4>${escapeHtml(player.name)}</h4>
+            ${rows ? `
+              <div class="npc-relationship-table-wrap">
+                <table class="npc-relationship-table">
+                  <thead><tr><th scope="col">NPC</th><th scope="col" class="npc-fp-cell">Friendship Points</th></tr></thead>
+                  <tbody>${rows}</tbody>
+                </table>
+              </div>` : '<p class="npc-relationship-empty">No friendship points recorded.</p>'}
+          </article>`;
+      })
+      .join('');
+
+    target.innerHTML = playerSections
+      ? `<div class="npc-relationship-player-list">${playerSections}</div>`
+      : '<p class="empty-note">No players are available to show.</p>';
   }
 
   async function openRestrictedSubSection(tableName, title, description, label) {
@@ -4428,9 +4816,7 @@ function toggleInlineEdit(type, id) {
     if (!container) return;
 
     container.innerHTML = `
-      <div style="margin-bottom: 20px;">
-        <button class="btn btn-secondary btn-sm" onclick="showRestrictedHub()">← Back to Restricted Hub</button>
-      </div>
+      ${renderRestrictedNavigation(tableName)}
       <h3 style="margin-top: 0;">${escapeHtml(title)}</h3>
       <p class="subtitle" style="margin-bottom: 20px;">${escapeHtml(description)}</p>
       <div id="sub-${tableName}-container" class="spoiler-block"><p class="empty-note">Loading…</p></div>
@@ -4617,13 +5003,29 @@ function toggleInlineEdit(type, id) {
   }
 
   async function toggleBlockVisibility(id, tableName, containerId, visible) {
-    const { error } = await sb.from(tableName).update({ visible_to_players: visible }).eq('id', id);
-    if (error) {
-      alert('Failed to update visibility: ' + error.message);
-    } else {
-      if (tableName === 'session_summaries') loadSummaries();
-      else loadTableSection(tableName, containerId, tableName);
+    if (!isDM) return;
+    const { error: updateError } = await sb.from(tableName)
+      .update({ visible_to_players: visible })
+      .eq('id', id);
+    if (updateError) {
+      alert(`Failed to update visibility: ${updateError.message}`);
+      if (tableName === 'session_summaries') await loadSummaries();
+      else await loadTableSection(tableName, containerId, tableName);
+      return;
     }
+
+    const { data, error: verifyError } = await sb.from(tableName)
+      .select('visible_to_players')
+      .eq('id', id)
+      .maybeSingle();
+    if (verifyError) {
+      alert(`Visibility update could not be verified: ${verifyError.message}`);
+    } else if (!data || data.visible_to_players !== visible) {
+      alert('Visibility was not changed. Confirm the DM update policy and visibility migration are applied in Supabase.');
+    }
+
+    if (tableName === 'session_summaries') await loadSummaries();
+    else await loadTableSection(tableName, containerId, tableName);
   }
 
   async function addTableBlock(tableName, containerId, addLabel) {
@@ -5475,6 +5877,7 @@ function getEditableImageValue(scope, id) {
   const npcRowsById = new Map();
   const npcSecretsById = new Map();
   const npcFriendshipById = new Map();
+  let npcDraftOpen = false;
   let npcPlayers = [];
   let npcFriendshipUnavailable = false;
   const npcHpSaveTimers = new Map();
@@ -5497,7 +5900,7 @@ function getEditableImageValue(scope, id) {
     npcFriendshipById.clear();
     npcFriendshipUnavailable = false;
     npcSecretLoadError = '';
-    if (!npcs || npcs.length === 0) {
+    if ((!npcs || npcs.length === 0) && !npcDraftOpen) {
       container.innerHTML = `${isDM ? '<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewNpc()">+ Add NPC</button>' : ''}<p class="empty-note">No NPCs recorded yet.</p>`;
       return;
     }
@@ -5537,8 +5940,9 @@ function getEditableImageValue(scope, id) {
       groupedNPCs.get(faction).push(npc);
     });
 
-    container.innerHTML = `${isDM ? '<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewNpc()">+ Add NPC</button>' : ''}${npcSecretLoadError ? `<p class="error-msg">${escapeHtml(npcSecretLoadError)}</p>` : ''}
-      ${Array.from(groupedNPCs, ([faction, factionNPCs]) => `
+    const newNpcEditor = isDM && npcDraftOpen ? renderNewNpcForm(npcs || []) : '';
+    container.innerHTML = `${newNpcEditor}${isDM && !npcDraftOpen ? '<button class="btn btn-secondary btn-sm add-block-btn" onclick="addNewNpc()">+ Add NPC</button>' : ''}${npcSecretLoadError ? `<p class="error-msg">${escapeHtml(npcSecretLoadError)}</p>` : ''}
+      ${groupedNPCs.size ? Array.from(groupedNPCs, ([faction, factionNPCs]) => `
       <div class="faction-group">
         <h3 class="faction-title">${escapeHtml(faction)}</h3>
         ${factionNPCs.map(npc => {
@@ -5658,7 +6062,7 @@ function getEditableImageValue(scope, id) {
           `;
         }).join('')}
       </div>
-    `).join('')}`;
+    `).join('') : (npcDraftOpen ? '' : '<p class="empty-note">No NPCs recorded yet.</p>')}`;
     updateSpoilerButtons();
   }
 
@@ -5706,7 +6110,7 @@ function getEditableImageValue(scope, id) {
   function renderNpcFriendshipControls(npc, encodedId) {
     if (npcFriendshipUnavailable) return `<p class="empty-note" style="margin-top:8px;">Friendship points are unavailable until the NPC management migration is run.</p>`;
     const options = npcPlayers.map(player => {
-      const label = player.email || player.id;
+      const label = player.email ? formatPlayerName(player.email) : player.id;
       return `<option value="${escapeHtml(player.id)}">${escapeHtml(label)}</option>`;
     }).join('');
     return `<div class="npc-friendship-controls" style="display:flex; flex-wrap:wrap; align-items:end; gap:8px; margin-top:10px; padding:10px; border:1px solid var(--gold-dim); border-radius:6px;">
@@ -5977,9 +6381,36 @@ function getEditableImageValue(scope, id) {
     saveNpcHP(encodedId, input.value);
   }
 
+  function getNpcFactionKey(npc) {
+    return ['faction', 'group', 'organization'].find(key => npc[key] !== undefined) || 'faction';
+  }
+
+  function getNpcFactionOptions(currentFaction) {
+    const factions = new Set(['Other']);
+    npcRowsById.forEach(row => {
+      const faction = row.faction || row.group || row.organization;
+      if (faction) factions.add(String(faction));
+    });
+    if (currentFaction) factions.add(String(currentFaction));
+    return Array.from(factions).sort((a, b) => a.localeCompare(b));
+  }
+
+  function toggleNpcCustomFaction(cardId) {
+    const selector = document.getElementById(`edit-npc-faction-${cardId}`);
+    const customField = document.getElementById(`edit-npc-custom-faction-${cardId}`);
+    if (customField) {
+      customField.hidden = selector?.value !== '__custom__';
+      if (!customField.hidden) customField.focus();
+    }
+  }
+
   function renderNpcEditForm(npc, cardId) {
+    const factionKey = getNpcFactionKey(npc);
+    const factionValue = String(npc[factionKey] || npc.faction || npc.group || npc.organization || 'Other');
+    const factionOptions = getNpcFactionOptions(factionValue);
+    const factionIsKnown = factionOptions.includes(factionValue);
     const editableFields = Object.entries(npc)
-      .filter(([key]) => !/^(id|created_at|updated_at|tags|image_url|death_save_successes|death_save_failures)$/i.test(key));
+      .filter(([key]) => !/^(id|created_at|updated_at|tags|death_save_successes|death_save_failures|faction|group|organization)$/i.test(key) && !/image/i.test(key));
     const fieldsHtml = editableFields.map(([key, value], index) => {
       const displayValue = value === null || value === undefined
         ? ''
@@ -5998,6 +6429,15 @@ function getEditableImageValue(scope, id) {
         </div>
       `;
     }).join('');
+    const factionField = `
+      <div class="form-group">
+        <label for="edit-npc-faction-${cardId}">Faction</label>
+        <select id="edit-npc-faction-${cardId}" class="input-field" data-npc-field="${escapeHtml(factionKey)}" data-npc-type="${npc[factionKey] === undefined || npc[factionKey] === null ? 'null' : typeof npc[factionKey]}" data-npc-faction-select="true" onchange="toggleNpcCustomFaction('${cardId}')">
+          ${factionOptions.map(faction => `<option value="${escapeHtml(faction)}"${faction === factionValue ? ' selected' : ''}>${escapeHtml(faction)}</option>`).join('')}
+          <option value="__custom__"${factionIsKnown ? '' : ' selected'}>Add a new faction…</option>
+        </select>
+        <input id="edit-npc-custom-faction-${cardId}" class="input-field" type="text" maxlength="120" placeholder="Enter faction name" value="${factionIsKnown ? '' : escapeHtml(factionValue)}" ${factionIsKnown ? 'hidden' : ''} />
+      </div>`;
 
     const secretEntry = npcSecretsById.get(String(npc.id)) || {};
     let milestones = secretEntry.milestones || [];
@@ -6008,6 +6448,7 @@ function getEditableImageValue(scope, id) {
         <div class="card-edit-form">
           <h4 style="margin:0 0 10px; color:var(--gold);">Edit NPC</h4>
           ${renderEditableImageField('npc', cardId, npc.image_url, 'NPC Picture', 'Upload a picture for this NPC.')}
+          ${factionField}
           ${fieldsHtml}
           <label for="edit-npc-secret-${cardId}" style="color:var(--rose);">DM Secret</label>
           ${markdownEditor(`edit-npc-secret-${cardId}`, secretEntry.secret || '', 4)}
@@ -6023,14 +6464,120 @@ function getEditableImageValue(scope, id) {
     `;
   }
 
+  function getNpcExistingFieldKey(npcs, candidates, fallback) {
+    return candidates.find(key => npcs.some(npc => Object.prototype.hasOwnProperty.call(npc, key))) || fallback;
+  }
+
+  function toggleNewNpcCustomFaction() {
+    const selector = document.getElementById('new-npc-faction');
+    const customField = document.getElementById('new-npc-custom-faction');
+    if (customField) {
+      customField.hidden = selector?.value !== '__custom__';
+      if (!customField.hidden) customField.focus();
+    }
+  }
+
+  function renderNewNpcForm(npcs) {
+    const factionKey = getNpcExistingFieldKey(npcs, ['faction', 'group', 'organization'], 'faction');
+    const classKey = getNpcExistingFieldKey(npcs, ['class'], 'class');
+    const raceKey = getNpcExistingFieldKey(npcs, ['race'], 'race');
+    const bioKey = getNpcExistingFieldKey(npcs, ['bio', 'description', 'details', 'summary', 'body'], 'bio');
+    const factionOptions = getNpcFactionOptions('');
+    return `
+      <article class="card npc-new-draft" id="new-npc-draft">
+        <div class="card-edit-form">
+          <h3 style="margin:0; color:var(--gold);">New NPC</h3>
+          <p class="empty-note" style="margin:0;">Choose a faction and fill in the NPC details before saving.</p>
+          ${renderEditableImageField('new-npc', 'draft', '', 'NPC Picture', 'Upload a picture for this NPC.')}
+          <div class="form-group">
+            <label for="new-npc-name">Name</label>
+            <input id="new-npc-name" class="input-field" type="text" maxlength="160" placeholder="NPC name" />
+          </div>
+          <div class="form-group">
+            <label for="new-npc-faction">Faction</label>
+            <select id="new-npc-faction" class="input-field" onchange="toggleNewNpcCustomFaction()">
+              <option value="">Select a faction</option>
+              ${factionOptions.map(faction => `<option value="${escapeHtml(faction)}">${escapeHtml(faction)}</option>`).join('')}
+              <option value="__custom__">Add a new faction…</option>
+            </select>
+            <input id="new-npc-custom-faction" class="input-field" type="text" maxlength="120" placeholder="Enter faction name" hidden />
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <label for="new-npc-race">Race</label>
+              <input id="new-npc-race" class="input-field" type="text" maxlength="120" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label for="new-npc-class">Class</label>
+              <input id="new-npc-class" class="input-field" type="text" maxlength="120" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="new-npc-bio">Description</label>
+            <textarea id="new-npc-bio" class="input-field" rows="4" maxlength="10000"></textarea>
+          </div>
+          <label style="display:flex; align-items:center; gap:8px;">
+            <input id="new-npc-visible" type="checkbox" checked /> Visible to players
+          </label>
+          <div id="new-npc-error" class="inline-status error" role="alert" style="display:none;"></div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-sm" onclick="saveNewNpc('${escapeHtml(factionKey)}', '${escapeHtml(raceKey)}', '${escapeHtml(classKey)}', '${escapeHtml(bioKey)}')">Save NPC</button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="cancelNewNpc()">Cancel</button>
+          </div>
+        </div>
+      </article>`;
+  }
+
   async function addNewNpc() {
     if (!isDM) return;
-    const { data, error } = await sb.from('npcs').insert({
-      name: 'New NPC', visible_to_players: true
-    }).select().single();
-    if (error) { alert(`Failed to add NPC: ${error.message}`); return; }
+    npcDraftOpen = true;
     await loadNPCs();
-    if (data) setTimeout(() => toggleNpcEdit(encodeURIComponent(String(data.id))), 50);
+    document.getElementById('new-npc-name')?.focus();
+  }
+
+  async function saveNewNpc(factionKey, raceKey, classKey, bioKey) {
+    if (!isDM) return;
+    const errorEl = document.getElementById('new-npc-error');
+    const name = document.getElementById('new-npc-name')?.value.trim();
+    const selector = document.getElementById('new-npc-faction');
+    const faction = selector?.value === '__custom__'
+      ? document.getElementById('new-npc-custom-faction')?.value.trim()
+      : selector?.value;
+    if (!name || !faction) {
+      if (errorEl) {
+        errorEl.textContent = !name ? 'Enter a name for the NPC.' : 'Select or enter a faction before saving.';
+        errorEl.style.display = 'block';
+      }
+      return;
+    }
+    const npcId = typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `npc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+    const newNpc = {
+      id: npcId,
+      name,
+      [factionKey]: faction,
+      [raceKey]: document.getElementById('new-npc-race')?.value.trim() || null,
+      [classKey]: document.getElementById('new-npc-class')?.value.trim() || null,
+      [bioKey]: document.getElementById('new-npc-bio')?.value.trim() || '',
+      visible_to_players: Boolean(document.getElementById('new-npc-visible')?.checked),
+      image_url: getEditableImageValue('new-npc', 'draft') || null
+    };
+    const { error } = await sb.from('npcs').insert(newNpc);
+    if (error) {
+      if (errorEl) {
+        errorEl.textContent = `Failed to add NPC: ${error.message}`;
+        errorEl.style.display = 'block';
+      }
+      return;
+    }
+    npcDraftOpen = false;
+    await loadNPCs();
+  }
+
+  async function cancelNewNpc() {
+    npcDraftOpen = false;
+    await loadNPCs();
   }
 
   async function setNpcVisibility(encodedId, visible) {
@@ -6074,7 +6621,11 @@ function getEditableImageValue(scope, id) {
     try {
       card.querySelectorAll('[data-npc-field]').forEach(field => {
         const key = field.dataset.npcField;
-        const rawValue = field.value;
+        let rawValue = field.value;
+        if (field.dataset.npcFactionSelect === 'true' && rawValue === '__custom__') {
+          rawValue = document.getElementById(`edit-npc-custom-faction-${encodedId}`)?.value.trim() || '';
+          if (!rawValue) throw new Error('Enter a faction name.');
+        }
         const originalValue = original[key];
         if (originalValue === null || originalValue === undefined) {
           updatedNpc[key] = rawValue === '' ? null : rawValue;

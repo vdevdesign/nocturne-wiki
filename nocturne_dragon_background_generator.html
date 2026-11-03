@@ -6,271 +6,789 @@
   <title>Nocturne Background Generator</title>
   <style>
     :root {
-      color-scheme: dark;
-      --theme-sidebar-bg: var(--bg-alt, #14121f);
-      --theme-main-bg: var(--bg, #0e0d16);
-      --theme-accent: var(--gold, #c9a24b);
-      --theme-accent-glow: var(--gold-dim, #8a713a);
-      --theme-fire: var(--rose, #b1526b);
-      --theme-text: var(--text, #e9e4f2);
-      --panel: var(--surface, #1b1829);
-      --border: var(--line, #33304a);
-      font: 14px/1.45 system-ui, sans-serif;
+      color-scheme: light dark;
+      font: 14px/1.45 var(--font-body);
       color: var(--theme-text);
       background: var(--theme-main-bg);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: var(--theme-main-bg); }
-    button, input, select { font: inherit; }
-    button { color: inherit; }
-    .app { display: grid; grid-template-columns: minmax(290px, 360px) minmax(0, 1fr); min-height: 100vh; }
-    .controls { display: grid; align-content: start; gap: 16px; padding: 22px; background: var(--panel); border-right: 1px solid var(--border); }
-    h1 { margin: 0; font-size: 20px; }
-    .intro, .hint { margin: 0; color: color-mix(in srgb, var(--theme-text) 72%, transparent); font-size: 12px; }
-    fieldset { display: grid; gap: 10px; min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 9px; }
-    legend { padding: 0 5px; color: var(--theme-accent); font-weight: 650; }
+    body { margin: 0; min-height: 100vh; background: var(--theme-main-bg); color: var(--theme-text); }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    .studio { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); min-height: 100vh; }
+    .controls {
+      display: grid; align-content: start; gap: 16px; max-height: 100vh; overflow-y: auto;
+      padding: 22px; background: var(--surface); border-right: 1px solid var(--line);
+    }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 20px; }
+    h2 { font-size: 17px; }
+    .intro, .hint, .status { color: var(--text-dim); font-size: 12px; }
+    .status[data-state="error"] { color: var(--rose); }
     .tabs, .choices { display: flex; flex-wrap: wrap; gap: 6px; }
-    .tabs button, .choices button, .export-button {
-      min-height: 34px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
-      background: var(--theme-main-bg); cursor: pointer;
+    .tabs button, .choices button, .action {
+      min-height: 36px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px;
+      background: var(--bg); color: var(--text);
     }
-    button[aria-pressed="true"] { border-color: var(--theme-accent); color: var(--theme-accent); }
-    .field { display: grid; gap: 5px; }
-    .field-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .number-pair { display: flex; align-items: center; gap: 5px; color: var(--theme-accent); }
+    button[aria-selected="true"], button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+    .tabs button[aria-selected="true"] { background: var(--surface-2); }
+    .panel { display: grid; gap: 12px; }
+    .panel[hidden] { display: none; }
+    .field { display: grid; gap: 5px; min-width: 0; }
+    .field-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .number-pair { display: flex; align-items: center; gap: 5px; color: var(--gold); }
+    label[for="svg-file"][data-dragging="true"] { color: var(--gold); }
     input[type="number"] {
-      width: 76px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 5px;
-      background: var(--theme-main-bg); color: var(--theme-text); text-align: right;
+      width: 82px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 5px;
+      background: var(--bg); text-align: right;
     }
-    input[type="range"] { width: 100%; accent-color: var(--theme-accent); }
-    .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .switch-row label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
-    .export-button { background: var(--theme-accent); color: var(--theme-main-bg); font-weight: 700; }
-    .preview { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; padding: 22px; gap: 14px; }
-    .preview-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-    .preview-title h2 { margin: 0; font-size: 16px; }
-    .preview-title small { color: var(--theme-text); opacity: .7; }
-    .site-preview { display: grid; grid-template-columns: minmax(95px, 24%) minmax(0, 1fr); min-height: min(68vh, 680px); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-    .preview-sidebar, .preview-main { position: relative; min-width: 0; overflow: hidden; }
-    .preview-sidebar { background: var(--theme-sidebar-bg); border-right: 1px solid var(--border); }
-    .preview-main { background: var(--theme-main-bg); }
-    .preview-sidebar::after, .preview-main::after {
-      position: absolute; inset: 12px; z-index: 1; display: grid; align-content: start; gap: 10px;
-      content: ""; pointer-events: none; border: 1px solid color-mix(in srgb, var(--theme-accent) 24%, transparent); border-radius: 8px;
+    input[type="range"] { width: 100%; margin: 0; accent-color: var(--gold); }
+    select, textarea, input[type="file"] {
+      width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg);
     }
-    .preview-sidebar::after { inset: 12px 8px; }
-    .preview-sidebar .sample-label, .preview-main .sample-label {
-      position: absolute; z-index: 2; top: 24px; left: 22px; color: var(--theme-text); opacity: .8;
-      font-size: 11px; letter-spacing: .12em; text-transform: uppercase; pointer-events: none;
+    textarea { min-height: 180px; resize: vertical; font: 11px/1.4 var(--font-mono); }
+    .control-group { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; }
+    .control-group h2 { color: var(--gold); font-size: 14px; }
+    .choice-row { display: grid; gap: 7px; }
+    .choice-row > span { font-size: 12px; color: var(--text-dim); }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .toggle-row input { width: 18px; height: 18px; accent-color: var(--gold); }
+    .stage { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 14px; min-width: 0; padding: 22px; }
+    .stage-heading, .stage-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .stage-heading p { color: var(--text-dim); font-size: 12px; }
+    .stage-tools { justify-content: flex-end; }
+    .site-frame {
+      position: relative; display: grid; grid-template-columns: minmax(140px, 24%) minmax(0, 1fr);
+      width: 100%; height: min(74vh, 780px); min-height: 500px; margin: auto;
+      overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--theme-main-bg);
+      box-shadow: 0 16px 48px color-mix(in srgb, var(--bg) 70%, transparent);
+      transition: width .2s ease, height .2s ease;
     }
-    .preview-main .sample-label { left: 28px; }
-    .pattern-layer { position: absolute; inset: 0; z-index: 0; opacity: var(--pattern-opacity); pointer-events: none; }
-    .pattern-layer svg { display: block; width: 100%; height: 100%; overflow: visible; }
-    .pattern-layer .dragon-fire { filter: drop-shadow(0 0 3px var(--theme-fire)) drop-shadow(0 0 10px var(--theme-accent-glow)); }
-    .pattern-layer .dragon-fire-core { filter: drop-shadow(0 0 7px var(--theme-accent-glow)); }
-    .pattern-layer .motion-off animate, .pattern-layer .motion-off animateTransform { display: none; }
-    .preview-main .content-sample {
-      position: absolute; z-index: 2; inset: 68px 28px auto; display: grid; gap: 12px; color: var(--theme-text);
-      pointer-events: none;
+    .site-frame[data-device="mobile"] {
+      grid-template-columns: 78px minmax(0, 1fr); width: min(390px, 100%); height: min(780px, 74vh);
+      min-height: 520px; border-radius: 24px;
     }
-    .sample-card { padding: 13px; border: 1px solid var(--border); border-radius: 7px; background: color-mix(in srgb, var(--panel) 84%, transparent); }
-    .export-output { width: 100%; min-height: 100px; padding: 10px; resize: vertical; border: 1px solid var(--border); border-radius: 7px; background: var(--theme-main-bg); color: var(--theme-text); font: 12px/1.45 ui-monospace, monospace; }
-    @keyframes fire-breathe { 0%, 100% { transform: scale(1); opacity: .92; } 45% { transform: scale(1.09,.94); opacity: 1; } 72% { transform: scale(.96,1.05); opacity: .86; } }
-    @media (max-width: 760px) {
-      .app { grid-template-columns: 1fr; }
-      .controls { border-right: 0; border-bottom: 1px solid var(--border); }
-      .preview { padding: 14px; }
-      .site-preview { min-height: 58vh; grid-template-columns: minmax(80px, 25%) minmax(0,1fr); }
+    .site-sidebar, .site-main { position: relative; min-width: 0; overflow: hidden; }
+    .site-sidebar { background: var(--theme-sidebar-bg); border-right: 1px solid var(--line); }
+    .site-main { background: var(--theme-main-bg); }
+    .site-sidebar .pattern-layer, .site-main .pattern-layer {
+      position: absolute; z-index: 0; inset: 0; pointer-events: none; background-position: 0 0;
     }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; scroll-behavior: auto !important; } }
+    .pattern-layer { overflow: hidden; }
+    .site-main .pattern-layer { background-position: center; }
+    .generator-firefly {
+    position: absolute; left: calc(var(--x) + var(--offset-x, 0%)); top: calc(var(--y) + var(--offset-y, 0%)); width: var(--size); height: var(--size);
+      border-radius: 50%; background: var(--theme-fire);
+      box-shadow: 0 0 5px var(--theme-fire), 0 0 12px var(--theme-accent-glow);
+      opacity: .25;
+      animation: generator-firefly-drift var(--duration) ease-in-out var(--delay) infinite;
+    }
+    .generator-firefly::after { position: absolute; inset: 25%; border-radius: inherit; background: var(--theme-accent); content: ""; }
+    .pattern-layer[data-animate="false"] .generator-firefly { animation-play-state: paused; }
+    @keyframes generator-firefly-drift {
+      0%, 100% { opacity: .2; transform: translate3d(0, 0, 0) scale(.65); }
+      28% { opacity: .95; transform: translate3d(var(--dx), var(--dy), 0) scale(1.15); }
+      62% { opacity: .45; transform: translate3d(var(--rx), var(--ry), 0) scale(.8); }
+    }
+    .mock-sidebar-content, .mock-main-content { position: relative; z-index: 1; pointer-events: none; }
+    .mock-sidebar-content { display: grid; gap: 10px; padding: 18px 10px; color: var(--theme-text); }
+    .mock-logo { margin-bottom: 12px; color: var(--gold); font: 600 18px/1 var(--font-title); }
+    .mock-nav { padding: 7px 8px; border-radius: 5px; color: var(--text-dim); font-size: 11px; }
+    .mock-nav.active { color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, transparent); }
+    .mock-main-content { display: grid; align-content: start; gap: 14px; padding: clamp(18px, 4vw, 36px); }
+    .mock-eyebrow { color: var(--gold); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
+    .mock-title { font: 600 clamp(21px, 3vw, 34px)/1.1 var(--font-title); color: var(--theme-text); }
+    .mock-card { min-height: 90px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: color-mix(in srgb, var(--surface) 86%, transparent); }
+    .mock-card strong { display: block; margin-bottom: 5px; color: var(--gold); font-size: 12px; }
+    .mock-card p { color: var(--text-dim); font-size: 11px; }
+    .output { width: 100%; min-height: 112px; resize: vertical; font: 11px/1.45 var(--font-mono); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (max-width: 900px) {
+      .studio { grid-template-columns: 1fr; }
+      .controls { max-height: none; border-right: 0; border-bottom: 1px solid var(--line); }
+      .stage { min-height: 75vh; }
+    }
+    @media (max-width: 520px) {
+      .controls, .stage { padding: 14px; }
+      .stage-heading { align-items: flex-start; flex-direction: column; }
+      .site-frame { grid-template-columns: 78px minmax(0, 1fr); min-height: 460px; }
+      .site-frame[data-device="mobile"] { min-height: 560px; }
+      .mock-sidebar-content { padding: 14px 6px; }
+      .mock-nav { padding: 7px 4px; font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; scroll-behavior: auto !important; transition-duration: .001ms !important; }
+    }
   </style>
 </head>
 <body>
-  <div class="app">
-    <aside class="controls">
+  <div class="studio">
+    <aside class="controls" aria-label="Background studio controls">
       <header>
-        <h1>Nocturne Background Generator</h1>
-        <p class="intro">Tune the sidebar and main-content layers independently. Colors resolve from the Nocturne theme variables when this markup is used in the site.</p>
+        <h1>Nocturne Background Studio</h1>
+        <p class="intro">Adjust the sidebar and main backgrounds independently, then check the live mini-page.</p>
       </header>
-      <div class="tabs" role="tablist" aria-label="Background layer">
-        <button type="button" role="tab" data-layer-tab="sidebar" aria-selected="true">Sidebar</button>
-        <button type="button" role="tab" data-layer-tab="main" aria-selected="false">Main content</button>
+      <div class="tabs" role="tablist" aria-label="Studio settings">
+        <button type="button" role="tab" id="tab-sidebar" data-panel="sidebar" aria-selected="true">Sidebar BG</button>
+        <button type="button" role="tab" id="tab-main" data-panel="main" aria-selected="false">Main Content BG</button>
+        <button type="button" role="tab" id="tab-global" data-panel="global" aria-selected="false">Global Settings</button>
       </div>
-      <fieldset>
-        <legend>Motif</legend>
-        <label class="field">Pattern
-          <select id="motif">
-            <option value="dragon">Breathing Dragon Head (Facing Left)</option>
-            <option value="candelabra">Tilted Candelabra</option>
-            <option value="fireflies">Enchanted Fireflies</option>
-          </select>
-        </label>
-      </fieldset>
-      <fieldset>
-        <legend>Geometry & appearance</legend>
-        <div id="number-controls"></div>
-        <div class="switch-row">
-          <span>Rendering mode</span>
-          <div class="choices">
-            <button type="button" data-single="false" aria-pressed="true">Repeating</button>
-            <button type="button" data-single="true" aria-pressed="false">Single hero</button>
-          </div>
+      <section id="layer-panel" class="panel" role="tabpanel" aria-labelledby="tab-sidebar">
+        <div class="control-group">
+          <h2>Motif</h2>
+          <label class="field" for="motif">Pattern
+            <select id="motif">
+              <option value="dragon">Dragon Head (provided SVG)</option>
+              <option value="candelabra">Tilted Candelabra</option>
+              <option value="fireflies">Enchanted Fireflies</option>
+              <option value="custom">Custom SVG</option>
+            </select>
+          </label>
         </div>
-        <div class="switch-row">
-          <span>Scroll behavior</span>
-          <div class="choices">
-            <button type="button" data-sticky="true" aria-pressed="true">Sticky / fixed</button>
-            <button type="button" data-sticky="false" aria-pressed="false">Scrolls naturally</button>
-          </div>
+        <div class="control-group">
+          <h2>Custom artwork &amp; motion</h2>
+          <label class="field" for="svg-file">Upload an SVG file
+            <input id="svg-file" type="file" accept=".svg,image/svg+xml">
+          </label>
+          <p id="custom-file-status" class="hint">Choose an SVG to use it on this layer, or edit its markup in Global Settings.</p>
+          <label class="field" for="animation-preset">Motion preset
+            <select id="animation-preset">
+              <option value="none">None</option>
+              <option value="wave">Wave</option>
+              <option value="flash">Flash</option>
+              <option value="float">Float</option>
+              <option value="pulse">Pulse</option>
+            </select>
+          </label>
+          <div id="number-controls" class="panel"></div>
+          <button type="button" id="download-svg" class="action">Download generated SVG</button>
+          <p class="hint">Presets apply to custom SVG artwork. Intensity and speed are adjustable per layer; reduced-motion settings freeze the preview.</p>
         </div>
-        <label class="switch-row"><span>Animate fire / motif</span><input id="animate" type="checkbox" checked></label>
-      </fieldset>
-      <p class="hint">Grid columns and rows define exact cell counts. A 1 × 1 grid is exactly one motif cell filling its layer.</p>
-      <button type="button" class="export-button" id="export">Export layer settings</button>
-      <label class="field" for="export-output">Copyable JSON</label>
-      <textarea class="export-output" id="export-output" readonly></textarea>
+        <div class="control-group">
+          <h2>Size &amp; appearance</h2>
+          <div id="geometry-controls" class="panel"></div>
+          <div class="choice-row">
+            <span>Pattern mode</span>
+            <div class="choices">
+              <button type="button" data-single="false" aria-pressed="true">Repeating grid</button>
+              <button type="button" data-single="true" aria-pressed="false">Single hero</button>
+            </div>
+          </div>
+          <div class="choice-row">
+            <span>Background attachment</span>
+            <div class="choices">
+              <button type="button" data-sticky="true" aria-pressed="true">Fixed</button>
+              <button type="button" data-sticky="false" aria-pressed="false">Scroll</button>
+            </div>
+          </div>
+          <label class="toggle-row" for="animate"><span>Animate fire / motif</span><input id="animate" type="checkbox" checked></label>
+        </div>
+        <p class="hint">Grid columns and rows (1–12) set CSS tile sizes to calc(100% / columns) × calc(100% / rows). Motif size ranges from 10% to 200%; horizontal and vertical offsets reposition every motif without stretching it.</p>
+      </section>
+      <section id="global-panel" class="panel" role="tabpanel" aria-labelledby="tab-global" hidden>
+        <div class="control-group">
+          <h2>Nocturne theme</h2>
+          <label class="field" for="theme">Theme variables
+            <select id="theme"></select>
+          </label>
+          <p class="hint">Theme colors are loaded from the theme definitions in index.html. The generator does not define another palette.</p>
+        </div>
+        <div class="control-group">
+          <h2>Custom SVG</h2>
+          <label class="field" for="custom-svg">Paste or edit SVG markup
+            <textarea id="custom-svg" spellcheck="false" placeholder="<svg viewBox=&quot;0 0 100 100&quot;>…"></textarea>
+          </label>
+          <div class="choices">
+            <button type="button" id="apply-custom" class="action" disabled>Use custom SVG on active layer</button>
+          </div>
+          <p id="asset-status" class="status" role="status">Loading the supplied dragon head SVG…</p>
+        </div>
+      </section>
+      <section class="control-group">
+        <h2>Layer settings export</h2>
+        <textarea id="export-output" class="output" aria-label="Copyable layer settings" readonly></textarea>
+        <button type="button" id="copy-export" class="action">Select settings JSON</button>
+      </section>
     </aside>
-    <main class="preview">
-      <header class="preview-title"><h2>Live preview</h2><small>Theme colors use --gold, --rose, --gold-dim and Nocturne background/text variables.</small></header>
-      <div class="site-preview">
-        <section class="preview-sidebar" aria-label="Sidebar background preview">
-          <span class="sample-label">Sidebar</span>
+    <main class="stage">
+      <header class="stage-heading">
+        <div><h2>Live website preview</h2><p>Theme-aware sidebar and content stage</p></div>
+        <div class="stage-tools" role="group" aria-label="Preview device">
+          <button type="button" class="action" data-device="desktop" aria-pressed="true">Desktop</button>
+          <button type="button" class="action" data-device="mobile" aria-pressed="false">Mobile</button>
+        </div>
+      </header>
+      <div class="site-frame" id="site-frame" data-device="desktop" aria-label="Responsive website preview">
+        <aside class="site-sidebar" aria-label="Website sidebar preview">
           <div class="pattern-layer" id="sidebar-layer"></div>
-        </section>
-        <section class="preview-main" aria-label="Main background preview">
-          <span class="sample-label">Main content</span>
+          <div class="mock-sidebar-content">
+            <div class="mock-logo">Nocturne</div>
+            <div class="mock-nav active">⌂ &nbsp; Home</div>
+            <div class="mock-nav">◈ &nbsp; Characters</div>
+            <div class="mock-nav">✦ &nbsp; Sessions</div>
+            <div class="mock-nav">☾ &nbsp; Journal</div>
+          </div>
+        </aside>
+        <section class="site-main" aria-label="Website main content preview">
           <div class="pattern-layer" id="main-layer"></div>
-          <div class="content-sample"><div class="sample-card">Nocturne Campaign Hub</div><div class="sample-card">Theme-aware background preview</div></div>
+          <div class="mock-main-content">
+            <span class="mock-eyebrow">Campaign hub · live preview</span>
+            <h2 class="mock-title">The World of Nocturne</h2>
+            <article class="mock-card"><strong>Next Session</strong><p>A sample card shows how the background reads under real page content.</p></article>
+            <article class="mock-card"><strong>Recent Notes</strong><p>Patterns stay proportional and adapt to the selected device size.</p></article>
+          </div>
         </section>
       </div>
     </main>
   </div>
   <script>
-    const defaults = () => ({ motif: 'candelabra', gridCols: 2, gridRows: 2, size: 85, tilt: 0, opacity: 35, single: false, sticky: true, animate: true });
-    const layers = { sidebar: defaults(), main: defaults() };
-    let activeLayer = 'sidebar';
-    const root = document.documentElement;
-    const bounds = {
-      gridCols: [1, 4, 1], gridRows: [1, 4, 1],
-      size: [25, 100, 1], tilt: [-180, 180, 1], opacity: [4, 70, 1]
-    };
-    const numberLabels = { gridCols: 'Grid columns', gridRows: 'Grid rows', size: 'Motif size (%)', tilt: 'Tilt angle (°)', opacity: 'Opacity (%)' };
-    const numberControls = document.getElementById('number-controls');
-    const motifSelect = document.getElementById('motif');
-    const animationToggle = document.getElementById('animate');
-    const svgByMotif = {
-      dragon: `<g class="dragon"><path d="M75 38 C68 31 58 28 48 28 C39 28 34 22 36 11 C28 20 31 32 41 37 C32 34 23 34 15 38 L7 42 L23 43 L12 48 L27 49 C21 53 19 58 22 64 L31 57 C36 64 44 67 53 66 C61 65 67 61 72 56 L82 58 L91 53 L80 47 L87 43 L77 42 Z" fill="var(--gold, currentColor)" stroke="var(--surface-2, currentColor)" stroke-width="1.3" stroke-linejoin="round"/><path d="M67 36 C72 27 72 19 67 9 C79 16 84 25 81 37 M57 31 C58 22 55 15 49 8 C62 11 68 18 69 29" fill="none" stroke="var(--gold, currentColor)" stroke-width="5.5" stroke-linecap="round"/><path d="M70 52 L82 55 L89 62 L76 60 M60 61 L69 70 L78 73 L70 63 M48 65 L53 75 L62 81 L58 67 M37 62 L36 73 L41 82 L45 65" fill="var(--gold, currentColor)" stroke="var(--surface-2, currentColor)" stroke-width="1.2"/><path d="M20 40 L31 39 L21 42 Z" fill="var(--surface-2, currentColor)"/><path d="M29 40 L33 39" stroke="var(--rose, currentColor)" stroke-width="2.2" stroke-linecap="round"/><g class="dragon-flames"><path class="dragon-fire" d="M23 48 C17 44 13 40 7 39 C10 44 12 46 4 46 C9 49 13 50 5 54 C12 54 15 53 11 59 C18 57 21 54 26 52 Z" fill="var(--rose, currentColor)"><animateTransform attributeName="transform" type="scale" values="1 1;1.08 0.94;0.96 1.06;1 1" dur="1.15s" repeatCount="indefinite"/></path><path class="dragon-fire-core" d="M22 49 C17 47 14 45 10 45 C13 48 13 49 10 51 C15 51 18 50 22 51 Z" fill="var(--gold-dim, currentColor)"><animate attributeName="opacity" values=".65;1;.72;.9" dur=".8s" repeatCount="indefinite"/></path></g></g>`,
-      candelabra: `<g><path d="M42 88 Q50 84 58 88 L56 82 Q50 80 44 82Z" fill="var(--gold, currentColor)"/><path d="M50 82V22 M22 22 Q22 48 50 48 M78 22 Q78 48 50 48" fill="none" stroke="var(--gold, currentColor)" stroke-width="3"/><path d="M18 22 Q22 10 26 22 M46 22 Q50 7 54 22 M74 22 Q78 10 82 22" fill="var(--rose, currentColor)"/><g class="dragon-flames"><circle cx="22" cy="17" r="4" fill="var(--gold-dim, currentColor)"/><circle cx="50" cy="15" r="5" fill="var(--gold-dim, currentColor)"/><circle cx="78" cy="17" r="4" fill="var(--gold-dim, currentColor)"/></g></g>`,
-      fireflies: `<g class="fireflies"><path d="M16 74 Q50 50 84 74 M22 82 Q50 62 78 82" fill="none" stroke="var(--gold, currentColor)" stroke-width="1.5" opacity=".55"/><circle cx="28" cy="34" r="4" fill="var(--rose, currentColor)"/><circle cx="65" cy="27" r="5" fill="var(--gold, currentColor)"/><circle cx="52" cy="59" r="4" fill="var(--gold-dim, currentColor)"/></g>`
-    };
-    function createSvg() {
-      const { motif, size, tilt, single, animate } = layers[activeLayer];
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('viewBox', '0 0 100 100');
-      svg.setAttribute('preserveAspectRatio', single ? 'xMidYMid meet' : 'none');
-      svg.setAttribute('aria-hidden', 'true');
-      if (!animate) svg.classList.add('motion-off');
-      const count = single ? 1 : layers[activeLayer].gridCols * layers[activeLayer].gridRows;
-      const { gridCols, gridRows } = layers[activeLayer];
-      const grid = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      if (!single) grid.setAttribute('data-exact-grid', `${gridCols}x${gridRows}`);
-      for (let i = 0; i < count; i++) {
-        const col = single ? 0 : i % gridCols;
-        const row = single ? 0 : Math.floor(i / gridCols);
-        const cellW = single ? 100 : 100 / gridCols;
-        const cellH = single ? 100 : 100 / gridRows;
-        const cell = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        cell.setAttribute('x', String(col * cellW));
-        cell.setAttribute('y', String(row * cellH));
-        cell.setAttribute('width', String(cellW));
-        cell.setAttribute('height', String(cellH));
-        cell.setAttribute('viewBox', '0 0 100 100');
-        cell.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        const motifGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        motifGroup.setAttribute('transform', `translate(50 50) rotate(${tilt}) scale(${size / 100}) translate(-50 -50)`);
-        motifGroup.innerHTML = svgByMotif[motif];
-        cell.appendChild(motifGroup);
-        grid.appendChild(cell);
+    (() => {
+      'use strict';
+      const svgNamespace = 'http://www.w3.org/2000/svg';
+      const knownThemes = ['nocturne', 'dracula', 'alucard', 'sylvan', 'steampunk', 'frost', 'starlight', 'lush', 'mystic', 'potion', 'underdark'];
+      const themeLabels = { nocturne: 'Nocturne', dracula: 'Dracula', alucard: 'Alucard', sylvan: 'Sylvan', steampunk: 'Steampunk', frost: 'Frost', starlight: 'Starlight', lush: 'Lush', mystic: 'Mystic', potion: 'Potion', underdark: 'Underdark' };
+      const bounds = {
+        gridCols: [1, 12, 1], gridRows: [1, 12, 1],
+        size: [10, 200, 1], tilt: [-180, 180, 1], opacity: [0, 100, 1],
+        alignX: [-50, 50, 1], alignY: [-50, 50, 1],
+        effectIntensity: [0, 100, 1], effectSpeed: [25, 200, 5]
+      };
+      const labels = { gridCols: 'Grid columns', gridRows: 'Grid rows', size: 'Motif size (%)', tilt: 'Tilt angle (°)', opacity: 'Opacity (%)', alignX: 'Horizontal offset (%)', alignY: 'Vertical offset (%)', effectIntensity: 'Effect intensity (%)', effectSpeed: 'Effect speed (%)' };
+      const makeLayer = () => ({ motif: 'dragon', gridCols: 2, gridRows: 2, size: 85, tilt: 0, opacity: 35, alignX: 0, alignY: 0, single: false, sticky: true, animate: true, animationPreset: 'none', effectIntensity: 50, effectSpeed: 100 });
+      const layers = {
+        sidebar: makeLayer(),
+        main: { ...makeLayer(), gridCols: 1, gridRows: 1, size: 100, opacity: 45, single: true }
+      };
+      const themeSelect = document.getElementById('theme');
+      const themeStyle = document.createElement('style');
+      themeStyle.id = 'nocturne-theme-variables';
+      document.head.appendChild(themeStyle);
+      let activeLayer = 'sidebar';
+      let suppliedDragonSvg = '';
+      let customSvg = '';
+      let themeNames = ['nocturne'];
+      const themeRoot = document.documentElement;
+      const svgTextarea = document.getElementById('custom-svg');
+      const assetStatus = document.getElementById('asset-status');
+
+      function setStatus(message, state) {
+        assetStatus.textContent = message;
+        assetStatus.dataset.state = state || 'ready';
       }
-      svg.appendChild(grid);
-      return svg;
-    }
-    function renderLayer(layer) {
-      const host = document.getElementById(`${layer}-layer`);
-      const cfg = layers[layer];
-      host.replaceChildren();
-      host.style.opacity = String(cfg.opacity / 100);
-      host.style.position = cfg.sticky ? 'sticky' : 'absolute';
-      host.style.backgroundAttachment = cfg.sticky ? 'fixed' : 'scroll';
-      host.dataset.sticky = String(cfg.sticky);
-      if (layer === activeLayer) {
-        const oldActive = activeLayer;
-        activeLayer = layer;
-        host.appendChild(createSvg());
-        activeLayer = oldActive;
-      } else {
-        const { gridCols, gridRows, single, size, tilt, motif, animate } = cfg;
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', '0 0 100 100');
-        svg.setAttribute('preserveAspectRatio', single ? 'xMidYMid meet' : 'none');
-        if (!animate) svg.classList.add('motion-off');
-        const count = single ? 1 : gridCols * gridRows;
-        for (let i = 0; i < count; i++) {
-          const cell = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-          const w = single ? 100 : 100 / gridCols, h = single ? 100 : 100 / gridRows;
-          cell.setAttribute('x', String((single ? 0 : i % gridCols) * w));
-          cell.setAttribute('y', String((single ? 0 : Math.floor(i / gridCols)) * h));
-          cell.setAttribute('width', String(w)); cell.setAttribute('height', String(h));
-          cell.setAttribute('viewBox', '0 0 100 100'); cell.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          g.setAttribute('transform', `translate(50 50) rotate(${tilt}) scale(${size / 100}) translate(-50 -50)`);
-          g.innerHTML = svgByMotif[motif]; cell.appendChild(g); svg.appendChild(cell);
+
+      async function loadThemeDefinitions() {
+        const response = await fetch(new URL('./index.html', window.location.href));
+        if (!response.ok) throw new Error(`Could not load index.html (${response.status}).`);
+        const source = await response.text();
+        const parsedPage = new DOMParser().parseFromString(source, 'text/html');
+        const sourceStyle = Array.from(parsedPage.querySelectorAll('style')).find(style => style.textContent.includes(':root[data-theme='));
+        if (!sourceStyle) throw new Error('No Nocturne theme definitions were found in index.html.');
+        const temporaryStyle = document.createElement('style');
+        temporaryStyle.textContent = sourceStyle.textContent;
+        document.head.appendChild(temporaryStyle);
+        const rootRules = [];
+        const names = new Set(['nocturne']);
+        for (const rule of temporaryStyle.sheet.cssRules) {
+          if (rule.type !== CSSRule.STYLE_RULE) continue;
+          if (rule.selectorText === ':root') rootRules.push(rule.cssText);
+          const match = rule.selectorText.match(/^:root\[data-theme=["']?([a-z0-9-]+)["']?\]$/i);
+          if (match && knownThemes.includes(match[1])) {
+            rootRules.push(rule.cssText);
+            names.add(match[1]);
+          }
         }
-        host.appendChild(svg);
+        temporaryStyle.remove();
+        if (!rootRules.length) throw new Error('No Nocturne theme variable rules were loaded.');
+        themeStyle.textContent = rootRules.join('\n');
+        themeNames = knownThemes.filter(name => names.has(name));
+        themeSelect.replaceChildren(...themeNames.map(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          option.textContent = themeLabels[name];
+          return option;
+        }));
+        let savedTheme = 'nocturne';
+        try {
+          const candidate = localStorage.getItem('nocturne-theme');
+          if (themeNames.includes(candidate)) savedTheme = candidate;
+        } catch (error) {
+          console.warn('Could not read the saved Nocturne theme.', error);
+        }
+        themeSelect.value = savedTheme;
+        themeRoot.dataset.theme = savedTheme;
       }
-    }
-    function updateNumberControls() {
-      const cfg = layers[activeLayer];
-      numberControls.replaceChildren();
-      Object.entries(bounds).forEach(([key, [min, max, step]]) => {
-        const wrapper = document.createElement('label');
-        wrapper.className = 'field';
-        wrapper.innerHTML = `<span class="field-heading"><span>${numberLabels[key]}</span><span class="number-pair"><input type="number" min="${min}" max="${max}" step="${step}" value="${cfg[key]}" aria-label="${numberLabels[key]} exact value"></span></span><input type="range" min="${min}" max="${max}" step="${step}" value="${cfg[key]}" aria-label="${numberLabels[key]} slider">`;
-        const number = wrapper.querySelector('input[type="number"]');
-        const range = wrapper.querySelector('input[type="range"]');
-        function commit(raw) {
-          if (raw === '') { number.value = String(cfg[key]); return; }
-          const parsed = Number(raw);
-          if (!Number.isFinite(parsed)) { number.value = String(cfg[key]); return; }
-          cfg[key] = Math.min(max, Math.max(min, Math.round(parsed)));
-          number.value = range.value = String(cfg[key]);
-          renderAll();
+
+      async function loadSuppliedDragon() {
+        const response = await fetch(new URL('./dragon%20head.svg', window.location.href));
+        if (!response.ok) throw new Error(`Could not load dragon head.svg (${response.status}).`);
+        suppliedDragonSvg = await response.text();
+        validateSvg(suppliedDragonSvg, true);
+        svgTextarea.value = suppliedDragonSvg;
+        customSvg = suppliedDragonSvg;
+        setStatus('Using the supplied dragon head.svg artwork. Its red fire paths follow the active theme and glow.', 'ready');
+      }
+
+      function parseViewBox(svg) {
+        const values = (svg.getAttribute('viewBox') || '').trim().split(/[,\s]+/).map(Number);
+        if (values.length === 4 && values.every(Number.isFinite) && values[2] > 0 && values[3] > 0) return values;
+        const width = Number.parseFloat(svg.getAttribute('width'));
+        const height = Number.parseFloat(svg.getAttribute('height'));
+        if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) return [0, 0, width, height];
+        throw new Error('SVG must have a valid viewBox or numeric width and height.');
+      }
+
+      function sanitizeSvg(source, animate, animation = null) {
+        const documentSvg = new DOMParser().parseFromString(source, 'image/svg+xml');
+        if (documentSvg.querySelector('parsererror') || documentSvg.documentElement.localName !== 'svg') {
+          throw new Error('Enter valid SVG markup with an <svg> root element.');
         }
-        range.addEventListener('input', () => commit(range.value));
-        number.addEventListener('input', () => { range.value = number.value; });
-        number.addEventListener('change', () => commit(number.value));
-        number.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commit(number.value); } });
-        numberControls.appendChild(wrapper);
+        const root = documentSvg.documentElement;
+        const viewBox = parseViewBox(root);
+        const allowed = new Set(['svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'defs', 'lineargradient', 'radialgradient', 'stop', 'clippath', 'mask', 'title', 'desc', 'animate', 'animatetransform', 'set', 'filter', 'fegaussianblur', 'femerge', 'femergenode', 'fecomponenttransfer', 'fefunca', 'feblend']);
+        for (const node of Array.from(root.querySelectorAll('*')).reverse()) {
+          if (!allowed.has(node.localName.toLowerCase()) || (!animate && ['animate', 'animatetransform', 'set'].includes(node.localName.toLowerCase()))) {
+            node.remove();
+            continue;
+          }
+          for (const attribute of Array.from(node.attributes)) {
+            const name = attribute.name.toLowerCase();
+            const value = attribute.value;
+            if (name.startsWith('on') || ((name === 'href' || name.endsWith(':href')) && !value.startsWith('#')) || (/url\s*\(/i.test(value) && !/url\s*\(\s*["']?#/i.test(value))) {
+              node.removeAttribute(attribute.name);
+            }
+          }
+        }
+        const safeRootStyle = (root.getAttribute('style') || '')
+          .split(';')
+          .filter(declaration => !/url\s*\(|expression\s*\(|@import/i.test(declaration))
+          .join(';');
+        const fireColor = /^(?:rgb\(\s*204\s*,\s*53\s*,\s*0\s*\)|#cc3500)$/i;
+        const flameMotions = [
+          { values: '0 0; 0 -3; 2.5 -1.5; 0 0', duration: '3.8s' },
+          { values: '0 0; 1.5 -2.5; -2 -1; 0 0', duration: '4.1s' },
+          { values: '0 0; -1 -3.5; 2 -2; 0 0', duration: '3.5s' },
+          { values: '0 0; 2 -2; -1.5 0.5; 0 0', duration: '4.4s' }
+        ];
+        let flameIndex = 0;
+        for (const path of root.querySelectorAll('path')) {
+          const fill = path.getAttribute('fill') || '';
+          const style = path.getAttribute('style') || '';
+          if (fireColor.test(fill.trim()) || /fill\s*:\s*(?:rgb\(\s*204\s*,\s*53\s*,\s*0\s*\)|#cc3500)/i.test(style)) {
+            const flameMotion = flameMotions[flameIndex++ % flameMotions.length];
+            path.classList.add('nocturne-fire');
+            path.setAttribute('fill', 'var(--theme-fire)');
+            path.setAttribute('style', style.replace(/fill\s*:\s*(?:rgb\(\s*204\s*,\s*53\s*,\s*0\s*\)|#cc3500)/i, 'fill:var(--theme-fire)'));
+            if (animate) {
+              const opacityWave = documentSvg.createElementNS(svgNamespace, 'animate');
+              opacityWave.setAttribute('attributeName', 'opacity');
+              opacityWave.setAttribute('values', '0.9;0.96;0.91;0.94;0.9');
+              opacityWave.setAttribute('keyTimes', '0;0.25;0.5;0.75;1');
+              opacityWave.setAttribute('keySplines', '0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1');
+              opacityWave.setAttribute('calcMode', 'spline');
+              opacityWave.setAttribute('dur', '2.8s');
+              opacityWave.setAttribute('repeatCount', 'indefinite');
+              path.appendChild(opacityWave);
+              const flamesGroup = path.parentElement;
+              flamesGroup?.classList.add('nocturne-flames');
+              const wave = documentSvg.createElementNS(svgNamespace, 'animateTransform');
+              wave.setAttribute('attributeName', 'transform');
+              wave.setAttribute('type', 'translate');
+              wave.setAttribute('values', flameMotion.values);
+              wave.setAttribute('keyTimes', '0;0.33;0.67;1');
+              wave.setAttribute('keySplines', '0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1');
+              wave.setAttribute('calcMode', 'spline');
+              wave.setAttribute('dur', flameMotion.duration);
+              wave.setAttribute('repeatCount', 'indefinite');
+              path.appendChild(wave);
+            }
+          }
+        }
+        if (animate && animation && animation.animationPreset !== 'none' && animation.effectIntensity > 0) {
+          const amplitude = Math.min(viewBox[2], viewBox[3]) * 0.08 * animation.effectIntensity / 100;
+          const duration = (6 / (animation.effectSpeed / 100)).toFixed(2);
+          const shapes = Array.from(root.querySelectorAll('path, rect, circle, ellipse, line, polyline, polygon'))
+            .filter(shape => !shape.closest('defs, clipPath, mask'));
+          shapes.forEach((shape, index) => {
+            const phase = `${(index * 0.12).toFixed(2)}s`;
+            let effect;
+            if (animation.animationPreset === 'flash') {
+              effect = documentSvg.createElementNS(svgNamespace, 'animate');
+              effect.setAttribute('attributeName', 'opacity');
+              effect.setAttribute('values', `1;${(1 - animation.effectIntensity / 100 * 0.85).toFixed(2)};0.9;1`);
+              effect.setAttribute('keyTimes', '0;0.35;0.7;1');
+            } else {
+              effect = documentSvg.createElementNS(svgNamespace, 'animateTransform');
+              effect.setAttribute('attributeName', 'transform');
+              effect.setAttribute('additive', 'sum');
+              if (animation.animationPreset === 'pulse') {
+                const scale = 1 + animation.effectIntensity / 100 * 0.35;
+                effect.setAttribute('type', 'scale');
+                const pulseScale = scale.toFixed(3);
+                const restScale = (1 - (scale - 1) / 2).toFixed(3);
+                effect.setAttribute('values', `1 1;${pulseScale} ${pulseScale};1 1;${restScale} ${restScale};1 1`);
+                effect.setAttribute('keyTimes', '0;0.3;0.6;0.8;1');
+              } else {
+                effect.setAttribute('type', 'translate');
+                const x = animation.animationPreset === 'wave' ? amplitude * 0.45 : amplitude * 0.18;
+                const y = animation.animationPreset === 'wave' ? amplitude : amplitude * 0.55;
+                effect.setAttribute('values', `0 0; ${x.toFixed(2)} ${(-y).toFixed(2)}; 0 0; ${(-x).toFixed(2)} ${y.toFixed(2)}; 0 0`);
+                effect.setAttribute('keyTimes', '0;0.25;0.5;0.75;1');
+              }
+            }
+            effect.setAttribute('keySplines', animation.animationPreset === 'flash'
+              ? '0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1'
+              : '0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1;0.42 0 0.58 1');
+            effect.setAttribute('calcMode', 'spline');
+            effect.setAttribute('begin', phase);
+            effect.setAttribute('dur', `${duration}s`);
+            effect.setAttribute('repeatCount', 'indefinite');
+            shape.appendChild(effect);
+          });
+        }
+        if (safeRootStyle) root.setAttribute('style', safeRootStyle);
+        else root.removeAttribute('style');
+        const markup = Array.from(root.childNodes).map(child => new XMLSerializer().serializeToString(child)).join('');
+        return { markup, viewBox, rootStyle: safeRootStyle, svg: new XMLSerializer().serializeToString(root) };
+      }
+
+      function validateSvg(source, animate, animation = null) {
+        if (!source.trim()) throw new Error('Paste SVG markup or load an SVG file first.');
+        return sanitizeSvg(source, animate, animation);
+      }
+
+      function builtinMarkup(motif, animate) {
+        if (motif === 'candelabra') {
+          const flicker = animate ? '<animate attributeName="d" values="M22 13 Q18 6 22 1 Q26 6 22 13Z;M22 13 Q19 7 22 3 Q25 7 22 13Z;M22 13 Q18 6 22 1 Q26 6 22 13Z" dur="1.5s" repeatCount="indefinite"/>' : '';
+          return `<g fill="none" stroke="var(--gold)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M50 86V43M50 54C36 54 24 46 22 31M50 54C64 54 76 46 78 31M34 82H66"/></g><path d="M18 31Q22 25 26 31ZM46 31Q50 22 54 31ZM74 31Q78 25 82 31Z" fill="var(--surface-2)" stroke="var(--gold)" stroke-width="2"/><g fill="var(--rose)"><path d="M22 31Q18 20 22 12Q26 20 22 31Z">${flicker}</path><path d="M50 31Q46 20 50 9Q54 20 50 31Z">${flicker}</path><path d="M78 31Q74 20 78 12Q82 20 78 31Z">${flicker}</path></g><g fill="var(--gold-dim)" opacity=".75"><circle cx="22" cy="21" r="4"/><circle cx="50" cy="18" r="5"/><circle cx="78" cy="21" r="4"/></g></g>`;
+        }
+        return '';
+      }
+
+      function themeColor(name) {
+        return getComputedStyle(themeRoot).getPropertyValue(name).trim();
+      }
+
+      function resolveThemeTokens(svg) {
+        return svg.replace(/var\((--[\w-]+)(?:\s*,\s*[^)]+)?\)/g, (token, name) => themeColor(name) || token);
+      }
+
+      function makeSvgData(config) {
+        if (config.motif === 'fireflies') return '';
+        const animate = config.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let motif = { markup: builtinMarkup(config.motif, animate), viewBox: [0, 0, 100, 100], rootStyle: '' };
+        if (config.motif === 'dragon' || config.motif === 'custom') {
+          const source = config.motif === 'dragon' ? suppliedDragonSvg : customSvg;
+          if (!source) return '';
+          motif = validateSvg(source, animate, config.motif === 'custom' ? config : null);
+        }
+        const [x, y, width, height] = motif.viewBox;
+        const radians = Math.abs(config.tilt) * Math.PI / 180;
+        const rotationFit = 1 / (Math.abs(Math.cos(radians)) + Math.abs(Math.sin(radians)));
+        const scale = (config.size / 100 * rotationFit).toFixed(4);
+        const rootStyle = motif.rootStyle.replace(/["<>]/g, '');
+        let svg = `<svg xmlns="${svgNamespace}" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><style>.nocturne-fire{filter:drop-shadow(0 0 4px var(--theme-fire)) drop-shadow(0 0 12px var(--theme-fire))}</style><g transform="translate(${50 + config.alignX} ${50 + config.alignY}) rotate(${config.tilt}) scale(${scale}) translate(-50 -50)" style="${rootStyle};fill:var(--gold)"><svg x="0" y="0" width="100" height="100" viewBox="${x} ${y} ${width} ${height}" preserveAspectRatio="xMidYMid meet">${motif.markup}</svg></g></svg>`;
+        svg = resolveThemeTokens(svg);
+        return `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
+      }
+
+      function renderFireflyParticles(host, config) {
+        host.dataset.animate = String(config.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        if (config.motif !== 'fireflies') {
+          host.replaceChildren();
+          return;
+        }
+        const particles = Array.from({ length: 42 }, (_, index) => {
+          const particle = document.createElement('span');
+          const left = 2 + (index * 37 + 11) % 96;
+          const top = 2 + (index * 61 + 23) % 96;
+          const size = 2 + (index * 5) % 3;
+          const duration = 5 + (index * 13 % 60) / 10;
+          const delay = -((index * 7) % 50) / 10;
+          const driftX = (index * 17) % 49 - 24;
+          const driftY = (index * 29) % 49 - 24;
+          particle.className = 'generator-firefly';
+          particle.style.cssText = `--x:${left}%;--y:${top}%;--offset-x:${config.alignX}%;--offset-y:${config.alignY}%;--size:${size}px;--duration:${duration}s;--delay:${delay}s;--dx:${driftX}px;--dy:${driftY}px;--rx:${driftX * -0.5}px;--ry:${driftY * -0.5}px`;
+          return particle;
+        });
+        host.replaceChildren(...particles);
+      }
+
+      function renderLayer(layer) {
+        const config = layers[layer];
+        const host = document.getElementById(`${layer}-layer`);
+        const image = makeSvgData(config);
+        host.style.opacity = String(config.opacity / 100);
+        host.style.backgroundImage = image;
+        renderFireflyParticles(host, config);
+        host.style.backgroundRepeat = config.single ? 'no-repeat' : 'repeat';
+        host.style.backgroundSize = config.single ? 'contain' : `calc(100% / ${config.gridCols}) calc(100% / ${config.gridRows})`;
+        host.style.backgroundPosition = config.single ? 'center' : '0 0';
+        host.style.backgroundAttachment = config.sticky ? 'fixed' : 'scroll';
+        host.dataset.mode = config.single ? 'single' : 'repeat';
+        host.dataset.grid = `${config.gridCols}x${config.gridRows}`;
+        host.dataset.attachment = config.sticky ? 'fixed' : 'scroll';
+      }
+
+      function renderPreviews() {
+        renderLayer('sidebar');
+        renderLayer('main');
+        updateExport();
+      }
+
+      function updateExport() {
+        const settings = { theme: themeSelect.value || 'nocturne', sidebar: { ...layers.sidebar }, main: { ...layers.main } };
+        for (const layer of ['sidebar', 'main']) {
+          settings[layer].backgroundSize = layers[layer].single ? 'contain' : `calc(100% / ${layers[layer].gridCols}) calc(100% / ${layers[layer].gridRows})`;
+        }
+        document.getElementById('export-output').value = JSON.stringify(settings, null, 2);
+      }
+
+      function commitValue(key, value, number, range) {
+        const [min, max] = bounds[key];
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return;
+        const next = Math.min(max, Math.max(min, Math.round(parsed)));
+        layers[activeLayer][key] = next;
+        number.value = String(next);
+        range.value = String(next);
+        renderPreviews();
+      }
+
+      function renderControls() {
+        const config = layers[activeLayer];
+        const effectHost = document.getElementById('number-controls');
+        const geometryHost = document.getElementById('geometry-controls');
+        effectHost.replaceChildren();
+        geometryHost.replaceChildren();
+        for (const [key, [min, max, step]] of Object.entries(bounds)) {
+          const controlHost = key.startsWith('effect') ? effectHost : geometryHost;
+          const wrapper = document.createElement('label');
+          wrapper.className = 'field';
+          const heading = document.createElement('span');
+          heading.className = 'field-heading';
+          const title = document.createElement('span');
+          title.textContent = labels[key];
+          const pair = document.createElement('span');
+          pair.className = 'number-pair';
+          const number = document.createElement('input');
+          number.type = 'number';
+          number.min = String(min);
+          number.max = String(max);
+          number.step = String(step);
+          number.value = String(config[key]);
+          number.setAttribute('aria-label', `${labels[key]} exact value`);
+          const range = document.createElement('input');
+          range.type = 'range';
+          range.min = String(min);
+          range.max = String(max);
+          range.step = String(step);
+          range.value = String(config[key]);
+          range.setAttribute('aria-label', `${labels[key]} slider`);
+          pair.append(number);
+          heading.append(title, pair);
+          wrapper.append(heading, range);
+          range.addEventListener('input', () => commitValue(key, range.value, number, range));
+          number.addEventListener('input', () => {
+            if (number.value === '') return;
+            const parsed = Number(number.value);
+            if (!Number.isFinite(parsed)) return;
+            const bounded = Math.min(max, Math.max(min, Math.round(parsed)));
+            range.value = String(bounded);
+            layers[activeLayer][key] = bounded;
+            renderPreviews();
+          });
+          number.addEventListener('change', () => {
+            if (number.value === '') number.value = String(layers[activeLayer][key]);
+            commitValue(key, number.value, number, range);
+          });
+          number.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              number.blur();
+            }
+          });
+          controlHost.appendChild(wrapper);
+        }
+        document.getElementById('motif').value = config.motif;
+        document.getElementById('animation-preset').value = config.animationPreset;
+        document.getElementById('animate').checked = config.animate;
+        document.getElementById('download-svg').disabled = config.motif !== 'custom' || !customSvg.trim();
+        for (const button of document.querySelectorAll('[data-single]')) {
+          button.setAttribute('aria-pressed', String(config.single === (button.dataset.single === 'true')));
+        }
+        for (const button of document.querySelectorAll('[data-sticky]')) {
+          button.setAttribute('aria-pressed', String(config.sticky === (button.dataset.sticky === 'true')));
+        }
+      }
+
+      function setActivePanel(panel) {
+        document.getElementById('layer-panel').hidden = panel === 'global';
+        document.getElementById('global-panel').hidden = panel !== 'global';
+        document.getElementById('layer-panel').setAttribute('aria-labelledby', `tab-${panel === 'main' ? 'main' : 'sidebar'}`);
+        for (const button of document.querySelectorAll('[data-panel]')) {
+          button.setAttribute('aria-selected', String(button.dataset.panel === panel));
+        }
+        if (panel === 'sidebar' || panel === 'main') {
+          activeLayer = panel;
+          renderControls();
+        }
+      }
+
+      function refreshCustomSvg() {
+        customSvg = svgTextarea.value;
+        const apply = document.getElementById('apply-custom');
+        const download = document.getElementById('download-svg');
+        const fileStatus = document.getElementById('custom-file-status');
+        try {
+          validateSvg(customSvg, layers[activeLayer].animate);
+          apply.disabled = false;
+          download.disabled = layers[activeLayer].motif !== 'custom';
+          fileStatus.textContent = 'Custom SVG is valid and ready to use.';
+          setStatus('Custom SVG is valid and ready to use.', 'ready');
+        } catch (error) {
+          apply.disabled = true;
+          download.disabled = true;
+          fileStatus.textContent = error.message;
+          setStatus(error.message, 'error');
+        }
+        if (layers.sidebar.motif === 'custom' || layers.main.motif === 'custom') renderPreviews();
+      }
+
+      for (const button of document.querySelectorAll('[data-panel]')) {
+        button.addEventListener('click', () => setActivePanel(button.dataset.panel));
+      }
+      document.getElementById('motif').addEventListener('change', event => {
+        layers[activeLayer].motif = event.target.value;
+        renderControls();
+        renderPreviews();
       });
-    }
-    function renderAll() {
-      const cfg = layers[activeLayer];
-      motifSelect.value = cfg.motif;
-      animationToggle.checked = cfg.animate;
-      document.querySelectorAll('[data-single]').forEach(button => button.setAttribute('aria-pressed', String(cfg.single === (button.dataset.single === 'true'))));
-      document.querySelectorAll('[data-sticky]').forEach(button => button.setAttribute('aria-pressed', String(cfg.sticky === (button.dataset.sticky === 'true'))));
-      document.querySelectorAll('[data-layer-tab]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.layerTab === activeLayer)));
-      updateNumberControls();
-      renderLayer('sidebar'); renderLayer('main');
-      document.getElementById('export-output').value = JSON.stringify(layers, null, 2);
-    }
-    document.querySelectorAll('[data-layer-tab]').forEach(button => button.addEventListener('click', () => { activeLayer = button.dataset.layerTab; renderAll(); }));
-    motifSelect.addEventListener('change', () => { layers[activeLayer].motif = motifSelect.value; renderAll(); });
-    animationToggle.addEventListener('change', () => { layers[activeLayer].animate = animationToggle.checked; renderAll(); });
-    document.querySelectorAll('[data-single]').forEach(button => button.addEventListener('click', () => { layers[activeLayer].single = button.dataset.single === 'true'; renderAll(); }));
-    document.querySelectorAll('[data-sticky]').forEach(button => button.addEventListener('click', () => { layers[activeLayer].sticky = button.dataset.sticky === 'true'; renderAll(); }));
-    document.getElementById('export').addEventListener('click', () => { document.getElementById('export-output').focus(); document.getElementById('export-output').select(); });
-    renderAll();
+      document.getElementById('animate').addEventListener('change', event => {
+        layers[activeLayer].animate = event.target.checked;
+        renderPreviews();
+      });
+      document.getElementById('animation-preset').addEventListener('change', event => {
+        layers[activeLayer].animationPreset = event.target.value;
+        renderPreviews();
+      });
+      for (const button of document.querySelectorAll('[data-single]')) {
+        button.addEventListener('click', () => {
+          layers[activeLayer].single = button.dataset.single === 'true';
+          renderControls();
+          renderPreviews();
+        });
+      }
+      for (const button of document.querySelectorAll('[data-sticky]')) {
+        button.addEventListener('click', () => {
+          layers[activeLayer].sticky = button.dataset.sticky === 'true';
+          renderControls();
+          renderPreviews();
+        });
+      }
+      for (const button of document.querySelectorAll('[data-device]')) {
+        button.addEventListener('click', () => {
+          document.getElementById('site-frame').dataset.device = button.dataset.device;
+          for (const option of document.querySelectorAll('button[data-device]')) {
+            option.setAttribute('aria-pressed', String(option === button));
+          }
+        });
+      }
+      themeSelect.addEventListener('change', () => {
+        themeRoot.dataset.theme = themeSelect.value;
+        try {
+          localStorage.setItem('nocturne-bg-generator-theme', themeSelect.value);
+        } catch (error) {
+          console.warn('Could not save the selected generator theme.', error);
+        }
+        renderPreviews();
+      });
+      window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', renderPreviews);
+      svgTextarea.addEventListener('input', refreshCustomSvg);
+      document.getElementById('svg-file').addEventListener('change', async event => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        try {
+          svgTextarea.value = await file.text();
+          refreshCustomSvg();
+          if (!document.getElementById('apply-custom').disabled) {
+            layers[activeLayer].motif = 'custom';
+            document.getElementById('custom-file-status').textContent = `Loaded ${file.name} and applied it to the ${activeLayer} layer.`;
+            renderControls();
+            renderPreviews();
+          }
+        } catch (error) {
+          document.getElementById('custom-file-status').textContent = `Could not read ${file.name}.`;
+          setStatus(`Could not read the selected SVG: ${error.message}`, 'error');
+        }
+      });
+      const uploadLabel = document.querySelector('label[for="svg-file"]');
+      uploadLabel.addEventListener('dragover', event => {
+        event.preventDefault();
+        uploadLabel.dataset.dragging = 'true';
+      });
+      uploadLabel.addEventListener('dragleave', () => {
+        delete uploadLabel.dataset.dragging;
+      });
+      uploadLabel.addEventListener('drop', event => {
+        event.preventDefault();
+        delete uploadLabel.dataset.dragging;
+        const file = Array.from(event.dataTransfer.files).find(candidate => /\.svg$/i.test(candidate.name) || candidate.type === 'image/svg+xml');
+        if (!file) {
+          document.getElementById('custom-file-status').textContent = 'Drop an SVG file to upload it.';
+          return;
+        }
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        document.getElementById('svg-file').files = transfer.files;
+        document.getElementById('svg-file').dispatchEvent(new Event('change'));
+      });
+      document.getElementById('apply-custom').addEventListener('click', () => {
+        layers[activeLayer].motif = 'custom';
+        setActivePanel(activeLayer);
+        renderControls();
+        renderPreviews();
+      });
+      document.getElementById('download-svg').addEventListener('click', () => {
+        const config = layers[activeLayer];
+        try {
+          const motif = validateSvg(customSvg, config.animate, config);
+          const output = resolveThemeTokens(motif.svg.replace(/<\/svg>\s*$/i, '<style>.nocturne-fire{filter:drop-shadow(0 0 4px var(--theme-fire)) drop-shadow(0 0 12px var(--theme-fire))}</style></svg>'));
+          const url = URL.createObjectURL(new Blob([output], { type: 'image/svg+xml;charset=utf-8' }));
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `nocturne-${activeLayer}-${config.animationPreset}.svg`;
+          link.click();
+          window.setTimeout(() => URL.revokeObjectURL(url), 0);
+        } catch (error) {
+          setStatus(error.message, 'error');
+        }
+      });
+      document.getElementById('copy-export').addEventListener('click', () => {
+        const output = document.getElementById('export-output');
+        output.focus();
+        output.select();
+      });
+
+      async function initialize() {
+        const results = await Promise.allSettled([loadThemeDefinitions(), loadSuppliedDragon()]);
+        const failures = results.filter(result => result.status === 'rejected');
+        if (failures.length) {
+          const message = failures.map(result => result.reason.message).join(' ');
+          setStatus(message, 'error');
+        }
+        try {
+          const savedTheme = localStorage.getItem('nocturne-bg-generator-theme');
+          if (savedTheme && themeNames.includes(savedTheme)) {
+            themeSelect.value = savedTheme;
+            themeRoot.dataset.theme = savedTheme;
+          }
+        } catch (error) {
+          console.warn('Could not restore the generator theme.', error);
+        }
+        renderControls();
+        renderPreviews();
+      }
+      initialize();
+    })();
   </script>
 </body>
 </html>

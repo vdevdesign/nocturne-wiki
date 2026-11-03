@@ -1,4 +1,4 @@
--- Run this in the Supabase SQL editor to enable player-owned homebrew inventory items.
+-- Run this in the Supabase SQL editor to enable custom items in the shared player inventory table.
 ALTER TABLE public.player_inventories
   ADD COLUMN IF NOT EXISTS item_name text,
   ADD COLUMN IF NOT EXISTS item_description text,

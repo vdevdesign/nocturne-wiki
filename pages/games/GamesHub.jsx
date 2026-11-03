@@ -282,6 +282,7 @@ window.GamesHub = function GamesHub() {
       {error ? <p className="games-error" role="alert">{error}</p> : null}
       {connection === 'disconnected' ? <p className="games-disconnected" role="status">Live updates are disconnected. Reload this page to reconnect.</p> : null}
       {!house && !isDM ? <p className="games-note">Choose your house in Common Rooms before joining games.</p> : null}
+      {isDM && window.RuneDuelTestMode ? <window.RuneDuelTestMode /> : null}
 
       <div className="games-section">
         <div className="games-section-heading">
@@ -358,11 +359,6 @@ window.GamesHub = function GamesHub() {
           </div>
         ) : null}
         {!isDM && !ownWaitingMatch && !selectedMatchId && !waitingMatches.length ? <p className="empty-note">No rival house is waiting. Create a challenge to begin.</p> : null}
-        {isDM && !selectedMatchId ? (
-          <div className="games-note">
-            Select any session above and choose <strong>Watch</strong> to open a duel — the DM test mode appears at the bottom of the match view.
-          </div>
-        ) : null}
         <div className="games-session-monitor">
           <div className="games-session-monitor-heading">
             <h4>{isDM ? 'Tournament sessions' : 'Your tournament sessions'}</h4>
@@ -411,7 +407,6 @@ window.GamesHub = function GamesHub() {
         </div>
       </div>
 
-      {window.currentUserIsDM && window.RuneDuelTestMode ? <window.RuneDuelTestMode /> : null}
     </PageSection>
   );
 };

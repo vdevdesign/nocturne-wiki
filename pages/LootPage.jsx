@@ -1,5 +1,5 @@
 window.LootPage = function LootPage() {
-  return h(PageSection, { id: 'loot', eyebrow: 'Treasure & Inventory', title: 'Loot & Homebrew Inventory', subtitle: 'Party rewards, items, and personal character inventories.' },
+  return h(PageSection, { id: 'loot', eyebrow: 'Character Items', title: 'Inventory', subtitle: 'Campaign items and personal character inventories.' },
     h('div', { className: 'block-card', style: { borderColor: 'var(--gold-dim)', background: 'var(--surface-2)', marginBottom: 24 } },
       h('h3', { style: { marginTop: 0 } }, '🎒 Personal Private Inventory'),
       h('p', null, 'Items assigned specifically to player accounts.'),

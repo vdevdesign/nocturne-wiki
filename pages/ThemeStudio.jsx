@@ -1,8 +1,25 @@
 window.ThemeStudio = function ThemeStudio() {
-  // PageSection already provides the back button; navigateTo('theme-studio',
-  // true) makes it visible.
-  return h(PageSection, { id: 'theme-studio', eyebrow: 'Appearance', title: 'Theme Studio', subtitle: 'Preview the home page while you tune colors, pattern geometry, and glow.' },
-    h(ThemeStudioHeaderBar),
+  return h('section', { id: 'theme-studio', className: 'theme-studio-page' },
+    h('header', { className: 'theme-studio-page-header' },
+      h('button', {
+        type: 'button',
+        className: 'btn btn-secondary theme-studio-exit',
+        onClick: () => {
+          const historyState = window.history.state || {};
+          if (historyState.nocturnePage === 'theme-studio' && historyState.nocturneIndex > 0) {
+            window.navigateBack();
+          } else {
+            window.navigateTo(window.localStorage.getItem('nocturne-pre-studio-page') || 'home');
+          }
+        }
+      }, '← Exit'),
+      h('div', { className: 'theme-studio-page-title' },
+        h('p', { className: 'eyebrow' }, 'Appearance'),
+        h('h2', null, 'Theme Studio'),
+        h('p', null, 'Edit your theme and preview the real Home page.')
+      ),
+      h(ThemeStudioHeaderBar)
+    ),
     h(ThemeStudioBody)
   );
 };
@@ -79,116 +96,231 @@ function ThemeStudioHeaderBar() {
 }
 
 /* ============================ Home Preview ============================ */
-/* A live, self-contained miniature of the Home page: dashboard grid with
-   next-session card, party leads, house points and latest recap, fed from
-   the same Supabase tables as the real Home page. */
 
-function PreviewCard({ title, tag, children }) {
-  return h('div', { className: 'block-card campaign-dashboard-card' },
-    h('div', { className: 'campaign-dashboard-house-header' },
-      h('div', { className: 'eyebrow' }, title),
-      tag ? h('span', { className: 'role-tag' }, tag) : null
-    ),
-    children
-  );
+function namespacePreviewSvg(svg) {
+  const ids = new Map();
+  svg.querySelectorAll('[id]').forEach((element, index) => {
+    const oldId = element.id;
+    const newId = `theme-preview-${index}-${oldId}`;
+    ids.set(oldId, newId);
+    element.id = newId;
+  });
+  svg.querySelectorAll('*').forEach(element => {
+    [...element.attributes].forEach(attribute => {
+      let value = attribute.value.replace(/url\(#([^)]+)\)/g, (match, id) =>
+        ids.has(id) ? `url(#${ids.get(id)})` : match
+      );
+      if ((attribute.name === 'href' || attribute.name === 'xlink:href') && value.startsWith('#')) {
+        const id = value.slice(1);
+        if (ids.has(id)) value = `#${ids.get(id)}`;
+      }
+      if (value !== attribute.value) element.setAttribute(attribute.name, value);
+    });
+  });
 }
 
-function ThemePreviewHome() {
-  const [dash, setDash] = React.useState(null);
-  const [error, setError] = React.useState('');
+function clonePreviewNode(source, kind, preserveIds = false) {
+  if (!source) return null;
+  const clone = source.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.classList.add(kind);
+  clone.querySelectorAll('[id]').forEach(element => {
+    if (element.id === 'campaign-dashboard-content') element.classList.add('theme-preview-dashboard-content');
+    if (!preserveIds) element.removeAttribute('id');
+  });
+  clone.querySelectorAll('*').forEach(element => {
+    [...element.attributes].forEach(attribute => {
+      if (/^on/i.test(attribute.name)) element.removeAttribute(attribute.name);
+    });
+    if (element.tagName === 'A') element.removeAttribute('href');
+  });
+  return clone;
+}
+
+function ThemePreviewSite({ device }) {
+  const [desktopScale, setDesktopScale] = React.useState(1);
+  const frameRef = React.useRef(null);
+  const sidebarRef = React.useRef(null);
+  const mobileBarRef = React.useRef(null);
+  const mainRef = React.useRef(null);
+  const patternRef = React.useRef(null);
+  const lastMainPattern = React.useRef('');
+  const lastSidebarPattern = React.useRef('');
 
   React.useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const sb = window.sb;
-        if (!sb) { setDash({}); return; }
-        const [summaryRes, questRes, dashRes, pointsRes] = await Promise.all([
-          sb.from('session_summaries').select('*').order('session_date', { ascending: false, nullsFirst: false }).limit(1),
-          sb.from('quest_board').select('entry_type, status'),
-          sb.from('campaign_dashboard').select('*').eq('id', 1).maybeSingle(),
-          sb.from('house_points').select('house, points').order('house')
-        ]);
-        if (cancelled) return;
-        const firstErr = [summaryRes.error, questRes.error, dashRes.error, pointsRes.error].find(Boolean);
-        if (firstErr) { setError(firstErr.message); return; }
-        setDash({
-          summary: summaryRes.data?.[0] || null,
-          quests: questRes.data || [],
-          dashboard: dashRes.data || {},
-          points: Object.fromEntries((pointsRes.data || []).map(r => [r.house, Number(r.points) || 0]))
-        });
-      } catch (err) { if (!cancelled) setError(err?.message || String(err)); }
+    if (device !== 'desktop' || !frameRef.current) return undefined;
+    const canvas = frameRef.current.parentElement;
+    const resize = () => setDesktopScale(Math.min(1, Math.max(0.25, (canvas.clientWidth - 20) / 1160)));
+    resize();
+    if (typeof ResizeObserver !== 'function') return undefined;
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [device]);
+
+  React.useEffect(() => {
+    const syncSidebar = () => {
+      const source = document.getElementById('appSidebar');
+      const clone = clonePreviewNode(source, 'theme-preview-sidebar', true);
+      if (!clone) return;
+      clone.style.removeProperty('display');
+      clone.id = source.id;
+      clone.querySelectorAll('.navlist button[data-target]').forEach(button => {
+        button.classList.toggle('active', button.dataset.target === 'home');
+      });
+      sidebarRef.current.replaceChildren(clone);
+      lastSidebarPattern.current = '';
+      syncSidebarPattern();
+      syncThemeSelection();
+    };
+    const syncSidebarPattern = () => {
+      const sourceLayer = document.getElementById('sidebarPattern');
+      const sourceSvg = sourceLayer?.querySelector('svg');
+      const sourceParticles = sourceLayer?.querySelector('.nocturne-fireflies-particles');
+      const previewLayer = sidebarRef.current?.querySelector('.sidebar-pattern');
+      if (!sourceSvg || !previewLayer) return;
+      previewLayer.style.position = 'absolute';
+      ['top', 'left', 'right', 'bottom', 'width', 'height'].forEach(property => previewLayer.style.removeProperty(property));
+      let replacedPattern = false;
+      const patternMarkup = `${sourceSvg.outerHTML}${sourceParticles?.outerHTML || ''}`;
+      if (patternMarkup !== lastSidebarPattern.current) {
+        const svg = sourceSvg.cloneNode(true);
+        previewLayer.replaceChildren(svg, ...(sourceParticles ? [sourceParticles.cloneNode(true)] : []));
+        lastSidebarPattern.current = patternMarkup;
+        replacedPattern = true;
+      }
+      const svg = previewLayer.querySelector('svg[data-layer="sidebar"]');
+      if (svg) {
+        if (replacedPattern) namespacePreviewSvg(svg);
+        if (window.refreshNocturnePatternSvg('sidebar', svg, previewLayer)) namespacePreviewSvg(svg);
+      }
+      previewLayer.classList.add('theme-preview-sidebar-pattern');
+      previewLayer.classList.toggle('flames-off', sourceLayer.classList.contains('flames-off'));
+      previewLayer.classList.toggle('pattern-inverted', document.documentElement.classList.contains('pattern-inverted'));
+      previewLayer.classList.toggle('fireflies-active', sourceLayer.classList.contains('fireflies-active'));
+      previewLayer.classList.toggle('motif-animation-off', sourceLayer.classList.contains('motif-animation-off'));
+      previewLayer.style.opacity = getComputedStyle(sourceLayer).opacity;
+      previewLayer.style.setProperty('--firefly-offset-x', sourceLayer.style.getPropertyValue('--firefly-offset-x'));
+      previewLayer.style.setProperty('--firefly-offset-y', sourceLayer.style.getPropertyValue('--firefly-offset-y'));
+      previewLayer.hidden = document.documentElement.classList.contains('no-background')
+        || document.documentElement.classList.contains('sidebar-pattern-off');
+    };
+    const syncThemeSelection = () => {
+      const value = document.getElementById('themeSelectInline')?.value;
+      const previewSelect = sidebarRef.current?.querySelector('#themeSelectInline');
+      if (value && previewSelect) previewSelect.value = value;
+    };
+    const syncMobileBar = () => {
+      const source = document.querySelector('.mobile-nav-bar');
+      const clone = clonePreviewNode(source, 'theme-preview-mobile-bar');
+      if (!clone) return;
+      clone.classList.remove('mobile-nav-bar');
+      mobileBarRef.current.replaceChildren(clone);
+    };
+    const syncHome = () => {
+      const source = document.querySelector('#appMain > #home');
+      const clone = clonePreviewNode(source, 'theme-preview-home', true);
+      if (!clone) return;
+      clone.id = source.id;
+      clone.classList.add('active');
+      clone.querySelector('.page-back-button')?.setAttribute('hidden', '');
+      mainRef.current.replaceChildren(clone);
+    };
+    const syncPattern = () => {
+      const sourceLayer = document.getElementById('nocturnePatternLayer');
+      const source = sourceLayer?.querySelector('svg');
+      const sourceParticles = sourceLayer?.querySelector('.nocturne-fireflies-particles');
+      if (!source || !sourceLayer) return;
+      let replacedPattern = false;
+      const patternMarkup = `${source.outerHTML}${sourceParticles?.outerHTML || ''}`;
+      if (patternMarkup !== lastMainPattern.current) {
+        const clone = source.cloneNode(true);
+        clone.classList.add('theme-preview-main-pattern-svg');
+        patternRef.current.replaceChildren(clone, ...(sourceParticles ? [sourceParticles.cloneNode(true)] : []));
+        lastMainPattern.current = patternMarkup;
+        replacedPattern = true;
+      }
+      const previewSvg = patternRef.current.querySelector('svg');
+      if (previewSvg) {
+        if (replacedPattern) namespacePreviewSvg(previewSvg);
+        if (window.refreshNocturnePatternSvg('main', previewSvg, patternRef.current)) namespacePreviewSvg(previewSvg);
+      }
+      patternRef.current.style.opacity = getComputedStyle(sourceLayer).opacity;
+      patternRef.current.classList.toggle('flames-off', sourceLayer.classList.contains('flames-off'));
+      patternRef.current.classList.toggle('pattern-inverted', document.documentElement.classList.contains('pattern-inverted'));
+      patternRef.current.classList.toggle('fireflies-active', sourceLayer.classList.contains('fireflies-active'));
+      patternRef.current.classList.toggle('motif-animation-off', sourceLayer.classList.contains('motif-animation-off'));
+      patternRef.current.style.setProperty('--firefly-offset-x', sourceLayer.style.getPropertyValue('--firefly-offset-x'));
+      patternRef.current.style.setProperty('--firefly-offset-y', sourceLayer.style.getPropertyValue('--firefly-offset-y'));
+      patternRef.current.hidden = document.documentElement.classList.contains('no-background');
+      syncSidebarPattern();
+      window.applyNocturnePatternAnimation?.();
+    };
+
+    syncSidebar();
+    syncMobileBar();
+    syncHome();
+    syncPattern();
+    const observers = [];
+    if (typeof ResizeObserver === 'function') {
+      const resizeObserver = new ResizeObserver(() => {
+        const sidebarPattern = sidebarRef.current?.querySelector('.sidebar-pattern');
+        const sidebarSvg = sidebarPattern?.querySelector('svg[data-layer="sidebar"]');
+        if (sidebarSvg && window.refreshNocturnePatternSvg('sidebar', sidebarSvg, sidebarPattern)) namespacePreviewSvg(sidebarSvg);
+        const mainSvg = patternRef.current?.querySelector('svg');
+        if (mainSvg && window.refreshNocturnePatternSvg('main', mainSvg, patternRef.current)) namespacePreviewSvg(mainSvg);
+      });
+      if (sidebarRef.current) resizeObserver.observe(sidebarRef.current);
+      if (patternRef.current) resizeObserver.observe(patternRef.current);
+      observers.push(resizeObserver);
     }
-    load();
-    const onChange = () => load();
-    window.addEventListener('nocturne-theme-updated', onChange);
-    return () => { cancelled = true; window.removeEventListener('nocturne-theme-updated', onChange); };
+    const sidebar = document.getElementById('appSidebar');
+    if (sidebar) {
+      const observer = new MutationObserver(syncSidebar);
+      observer.observe(sidebar, { attributes: true });
+      observers.push(observer);
+    }
+    const home = document.querySelector('#appMain > #home');
+    if (home) {
+      const observer = new MutationObserver(syncHome);
+      observer.observe(home, { attributes: true, childList: true, subtree: true, characterData: true });
+      observers.push(observer);
+    }
+    const mainPattern = document.getElementById('nocturnePatternLayer');
+    if (mainPattern) {
+      const observer = new MutationObserver(syncPattern);
+      observer.observe(mainPattern, { attributes: true, childList: true, subtree: true });
+      observers.push(observer);
+    }
+    const onPatternChange = () => syncPattern();
+    const onThemeChange = () => syncThemeSelection();
+    window.addEventListener('nocturne-pattern-updated', onPatternChange);
+    window.addEventListener('nocturne-theme-updated', onThemeChange);
+    return () => {
+      observers.forEach(observer => observer.disconnect());
+      window.removeEventListener('nocturne-pattern-updated', onPatternChange);
+      window.removeEventListener('nocturne-theme-updated', onThemeChange);
+    };
   }, []);
 
-  if (error) return h('p', { className: 'empty-note' }, 'Preview unavailable: ', error);
-  const dashboard = dash || {};
-  const summary = dashboard.summary;
-  const quests = dashboard.quests || [];
-  const activeQuests = quests.filter(e => e.entry_type === 'quest' && ['open', 'in_progress'].includes(e.status)).length;
-  const rumors = quests.filter(e => e.entry_type === 'rumor' && e.status === 'unverified').length;
-  const sessionDate = dashboard.dashboard?.next_session_date
-    ? new Date(dashboard.dashboard.next_session_date + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
-    : 'Not scheduled yet';
-  const houseGoals = {
-    phoenix: Number(dashboard.dashboard?.phoenix_goal) || 0,
-    fox: Number(dashboard.dashboard?.fox_goal) || 0,
-    selkie: Number(dashboard.dashboard?.selkie_goal) || 0
-  };
-  const labels = { phoenix: 'Phoenix', fox: 'Fox', selkie: 'Selkie' };
-  const points = dashboard.points || {};
-
-  return h('div', { className: 'theme-preview-frame' },
-    h('div', { className: 'theme-preview-chrome' }, 'Home · live preview'),
-    h('div', { className: 'theme-preview-page' },
-      h('div', { className: 'eyebrow' }, 'Welcome'),
-      h('div', { className: 'theme-preview-title' }, 'The World of Nocturne'),
-      h('div', { className: 'campaign-dashboard-grid' },
-        h(PreviewCard, { title: 'Next Session' },
-          h('div', { className: 'campaign-dashboard-session-content' },
-            h('strong', null, sessionDate),
-            dashboard.dashboard?.next_session_notes
-              ? h('div', { dangerouslySetInnerHTML: { __html: window.renderMarkdown ? window.renderMarkdown(dashboard.dashboard.next_session_notes) : '' } })
-              : h('p', { className: 'empty-note' }, 'No session note yet.')
-          )
-        ),
-        h(PreviewCard, { title: 'Party Leads' },
-          h('p', { style: { margin: 0 } },
-            h('strong', null, String(activeQuests)), ' active quests · ',
-            h('strong', null, String(rumors)), ' unverified rumors')
-        ),
-        h(PreviewCard, { title: 'House Points', tag: 'Campaign goal' },
-          h('div', { className: 'campaign-dashboard-house-list' },
-            ['phoenix', 'fox', 'selkie'].map(house => {
-              const goal = houseGoals[house];
-              const pts = points[house] || 0;
-              const pct = goal > 0 ? Math.min(100, Math.round(pts / goal * 100)) : 0;
-              return h('div', { className: `campaign-dashboard-house-row house-${house}`, key: house },
-                h('div', { className: 'campaign-dashboard-house-label' },
-                  h('img', { src: `assets/house-${house}.png`, alt: '' }),
-                  h('span', null, `House ${labels[house]}`)
-                ),
-                h('span', { className: 'campaign-dashboard-house-score' }, `${pts}${goal ? ` / ${goal}` : ''} pts`),
-                goal ? h('div', { className: 'campaign-dashboard-house-track' },
-                  h('div', { className: 'campaign-dashboard-house-fill', style: { width: pct + '%' } })
-                ) : null
-              );
-            })
-          )
-        ),
-        h(PreviewCard, { title: 'Latest Recap' },
-          summary
-            ? h('div', null,
-              h('strong', null, (summary.session_number ? `Session ${summary.session_number}: ` : '') + (summary.title || 'Untitled Session')),
-              summary.body ? h('p', { style: { marginTop: 6 } }, summary.body.slice(0, 200) + (summary.body.length > 200 ? '…' : '')) : null
-            )
-            : h('p', { className: 'empty-note' }, 'No session recaps yet.')
-        )
+  return h('div', {
+    className: `theme-preview-fit-frame ${device === 'mobile' ? 'is-mobile' : 'is-desktop'}`,
+    ref: frameRef,
+    style: device === 'mobile'
+      ? { width: '390px', height: '720px' }
+      : { width: `${1160 * desktopScale}px`, height: `${760 * desktopScale}px` }
+  },
+    h('div', {
+      className: `theme-preview-site ${device === 'mobile' ? 'is-mobile' : 'is-desktop'}`,
+      style: device === 'mobile'
+        ? { width: '390px', height: '720px' }
+        : { width: '1160px', height: '760px', transform: `scale(${desktopScale})`, transformOrigin: 'top left' }
+    },
+      h('div', { className: 'theme-preview-mobile-bar', ref: mobileBarRef }),
+      h('div', { className: 'theme-preview-sidebar-slot', ref: sidebarRef }),
+      h('main', { id: 'appMain', className: 'site-main theme-preview-main' },
+        h('div', { id: 'nocturnePatternLayer', className: 'theme-preview-main-pattern', ref: patternRef, 'aria-hidden': true }),
+        h('div', { className: 'theme-preview-home-slot', ref: mainRef })
       )
     )
   );
@@ -196,7 +328,8 @@ function ThemePreviewHome() {
 
 /* ============================ Sidebar editor ============================ */
 
-const GRID_MIN = 1, GRID_MAX = 4;       // motif repeats per tile axis
+const GRID_MIN = 1, GRID_MAX = 12;      // motif repeats per tile axis
+const MOTIF_SIZE_MIN = 10, MOTIF_SIZE_MAX = 200;
 const OPACITY_MIN = 4, OPACITY_MAX = 70;
 
 function clamp(value, min, max) {
@@ -257,7 +390,7 @@ function NumericRangeControl({ label, min, max, value, onChange }) {
   });
 }
 
-function BackgroundEditor({ bgTab, setBgTab, layerCfg, layerDrafts, setLayerDrafts }) {
+function BackgroundEditor({ bgTab, setBgTab, layerCfg, layerDrafts, setLayerDrafts, dragonStatus }) {
   const layer = bgTab;
   const cfg = layerCfg[layer] || {};
   const drafts = layerDrafts[layer] || {};
@@ -277,7 +410,7 @@ function BackgroundEditor({ bgTab, setBgTab, layerCfg, layerDrafts, setLayerDraf
       gridCols: [GRID_MIN, GRID_MAX],
       gridRows: [GRID_MIN, GRID_MAX],
       opacity: [OPACITY_MIN, OPACITY_MAX],
-      size: [25, 100],
+      size: [MOTIF_SIZE_MIN, MOTIF_SIZE_MAX],
       tilt: [-180, 180]
     }[field];
     const value = clamp(Math.round(num), bounds[0], bounds[1]);
@@ -297,11 +430,19 @@ function BackgroundEditor({ bgTab, setBgTab, layerCfg, layerDrafts, setLayerDraf
       }, label))
     ),
 
+    h(LayerAlignmentEditor, { scope: layer, key: `alignment-${layer}` }),
+
     h('label', { className: 'theme-studio-slider-label' },
       h('span', null, 'Motif pattern'),
       h('div', { className: 'theme-studio-toggle-row' },
         LAYER_MOTIFS.map(([value, label]) => h('button', {
           type: 'button', key: value,
+          disabled: value === 'dragon' && dragonStatus !== 'ready',
+          title: value === 'dragon' && dragonStatus === 'loading'
+            ? 'Loading the supplied dragon artwork…'
+            : value === 'dragon' && dragonStatus === 'error'
+              ? 'The supplied dragon artwork could not be loaded.'
+              : undefined,
           'aria-pressed': String(cfg.motif === value),
           className: 'btn btn-sm ' + (cfg.motif === value ? 'btn-active-choice' : 'btn-secondary'),
           onClick: () => window.setNocturneLayerMotif(layer, value)
@@ -347,7 +488,7 @@ function BackgroundEditor({ bgTab, setBgTab, layerCfg, layerDrafts, setLayerDraf
     ) : null,
 
     h(DualInput, {
-      label: 'Motif size', min: 25, max: 100, step: 1,
+      label: 'Motif size', min: MOTIF_SIZE_MIN, max: MOTIF_SIZE_MAX, step: 1,
       value: cfg.size, draft: drafts.size,
       onDraft: v => setDraft('size', v),
       onCommit: v => (typeof v === 'number' ? window.setNocturneLayerSize(layer, v) : commitDraft('size', drafts.size)),
@@ -390,6 +531,138 @@ function BackgroundEditor({ bgTab, setBgTab, layerCfg, layerDrafts, setLayerDraf
 
     h('p', { className: 'theme-studio-hint' },
       'Colors follow the active Nocturne theme variables. Fire animates and glows with the theme flame colors.')
+  );
+}
+
+function BackgroundStudioControls() {
+  const [dragonStatus, setDragonStatus] = React.useState(window.nocturneDragonHeadStatus || 'loading');
+  const [bgTab, setBgTab] = React.useState('main');
+  const [layerCfg, setLayerCfg] = React.useState(() => ({
+    sidebar: { ...(window.nocturnePatternState.sidebar || {}) },
+    main: { ...(window.nocturnePatternState.main || {}) }
+  }));
+  const [layerDrafts, setLayerDrafts] = React.useState(() => {
+    const state = window.nocturnePatternState;
+    return Object.fromEntries(['sidebar', 'main'].map(layer => {
+      const config = state[layer] || {};
+      return [layer, {
+        gridCols: String(config.gridCols || 1),
+        gridRows: String(config.gridRows || 1),
+        opacity: String(config.opacity || 35),
+        size: String(config.size || 85),
+        tilt: String(config.tilt || 0)
+      }];
+    }));
+  });
+  const [options, setOptions] = React.useState(() => ({
+    flames: !!window.nocturnePatternState.flames,
+    animateMotif: !!window.nocturnePatternState.animateMotif,
+    sidebarPattern: !!window.nocturnePatternState.sidebarPattern,
+    noBackground: !!window.nocturnePatternState.noBackground,
+    inverted: document.documentElement.classList.contains('pattern-inverted')
+  }));
+
+  React.useEffect(() => {
+    const sync = () => {
+      const state = window.nocturnePatternState;
+      const nextLayerCfg = {
+        sidebar: { ...(state.sidebar || {}) },
+        main: { ...(state.main || {}) }
+      };
+      setLayerCfg(nextLayerCfg);
+      setLayerDrafts(Object.fromEntries(['sidebar', 'main'].map(layer => [layer, {
+        gridCols: String(nextLayerCfg[layer].gridCols || 1),
+        gridRows: String(nextLayerCfg[layer].gridRows || 1),
+        opacity: String(nextLayerCfg[layer].opacity || 35),
+        size: String(nextLayerCfg[layer].size || 85),
+        tilt: String(nextLayerCfg[layer].tilt || 0)
+      }])));
+      setOptions({
+        flames: !!state.flames,
+        animateMotif: !!state.animateMotif,
+        sidebarPattern: !!state.sidebarPattern,
+        noBackground: !!state.noBackground,
+        inverted: document.documentElement.classList.contains('pattern-inverted')
+      });
+    };
+    window.addEventListener('nocturne-pattern-updated', sync);
+    return () => window.removeEventListener('nocturne-pattern-updated', sync);
+  }, []);
+  React.useEffect(() => {
+    const ready = () => setDragonStatus('ready');
+    const error = () => setDragonStatus('error');
+    window.addEventListener('nocturne-dragon-head-ready', ready);
+    window.addEventListener('nocturne-dragon-head-error', error);
+    return () => {
+      window.removeEventListener('nocturne-dragon-head-ready', ready);
+      window.removeEventListener('nocturne-dragon-head-error', error);
+    };
+  }, []);
+
+  return h('div', { className: 'theme-studio-background-controls', 'aria-label': 'Background settings' },
+    h('div', null,
+      h('h3', null, 'Background motifs'),
+      h('p', { className: 'theme-studio-hint' }, 'Choose independent motifs, exact grids, and layout behavior for the sidebar and main content.')
+    ),
+    h('label', { className: 'theme-studio-slider-label' },
+      h('span', null, 'Background layer'),
+      h('div', { className: 'theme-studio-toggle-row' },
+        h('button', {
+          type: 'button', className: `btn btn-sm ${!options.noBackground ? 'btn-active-choice' : 'btn-secondary'}`,
+          'aria-pressed': String(!options.noBackground),
+          onClick: () => window.setNocturneNoBackground(false)
+        }, 'On'),
+        h('button', {
+          type: 'button', className: `btn btn-sm ${options.noBackground ? 'btn-active-choice' : 'btn-secondary'}`,
+          'aria-pressed': String(options.noBackground),
+          onClick: () => window.setNocturneNoBackground(true)
+        }, 'Off')
+      )
+    ),
+    h('label', { className: 'theme-studio-slider-label' },
+        h('span', null, 'Sidebar background'),
+        h('div', { className: 'theme-studio-toggle-row' },
+          h('button', {
+            type: 'button', className: `btn btn-sm ${options.sidebarPattern ? 'btn-active-choice' : 'btn-secondary'}`,
+            'aria-pressed': String(options.sidebarPattern),
+            onClick: () => window.setNocturneSidebarPattern(!options.sidebarPattern)
+          }, options.sidebarPattern ? 'Pattern on' : 'Pattern off')
+        )
+      ),
+    h('label', { className: 'theme-studio-slider-label' },
+        h('span', null, 'Flame glow'),
+        h('button', {
+          type: 'button',
+          className: `btn btn-sm ${options.flames ? 'btn-flame-on' : 'btn-secondary'}`,
+          'aria-pressed': String(options.flames),
+          onClick: () => window.setNocturnePatternFlames(!options.flames)
+        }, options.flames ? 'Fire glow on' : 'Fire glow off')
+      ),
+    h('label', { className: 'theme-studio-slider-label' },
+        h('span', null, 'Motif animation'),
+        h('button', {
+          type: 'button', className: `btn btn-sm ${options.animateMotif ? 'btn-active-choice' : 'btn-secondary'}`,
+          'aria-pressed': String(options.animateMotif),
+          onClick: () => window.setNocturneAnimateMotif(!options.animateMotif)
+        }, options.animateMotif ? 'Animated' : 'Static')
+      ),
+    h('label', { className: 'theme-studio-slider-label' },
+        h('span', null, 'Background contrast'),
+        h('button', {
+          type: 'button', className: `btn btn-sm ${options.inverted ? 'btn-active-choice' : 'btn-secondary'}`,
+          'aria-pressed': String(options.inverted),
+          onClick: () => window.togglePatternInverted()
+        }, options.inverted ? 'Inverted' : 'Regular')
+      ),
+    h(BackgroundEditor, { bgTab, setBgTab, layerCfg, layerDrafts, setLayerDrafts, dragonStatus }),
+    options.noBackground
+      ? h('p', { className: 'theme-studio-hint' }, 'The background layer is hidden. Motif choices remain saved and ready to display when you turn it on.')
+      : null,
+    dragonStatus === 'loading'
+      ? h('p', { className: 'theme-studio-hint', role: 'status' }, 'Loading supplied dragon SVG…')
+      : dragonStatus === 'error'
+        ? h('p', { className: 'theme-studio-hint error-msg', role: 'alert' }, 'The supplied dragon SVG could not be loaded. Check the browser console for details.')
+        : null
   );
 }
 
@@ -484,6 +757,11 @@ function ThemeStudioControls() {
   return h('div', { className: 'theme-studio-panel' },
     h('button', {
       type: 'button',
+      className: 'btn btn-sm color-studio-open',
+      onClick: () => window.dispatchEvent(new CustomEvent('nocturne-open-color-studio'))
+    }, 'Open CSS color studio'),
+    h('button', {
+      type: 'button',
       className: 'btn btn-secondary btn-sm',
       style: { marginBottom: 4, justifySelf: 'start' },
       onClick: resetAppearance
@@ -550,7 +828,7 @@ function ThemeStudioControls() {
           className: 'btn btn-sm ' + (noBackground ? 'btn-active-choice' : 'btn-secondary'),
           onClick: () => window.setNocturneNoBackground(true)
         }, 'Off'),
-        h('span', { className: 'theme-studio-hint' }, noBackground ? 'No candelabra background anywhere.' : 'Background pattern visible on the page.')
+        h('span', { className: 'theme-studio-hint' }, noBackground ? 'Background motifs are hidden.' : 'Background motif visible across the page.')
       )
     ),
     !noBackground ? h('label', { className: 'theme-studio-slider-label' },
@@ -855,6 +1133,302 @@ function ColorSliders({ varName, mode, onModeChange }) {
   );
 }
 
+const COLOR_STUDIO_GROUPS = [
+  { title: 'Surfaces & borders', variables: ['--bg', '--bg-alt', '--surface', '--surface-2', '--line'] },
+  { title: 'Text & symbols', variables: ['--text', '--text-dim', '--text-faint', '--text-main', '--symbol', '--button-text', '--session-note'] },
+  { title: 'Accents', variables: ['--gold', '--gold-dim', '--purple', '--purple-dim', '--rose', '--rose-dim'] },
+  { title: 'Atmosphere', variables: ['--glow-primary', '--glow-secondary'] }
+];
+
+function colorToHex(value) {
+  const short = /^#([0-9a-f]{3,4})$/i.exec(value);
+  if (short) {
+    const expanded = short[1].split('').map(char => char + char).join('');
+    return `#${expanded.slice(0, 6)}${expanded.length === 8 ? expanded.slice(6) : ''}`;
+  }
+  const full = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(value);
+  if (full) return `#${full[1].toLowerCase()}${full[2] ? full[2].toLowerCase() : ''}`;
+  const rgb = /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/i.exec(value);
+  if (!rgb) return '';
+  const channels = rgb.slice(1, 4).map(channel => clamp(Math.round(Number(channel)), 0, 255));
+  const hex = rgbToHex(...channels);
+  const alpha = rgb[4] === undefined ? 1 : Math.min(1, Math.max(0, Number(rgb[4])));
+  return alpha < 1 ? `${hex}${Math.round(alpha * 255).toString(16).padStart(2, '0')}` : hex;
+}
+
+function colorHexToRgba(value) {
+  const parsed = hexToRgb(value.slice(0, 7));
+  if (!parsed) return { r: 136, g: 136, b: 136, a: 1 };
+  const alphaHex = /^#[0-9a-f]{8}$/i.test(value) ? parseInt(value.slice(7, 9), 16) / 255 : 1;
+  return { ...parsed, a: alphaHex };
+}
+
+function colorRgbaToHex(color, withAlpha) {
+  const hex = rgbToHex(color.r, color.g, color.b);
+  return withAlpha ? `${hex}${Math.round(color.a * 255).toString(16).padStart(2, '0')}` : hex;
+}
+
+function readScopedColor(varName, scope) {
+  const overrides = scope === 'sidebar'
+    ? window.nocturneSidebarColorOverrides
+    : scope === 'main'
+      ? window.nocturneMainColorOverrides
+      : window.nocturneColorOverrides;
+  const stored = overrides[varName];
+  if (stored && colorHexToRgba(stored)) return stored.toLowerCase();
+  const target = scope === 'sidebar'
+    ? document.getElementById('appSidebar')
+    : scope === 'main'
+      ? document.getElementById('appMain')
+      : document.documentElement;
+  const computed = target ? getComputedStyle(target).getPropertyValue(varName).trim() : '';
+  return colorToHex(computed) || resolveVarHex(varName);
+}
+
+function ColorVariableEditor({ item, scope, mode, revision }) {
+  const includeAlpha = item.varName.startsWith('--glow-');
+  const [hex, setHex] = React.useState(() => readScopedColor(item.varName, scope));
+  React.useEffect(() => setHex(readScopedColor(item.varName, scope)), [item.varName, scope, revision]);
+
+  const color = colorHexToRgba(hex);
+  const hsl = rgbToHsl(color.r, color.g, color.b);
+  const currentOverrides = scope === 'sidebar'
+    ? window.nocturneSidebarColorOverrides
+    : scope === 'main'
+      ? window.nocturneMainColorOverrides
+      : window.nocturneColorOverrides;
+
+  function commit(next) {
+    const nextHex = colorRgbaToHex(next, includeAlpha);
+    setHex(nextHex);
+    if (scope === 'sidebar') window.setNocturneSidebarColorOverride(item.varName, nextHex);
+    else if (scope === 'main') window.setNocturneMainColorOverride(item.varName, nextHex);
+    else window.setNocturneColorOverride(item.varName, nextHex);
+  }
+
+  const slider = (label, value, min, max, onChange) => h(NumericRangeControl, {
+    label, value, min, max, onChange
+  });
+
+  return h('article', { className: 'css-color-variable' },
+    h('header', { className: 'css-color-variable-heading' },
+      h('div', null,
+        h('div', { className: 'css-color-variable-name' },
+          h('strong', null, item.label),
+          h('button', {
+            type: 'button',
+            className: 'css-color-help',
+            title: item.description,
+            'aria-label': `What does ${item.varName} change?`,
+            'aria-describedby': `color-help-${scope}-${item.varName.slice(2)}`
+          }, '?')
+        ),
+        h('code', null, item.varName),
+        h('span', { id: `color-help-${scope}-${item.varName.slice(2)}`, className: 'css-color-variable-help' }, item.description)
+      ),
+      h('div', { className: 'css-color-variable-actions' },
+        h('span', {
+          className: 'color-slider-preview',
+          style: { backgroundColor: hex },
+          role: 'img',
+          'aria-label': `${item.label} color ${hex}`
+        }),
+        h('code', null, hex),
+        currentOverrides[item.varName] ? h('button', {
+          type: 'button',
+          className: 'btn btn-sm btn-secondary',
+          onClick: () => {
+            if (scope === 'sidebar') window.setNocturneSidebarColorOverride(item.varName, '');
+            else if (scope === 'main') window.setNocturneMainColorOverride(item.varName, '');
+            else window.setNocturneColorOverride(item.varName, '');
+          }
+        }, 'Reset') : null
+      )
+    ),
+    mode === 'rgb'
+      ? h(React.Fragment, null,
+          slider('Red', color.r, 0, 255, value => commit({ ...color, r: value })),
+          slider('Green', color.g, 0, 255, value => commit({ ...color, g: value })),
+          slider('Blue', color.b, 0, 255, value => commit({ ...color, b: value }))
+        )
+      : h(React.Fragment, null,
+          slider('Hue', hsl.h, 0, 360, value => commit({ ...color, ...hslToRgb(value, hsl.s, hsl.l) })),
+          slider('Saturation', hsl.s, 0, 100, value => commit({ ...color, ...hslToRgb(hsl.h, value, hsl.l) })),
+          slider('Lightness', hsl.l, 0, 100, value => commit({ ...color, ...hslToRgb(hsl.h, hsl.s, value) }))
+        ),
+    includeAlpha ? slider('Opacity', Math.round(color.a * 100), 0, 100, value => commit({ ...color, a: value / 100 })) : null
+  );
+}
+
+function LayerAlignmentEditor({ scope }) {
+  const [alignment, setAlignment] = React.useState(() => {
+    const config = window.nocturnePatternState[scope] || {};
+    return { x: config.alignX || 0, y: config.alignY || 0 };
+  });
+  React.useEffect(() => {
+    const sync = () => {
+      const config = window.nocturnePatternState[scope] || {};
+      setAlignment({ x: config.alignX || 0, y: config.alignY || 0 });
+    };
+    window.addEventListener('nocturne-pattern-updated', sync);
+    return () => window.removeEventListener('nocturne-pattern-updated', sync);
+  }, [scope]);
+
+  function setAxis(axis, value) {
+    const key = axis === 'x' ? 'alignX' : 'alignY';
+    window.setNocturneLayerAlignment(scope, key, value);
+  }
+
+  const positions = [
+    [-50, -50, '↖', 'top left'], [0, -50, '↑', 'top center'], [50, -50, '↗', 'top right'],
+    [-50, 0, '←', 'center left'], [0, 0, '•', 'center'], [50, 0, '→', 'center right'],
+    [-50, 50, '↙', 'bottom left'], [0, 50, '↓', 'bottom center'], [50, 50, '↘', 'bottom right']
+  ];
+
+  return h('div', { className: 'css-color-alignment' },
+    h('div', { className: 'css-color-section-heading' },
+      h('div', null,
+        h('h3', null, `${scope === 'sidebar' ? 'Sidebar' : 'Main content'} motif offset`),
+        h('p', null, 'Position each background motif within its section.')
+      ),
+      h('button', {
+        type: 'button',
+        className: 'css-color-help',
+        title: 'Alignment moves the motif inside each tile or single hero. It does not stretch or change the SVG aspect ratio.',
+        'aria-label': 'What does motif alignment change?'
+      }, '?')
+    ),
+    h('div', { className: 'css-color-alignment-grid', role: 'group', 'aria-label': `${scope} motif alignment` },
+      positions.map(([x, y, glyph, label]) => h('button', {
+        key: `${x}:${y}`,
+        type: 'button',
+        className: 'btn btn-sm btn-secondary',
+        'aria-pressed': String(alignment.x === x && alignment.y === y),
+        'aria-label': `Align motif ${label}`,
+        title: `Align motif ${label}`,
+        onClick: () => { setAxis('x', x); setAxis('y', y); }
+      }, glyph))
+    ),
+    h('div', { className: 'css-color-alignment-offsets' },
+      h(NumericRangeControl, {
+        label: 'Horizontal offset', min: -50, max: 50, value: alignment.x,
+        onChange: value => setAxis('x', value)
+      }),
+      h(NumericRangeControl, {
+        label: 'Vertical offset', min: -50, max: 50, value: alignment.y,
+        onChange: value => setAxis('y', value)
+      })
+    )
+  );
+}
+
+function CssColorStudio({ onExit }) {
+  const [scope, setScope] = React.useState('global');
+  const [mode, setMode] = React.useState('hsl');
+  const [previewDevice, setPreviewDevice] = React.useState('desktop');
+  const [revision, setRevision] = React.useState(0);
+
+  React.useEffect(() => {
+    const sync = () => setRevision(value => value + 1);
+    window.addEventListener('nocturne-theme-updated', sync);
+    window.addEventListener('nocturne-pattern-updated', sync);
+    return () => {
+      window.removeEventListener('nocturne-theme-updated', sync);
+      window.removeEventListener('nocturne-pattern-updated', sync);
+    };
+  }, []);
+
+  const scopes = [
+    ['sidebar', 'Sidebar'],
+    ['main', 'Main content'],
+    ['global', 'Global']
+  ];
+  const scopeDescription = scope === 'sidebar'
+    ? 'Editing only the navigation sidebar. These values override global colors inside the sidebar.'
+    : scope === 'main'
+      ? 'Editing only the main content area. These values override global colors inside the page content.'
+      : 'Editing global theme variables. Changes apply across the site unless overridden by a sidebar or main-content color.';
+
+  return h('div', { id: 'css-color-studio', className: 'css-color-studio', 'aria-label': 'Theme color and background editor' },
+    h('header', { className: 'css-color-studio-header' },
+      h('div', null,
+        h('p', { className: 'eyebrow' }, 'Appearance tools'),
+        h('h2', null, 'CSS Color Studio'),
+        h('p', { className: 'theme-studio-hint' }, 'Edit the existing theme CSS variables with precise RGB or HSL controls.')
+      ),
+      h('button', {
+        type: 'button',
+        className: 'btn btn-secondary',
+        onClick: onExit
+      }, 'Exit color editor')
+    ),
+    h('div', { className: 'css-color-studio-layout' },
+      h('div', { className: 'css-color-controls' },
+        h('div', { className: 'css-color-scope-bar' },
+          h('div', { className: 'css-color-scope-tabs', role: 'tablist', 'aria-label': 'Color edit scope' },
+            scopes.map(([key, label]) => h('button', {
+              key, type: 'button', role: 'tab', 'aria-selected': String(scope === key),
+              onClick: () => setScope(key)
+            }, label))
+          ),
+          h('div', { className: 'css-color-mode-tabs', role: 'group', 'aria-label': 'Color channel model' },
+            h('button', {
+              type: 'button', className: 'btn btn-sm',
+              'aria-pressed': String(mode === 'rgb'),
+              onClick: () => setMode('rgb')
+            }, 'RGB'),
+            h('button', {
+              type: 'button', className: 'btn btn-sm',
+              'aria-pressed': String(mode === 'hsl'),
+              onClick: () => setMode('hsl')
+            }, 'HSL')
+          )
+        ),
+        h('div', { className: 'css-color-scope-description', 'aria-live': 'polite' },
+          h('strong', null, `Editing: ${scope === 'sidebar' ? 'Sidebar' : scope === 'main' ? 'Main content' : 'Global'}`),
+          h('span', null, scopeDescription)
+        ),
+        h(BackgroundStudioControls),
+        COLOR_STUDIO_GROUPS.map(group => h('details', {
+          key: `${scope}-${group.title}`,
+          className: 'css-color-group'
+        },
+          h('summary', null, group.title),
+          h('div', { className: 'css-color-variable-grid' },
+            group.variables.map(varName => {
+              const item = window.nocturneSwatches.find(swatch => swatch.varName === varName);
+              return item ? h(ColorVariableEditor, { key: `${scope}-${varName}`, item, scope, mode, revision }) : null;
+            })
+          )
+        ))
+      ),
+      h('aside', { className: 'css-color-preview' },
+        h('div', { className: 'css-color-preview-toolbar' },
+          h('div', { className: 'css-color-preview-heading' },
+            h('h3', null, 'Live site preview'),
+            h('p', null, 'Changes appear here immediately.')
+          ),
+          h('div', { className: 'css-color-device-tabs', role: 'group', 'aria-label': 'Preview device size' },
+            h('button', {
+              type: 'button', className: 'btn btn-sm',
+              'aria-pressed': String(previewDevice === 'desktop'),
+              onClick: () => setPreviewDevice('desktop')
+            }, 'Desktop'),
+            h('button', {
+              type: 'button', className: 'btn btn-sm',
+              'aria-pressed': String(previewDevice === 'mobile'),
+              onClick: () => setPreviewDevice('mobile')
+            }, 'Mobile')
+          )
+        ),
+        h('div', { className: `css-color-preview-canvas ${previewDevice === 'mobile' ? 'is-mobile' : 'is-desktop'}` },
+          h(ThemePreviewSite, { device: previewDevice })
+        )
+      )
+    )
+  );
+}
+
 /* ==================== Editable / saveable CSS variables ==================== */
 
 function CssVariableEditor() {
@@ -879,8 +1453,9 @@ function CssVariableEditor() {
     }
   }
 
-  return h('div', { className: 'css-variable-editor' },
-    h('h3', null, 'Custom CSS'),
+  return h('div', { id: 'custom-css-editor', className: 'css-variable-editor theme-studio-css-row' },
+    h('h3', null, 'Custom CSS editor'),
+    h('p', { className: 'theme-studio-hint' }, 'Advanced theme overrides — scroll to the bottom of the studio to edit custom CSS.'),
     h('p', { className: 'theme-studio-hint' },
       'Know CSS? Override any theme variable here, e.g. ', h('code', null, ':root { --gold: #d4af37; }'),
       ' Changes are saved to your account and re-applied on sign-in.'),
@@ -906,18 +1481,14 @@ function CssVariableEditor() {
 /* ============================ Page body ============================ */
 
 function ThemeStudioBody() {
+  React.useEffect(() => {
+    const open = () => document.getElementById('css-color-studio')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.addEventListener('nocturne-open-color-studio', open);
+    return () => window.removeEventListener('nocturne-open-color-studio', open);
+  }, []);
+
   return h(React.Fragment, null,
-    h('div', { className: 'theme-studio-layout' },
-      h('aside', { className: 'theme-studio-editor' },
-        h(ThemeStudioControls)
-      ),
-      h('div', { className: 'theme-studio-preview-col' },
-        h(ThemePreviewHome)
-      )
-    ),
-    // Own full-width row beneath the preview + editor grid.
-    h('div', { className: 'theme-studio-css-row' },
-      h(CssVariableEditor)
-    )
+    h(CssColorStudio, { onExit: () => {} }),
+    h(CssVariableEditor)
   );
 }
