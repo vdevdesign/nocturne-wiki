@@ -58,12 +58,15 @@ function setNocturneTheme(theme) {
   document.documentElement.dataset.theme = nextTheme;
   try { window.localStorage.setItem('nocturne-theme', nextTheme); } catch (_) { /* private browsing */ }
   if (typeof window.persistNocturneTheme === 'function') window.persistNocturneTheme(nextTheme);
+  document.documentElement.classList.add('pattern-inverted');
+  try { window.localStorage.setItem('nocturne-pattern-inverted', 'true'); } catch (_) { /* private browsing */ }
   // Override: clear per-user color tweaks and custom CSS so the premade
   // theme shows exactly as designed.
   window.nocturneColorOverrides = {};
   applyColorOverrides();
   applyNocturneCustomCss('');
   markAppearanceSaved();
+  window.dispatchEvent(new CustomEvent('nocturne-pattern-updated'));
   if (typeof window.setNocturneCustomCss === 'function') {
     // ensure the editor textarea syncs to the cleared state
     window.dispatchEvent(new CustomEvent('nocturne-custom-css-updated'));
@@ -1265,7 +1268,7 @@ async function listNocturneSharedThemes() {
   }
   try {
     const local = JSON.parse(window.localStorage.getItem('nocturne-local-themes') || '[]');
-    local.forEach((row, i) => out.push({ id: 'local-' + i, name: row.name, creator: row.creator, snapshot: row.snapshot, approved: !!row.approved, mine: true }));
+    local.forEach((row, i) => out.push({ id: 'local-' + i, name: row.name, creator: row.creator, snapshot: row.snapshot, approved: !!row.approved, mine: true, isDM: !!window.currentUserIsDM }));
   } catch (_) { /* none */ }
   return out;
 }
@@ -1274,18 +1277,19 @@ window.listNocturneSharedThemes = listNocturneSharedThemes;
 // DM review: approve or reject a pending theme submission.
 async function reviewNocturneSharedTheme(id, approve) {
   if (!window.currentUserIsDM) return { ok: false, error: 'Only the DM can review themes.' };
-  const sbApi = window.sb;
-  if (!sbApi) return { ok: false, error: 'Not connected.' };
   if (String(id).startsWith('local-')) {
     try {
       const index = parseInt(String(id).slice(6), 10);
       const local = JSON.parse(window.localStorage.getItem('nocturne-local-themes') || '[]');
+      if (!Number.isInteger(index) || index < 0 || index >= local.length) return { ok: false, error: 'Theme not found.' };
       if (approve) local[index].approved = true; else local.splice(index, 1);
       window.localStorage.setItem('nocturne-local-themes', JSON.stringify(local));
       window.dispatchEvent(new CustomEvent('nocturne-shared-themes-changed'));
       return { ok: true };
     } catch (_) { return { ok: false, error: 'Could not update local theme.' }; }
   }
+  const sbApi = window.sb;
+  if (!sbApi) return { ok: false, error: 'Not connected.' };
   if (approve === false) {
     const { error } = await sbApi.from('custom_themes').delete().eq('id', id);
     if (error) return { ok: false, error: error.message };

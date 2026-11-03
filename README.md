@@ -15,6 +15,7 @@ Do not open `index.html` directly from disk; the browser blocks the external JSX
 - **Markdown live previews:** Markdown editors show a live rendered preview while editing.
 - **House common rooms:** Set each player's assigned character `house` field to `Phoenix`, `Fox`, or `Selkie`. The room lookup also recognizes `House: Phoenix`, `House: Fox`, or `House: Selkie` in the character Tags field. Players see their own house room and its minigame; DMs can preview all three rooms.
 - **Player attendance:** DMs can mark assigned characters active or inactive from the Players page. The DM-only house totals count distinct active and inactive players by house. Blank `activity` values are treated as active until changed.
+- **Community themes:** Run [supabase-profile-theme.sql](supabase-profile-theme.sql) once in the Supabase SQL editor. Players can then publish Theme Studio designs for review; DMs can open Theme Studio to preview each pending theme and approve it for everyone or reject it.
 
 ## Other features
 

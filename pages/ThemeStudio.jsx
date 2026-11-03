@@ -747,6 +747,18 @@ function ThemeStudioControls() {
     else refreshShared();
   }
 
+  function renderSharedThemeRows(themes) {
+    if (themes.length === 0) return null;
+    return h('ul', { className: 'shared-theme-list' },
+      themes.map(theme => h(SharedThemeRow, {
+        key: theme.id,
+        theme,
+        onReview: review,
+        onApply: applyShared
+      }))
+    );
+  }
+
   function resetAppearance() {
     window.resetNocturneAppearance();
     // Reset also restores the current premade theme's stock colors — drop any
@@ -917,35 +929,120 @@ function ThemeStudioControls() {
       )
     ),
 
-    h('h3', null, 'Community themes'),
-    h('p', { className: 'theme-studio-hint' }, 'Published themes appear here once the DM approves them.'),
+    h('h3', null, window.currentUserIsDM ? 'Theme review' : 'Community themes'),
+    h('p', { className: 'theme-studio-hint' }, window.currentUserIsDM
+      ? 'Preview player submissions before approving them.'
+      : 'Published themes appear here once the DM approves them.'),
     sharedThemes.length === 0
-      ? h('p', { className: 'theme-studio-hint' }, 'No shared themes yet — publish the first one!')
-      : h('ul', { className: 'shared-theme-list' },
-        sharedThemes.map(theme => h('li', { key: theme.id, className: 'shared-theme-row' + (theme.approved ? '' : ' pending-approval') },
-          h('div', { className: 'shared-theme-info' },
-            h('strong', null, theme.name),
-            h('span', { className: 'shared-theme-creator' }, 'by ' + theme.creator,
-              theme.approved ? null : h('span', { className: 'approval-badge' }, ' · awaiting DM approval')
-            )
-          ),
-          h('div', { className: 'shared-theme-actions' },
-            theme.isDM && !theme.approved ? h('button', {
-              type: 'button', className: 'btn btn-sm',
-              onClick: () => review(theme.id, true), title: 'Approve this theme'
-            }, 'Approve') : null,
-            theme.isDM && !theme.approved ? h('button', {
-              type: 'button', className: 'btn btn-sm btn-spoiler',
-              onClick: () => review(theme.id, false), title: 'Reject and remove this theme'
-            }, 'Reject') : null,
-            (theme.approved || theme.isDM) ? h('button', {
-              type: 'button', className: 'btn btn-sm btn-secondary',
-              onClick: () => applyShared(theme.id)
-            }, 'Use') : null
-          )
-        ))
-      ),
+      ? h('p', { className: 'theme-studio-hint' }, window.currentUserIsDM ? 'No themes have been submitted yet.' : 'No shared themes yet — publish the first one!')
+      : window.currentUserIsDM
+        ? h(React.Fragment, null,
+          h('h4', { className: 'shared-theme-group-title' }, `Awaiting review · ${sharedThemes.filter(theme => !theme.approved).length}`),
+          sharedThemes.filter(theme => !theme.approved).length
+            ? renderSharedThemeRows(sharedThemes.filter(theme => !theme.approved))
+            : h('p', { className: 'theme-studio-hint' }, 'The review queue is clear.'),
+          h('h4', { className: 'shared-theme-group-title' }, 'Approved themes'),
+          renderSharedThemeRows(sharedThemes.filter(theme => theme.approved)) || h('p', { className: 'theme-studio-hint' }, 'No themes approved yet.')
+        )
+        : renderSharedThemeRows(sharedThemes),
 
+  );
+}
+
+function SharedThemeRow({ theme, onReview, onApply }) {
+  const [previewOpen, setPreviewOpen] = React.useState(false);
+  return h('li', { className: 'shared-theme-row' + (theme.approved ? '' : ' pending-approval') },
+    h('div', { className: 'shared-theme-info' },
+      h('strong', null, theme.name),
+      h('span', { className: 'shared-theme-creator' }, 'by ' + theme.creator,
+        theme.approved ? null : h('span', { className: 'approval-badge' }, ' · awaiting DM approval')
+      )
+    ),
+    h('div', { className: 'shared-theme-actions' },
+      h('button', {
+        type: 'button', className: 'btn btn-sm btn-secondary',
+        'aria-expanded': String(previewOpen),
+        onClick: () => setPreviewOpen(open => !open)
+      }, previewOpen ? 'Hide preview' : 'Preview'),
+      theme.isDM && !theme.approved ? h('button', {
+        type: 'button', className: 'btn btn-sm',
+        onClick: () => onReview(theme.id, true), title: 'Approve this theme'
+      }, 'Approve') : null,
+      theme.isDM && !theme.approved ? h('button', {
+        type: 'button', className: 'btn btn-sm btn-spoiler',
+        onClick: () => onReview(theme.id, false), title: 'Reject and remove this theme'
+      }, 'Reject') : null,
+      (theme.approved || theme.isDM) ? h('button', {
+        type: 'button', className: 'btn btn-sm btn-secondary',
+        onClick: () => onApply(theme.id)
+      }, 'Use') : null
+    ),
+    previewOpen ? h(SharedThemePreview, { theme }) : null
+  );
+}
+
+function SharedThemePreview({ theme }) {
+  const snapshot = theme.snapshot && typeof theme.snapshot === 'object' ? theme.snapshot : {};
+  const colors = snapshot.colors && typeof snapshot.colors === 'object' ? snapshot.colors : {};
+  const sidebarColors = snapshot.sidebarColors && typeof snapshot.sidebarColors === 'object' ? snapshot.sidebarColors : {};
+  const mainColors = snapshot.mainColors && typeof snapshot.mainColors === 'object' ? snapshot.mainColors : {};
+  const rootStyle = window.getComputedStyle(document.documentElement);
+  const color = (name, scoped) => {
+    const candidates = [scoped && scoped[name], colors[name], rootStyle.getPropertyValue(name).trim()];
+    return candidates.find(value => typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value)) || '#302a3b';
+  };
+  const pattern = snapshot.pattern && typeof snapshot.pattern === 'object' ? snapshot.pattern : {};
+  const mainPattern = pattern.main && typeof pattern.main === 'object' ? pattern.main : {};
+  const motif = ['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(mainPattern.motif) ? mainPattern.motif : 'candelabra';
+  const palette = {
+    background: color('--bg'),
+    alternate: color('--bg-alt'),
+    surface: color('--surface'),
+    raised: color('--surface-2'),
+    border: color('--line'),
+    text: color('--text'),
+    muted: color('--text-dim'),
+    accent: color('--gold'),
+    secondary: color('--purple'),
+    sidebar: color('--bg-alt', sidebarColors),
+    main: color('--surface', mainColors)
+  };
+  const swatchStyle = value => ({ background: value, border: `1px solid ${palette.border}` });
+
+  return h('div', { className: 'shared-theme-preview', 'aria-label': `Preview of ${theme.name}` },
+    h('div', {
+      className: 'shared-theme-preview-frame',
+      style: { background: palette.background, borderColor: palette.border, color: palette.text }
+    },
+      h('aside', { className: 'shared-theme-preview-sidebar', style: { background: palette.sidebar, borderColor: palette.border } },
+        h('strong', { style: { color: palette.accent } }, 'Nocturne'),
+        h('span', null, 'Campaign Hub'),
+        h('span', { className: 'shared-theme-preview-nav-active', style: { background: palette.surface, color: palette.text } }, '◈  Session Chats'),
+        h('span', null, 'Characters')
+      ),
+      h('div', { className: 'shared-theme-preview-main', style: { background: palette.main } },
+        h('span', { className: 'shared-theme-preview-eyebrow', style: { color: palette.accent } }, 'THEME PREVIEW'),
+        h('strong', null, theme.name),
+        h('p', { style: { color: palette.muted } }, 'A glimpse of the campaign hub in this theme.'),
+        h('div', { className: 'shared-theme-preview-card', style: { background: palette.surface, borderColor: palette.border } },
+          h('span', null, 'Next session'),
+          h('span', { style: { color: palette.muted } }, 'The story continues…'),
+          h('button', { type: 'button', style: { background: palette.secondary, color: color('--button-text') } }, 'View details')
+        )
+      )
+    ),
+    h('div', { className: 'shared-theme-preview-details' },
+      h('span', null, `Main motif: ${motif}`),
+      h('span', null, `Display: ${snapshot.brightness === 'light' ? 'Light' : 'Dark'}`),
+      h('div', { className: 'shared-theme-preview-swatches', 'aria-label': 'Theme color palette' },
+        [palette.background, palette.surface, palette.accent, palette.secondary].map((value, index) =>
+          h('span', { key: index, style: swatchStyle(value), title: value })
+        )
+      )
+    ),
+    typeof snapshot.css === 'string' && snapshot.css.trim()
+      ? h('p', { className: 'theme-studio-hint' }, 'This submission includes custom CSS, which is not executed in the preview.')
+      : null
   );
 }
 

@@ -17,7 +17,7 @@ const commonRoomHouses = {
     virtue: 'Look twice, think sideways, and trust a clever hunch.',
     room: 'The Lanternwood Den',
     game: 'The Fox’s Riddles',
-    gameDescription: 'Three riddles stand between you and the den’s hidden lantern.'
+    gameDescription: 'Solve the riddles and earn the den’s hidden lantern.'
   },
   Selkie: {
     emblem: '🌊',
@@ -224,6 +224,258 @@ const foxRiddles = [
     answers: ['A cold', 'A ball', 'A fish'],
     correct: 0,
     clue: 'That’s it—a cold is something you can catch, but not toss!'
+  },
+  {
+    title: 'The Trap of Greed',
+    question: `I sit in the dungeon, quiet and still,
+Waiting for greed to awaken my thrill.
+Open my lid and you’ll find to your woe,
+Teeth made of iron and a terrible show.`,
+    answers: ['Cloaker', 'Mimic', 'Rug of Smothering', 'Animated Armor'],
+    correct: 1
+  },
+  {
+    title: 'The Unseen Cleaner',
+    question: `I have no bones, no voice, no face,
+Yet I clear the dungeon leaving not a trace.
+I swallow the traveler whole and unseen,
+A translucent terror, spotless and clean.`,
+    answers: ['Gray Ooze', 'Gelatinous Cube', 'Water Elemental', 'Invisible Stalker'],
+    correct: 1
+  },
+  {
+    title: 'The Arbiter of Fate',
+    question: `I have many faces, but I cannot see,
+I dictate your triumphs and your misery.
+Roll me across the table with a hopeful prayer,
+And decide if you live or die right there.`,
+    answers: ['Crystal Ball', 'A D20 (Twenty-sided die)', 'Deck of Many Things', 'Chronomancy Hourglass'],
+    correct: 1
+  },
+  {
+    title: 'The Paranoid Sovereign',
+    question: `A floating sphere of malice and dread,
+With a central eye and many eyes instead.
+Beauty is in the eye of the beholder, they say—
+Though this one will blast you to dust right away.`,
+    answers: ['Spectator', 'A Beholder', 'Mind Flayer', 'Flumph'],
+    correct: 1
+  },
+  {
+    title: 'The Feaster of Steel',
+    question: `I wear a coat of copper and rust,
+I turn your finest metal blade to dust.
+A twitch of my antennae makes warriors cower,
+For iron is my feast and my power.`,
+    answers: ['Gelatinous Cube', 'Iron Golem', 'Rust Monster', 'Hook Horror'],
+    correct: 2
+  },
+  {
+    title: 'The Shifting Shadow',
+    question: `A panther’s grace with tentacles twined,
+An illusionary duplicate left behind.
+Strike where I seem to stand with all your might,
+You’ll hit thin air and fail in the fight.`,
+    answers: ['Phase Spider', 'Displacer Beast', 'Blink Dog', 'Shadow Mastiff'],
+    correct: 1
+  },
+  {
+    title: 'The Monstrous Hybrid',
+    question: `A beak for snapping, claws for tearing prey,
+A fur-clad body that drives foes away.
+A wizard’s mad experiment, wild and bold,
+Half of two beasts in the forest cold.`,
+    answers: ['Griffin', 'Manticore', 'Owlbear', 'Hippogriff'],
+    correct: 2
+  },
+  {
+    title: 'The Vessel of Eternity',
+    question: `I hold a soul hidden safe and deep,
+A dark secret that dark wizards keep.
+Destroy my shell and I will return,
+Unless my vessel of malice shall burn.`,
+    answers: ['Magic Jar', 'Phylactery', 'Soul Stone', 'Orb of Dragonkind'],
+    correct: 1
+  },
+  {
+    title: 'The Brain Craver',
+    question: `Tentacles squirm around a slimy head,
+A mind so dark it fills the brave with dread.
+I feast on thoughts, your secrets I extract,
+And leave your skull hollow in the act.`,
+    answers: ['Aboleth', 'Mind Flayer (Illithid)', 'Mind Witness', 'Intellect Devourer'],
+    correct: 1
+  },
+  {
+    title: 'The Deck of Destiny',
+    question: `Draw a card to gain a castle grand,
+Or draw another and lose all your land.
+A gamble of magic, chaos, and fate,
+I can crown a beggar or seal a king’s fate.`,
+    answers: ['Tarot of Dreams', 'Deck of Illusions', 'Deck of Many Things', 'Cards of Chaos'],
+    correct: 2
+  },
+  {
+    title: 'The Stone Guardian',
+    question: `Built of clay, iron, stone, or wood,
+I stand where my creator intended I should.
+No blood in my veins, no brain in my head,
+Follow instructions until you are dead.`,
+    answers: ['Shield Guardian', 'Gargoyle', 'Golem', 'Helmed Horror'],
+    correct: 2
+  },
+  {
+    title: 'The Desert Terror',
+    question: `Spikes on my tail and wings of leather brown,
+A scorpion sting that turns blood upside down.
+With the face of a man and a lion’s roar,
+I stalk the high cliffs and the desert floor.`,
+    answers: ['Chimera', 'Manticore', 'Wyvern', 'Sphinx'],
+    correct: 1
+  },
+  {
+    title: 'The Song of Temptation',
+    question: `A melody sweet across the stormy sea,
+Promise of love, warmth, and luxury.
+Follow my voice to the jagged shore,
+And sleep in the depths forevermore.`,
+    answers: ['Harpy', 'Siren', 'Mermaid', 'Banshee'],
+    correct: 1
+  },
+  {
+    title: 'The Deceptive Drake',
+    question: `I breathe no fire, nor do I fly high,
+Yet I mimic the gold that catches your eye.
+False dragon of green with a trick up my sleeve,
+I spit acidic poison to make adventurers grieve.`,
+    answers: ['Wyvern', 'Pseudo-dragon', 'Ambush Drake', 'Hydra'],
+    correct: 2
+  },
+  {
+    title: 'The Nine-Fold Terror',
+    question: `Cut off one head, and two grow instead,
+A reptilian nightmare that fills you with dread.
+Burn the wounds quick or be overwhelmed fast,
+By a swamp-dwelling beast made to outlast.`,
+    answers: ['Tarrasque', 'Hydra', 'Black Dragon', 'Basilisk'],
+    correct: 1
+  },
+  {
+    title: 'The Flame-Bound Spirit',
+    question: `Born of elemental fury and heat,
+I scorch the ground beneath my feet.
+Trapped in a brass lamp or free in the blaze,
+I grant twisted wishes in smoke and haze.`,
+    answers: ['Fire Elemental', 'Efreeti (Genie)', 'Magmin', 'Fire Giant'],
+    correct: 1
+  },
+  {
+    title: 'The Stone-Gaze Reptile',
+    question: `Eight legs crawling on dungeon floors,
+A heavy green scales-clad terror of yore.
+Look not in my eyes lest your blood turn to stone,
+And leave you a statue trapped all alone.`,
+    answers: ['Medusa', 'Basilisk', 'Cockatrice', 'Gorgon'],
+    correct: 1
+  },
+  {
+    title: 'The Wail of Woes',
+    question: `An elven spirit bound in grief and pain,
+Floating through shadows where memories remain.
+Listen to my scream as it echoes in the dark—
+A deadly lament that strikes out your spark.`,
+    answers: ['Spectre', 'Ghost', 'Banshee', 'Wraith'],
+    correct: 2
+  },
+  {
+    title: 'The Keeper of Knowledge',
+    question: `Part lion, part bird, or human of face,
+I guard ancient tombs in a desolate place.
+Answer my riddle or pay with your head,
+For foolish trespassers end up quite dead.`,
+    answers: ['Lamia', 'Chimera', 'Sphinx', 'Hieracosphinx'],
+    correct: 2
+  },
+  {
+    title: 'The Shadowed Stalker',
+    question: `I hide in the darkness, a formless shroud,
+Silently creeping above the brave crowd.
+I drop from the ceiling to smother your breath,
+Looking like leather, bringing you death.`,
+    answers: ['Darkmantle', 'Cloaker', 'Cave Fisher', 'Roper'],
+    correct: 1
+  },
+  {
+    title: 'The Underdark Leviathan',
+    question: `Ancient slime floating in depths forgotten by time,
+A telepathic master of psychic slime.
+I remember the era before gods took light,
+Enslaving all mortals to serve in my sight.`,
+    answers: ['Flumph', 'Elder Brain', 'Aboleth', 'Neogi'],
+    correct: 2
+  },
+  {
+    title: 'The Living Wardrobe',
+    question: `I look like a tapestry, soft to the touch,
+Yet standing too close will cost you too much.
+I entangle your arms and constrict your chest tight,
+A household textile ready to fight.`,
+    answers: ['Mimic', 'Rug of Smothering', 'Cloaker', 'Animated Armor'],
+    correct: 1
+  },
+  {
+    title: 'The Wandering Will',
+    question: `A faint yellow light floating over the marsh,
+A beacon of hope where the climate is harsh.
+Follow my lantern and step in the bog,
+And drown in the darkness, the mud, and the fog.`,
+    answers: ['Archfey', 'Pixie', 'Will-o’-Wisp', 'Spirit Lantern'],
+    correct: 2
+  },
+  {
+    title: 'The Fiendish Bargainer',
+    question: `Red skin, curved horns, and a silver tongue,
+I offer you wealth while you are still young.
+Sign on the line in blood neat and fine,
+And your eternal soul will forever be mine.`,
+    answers: ['Succubus', 'Pit Fiend / Devil', 'Tiefling', 'Cambion'],
+    correct: 1
+  },
+  {
+    title: 'The Whispering Skull',
+    question: `A floating jaw bone glowing with green flame,
+Created by necromancers who forgot my true name.
+I cackle and chatter, shooting fireballs bright,
+Guarding the crypt through the endless dark night.`,
+    answers: ['Demilich', 'Flameskull', 'Will-o’-Wisp', 'Skull Lord'],
+    correct: 1
+  },
+  {
+    title: 'The Woodland Trickster',
+    question: `Antlers of a stag, body of a hound or man,
+I lead the wild hunt wherever I can.
+Gourd for a head or crowned in green pine,
+I trick greedy mortals with fairy-realm wine.`,
+    answers: ['Satyr', 'Dryad', 'Fey / Leshy', 'Green Hag'],
+    correct: 2
+  },
+  {
+    title: 'The Endless Feeder',
+    question: `A maw full of needles, tentacles like rope,
+Disguised as a stalagmite, abandoning hope.
+Reaching out long from the cave ceiling height,
+I reel in my prey for a gruesome bite.`,
+    answers: ['Cave Fisher', 'Roper', 'Choker', 'Piercer'],
+    correct: 1
+  },
+  {
+    title: 'The Metallic Tyrant',
+    question: `Scales of pure platinum, five heads in my shadow,
+Or a golden dragon resting in a meadow.
+I am the noble lord of all metallic kind,
+The paragon of justice you hope to find.`,
+    answers: ['Tiamat', 'Bahamut', 'Ancient Gold Dragon', 'Chromatic Sovereign'],
+    correct: 1
   }
 ];
 
@@ -299,6 +551,7 @@ function FoxGame() {
         </div>
       ) : (
         <>
+          {current.title && <p className="fox-riddle-title">{current.title}</p>}
           <p className="fox-question">{current.question}</p>
           <div className="fox-answers">
             {answerOrder.map((answerIndex, index) => (
@@ -313,7 +566,9 @@ function FoxGame() {
           </div>
           {choice !== null && (
             <div className="house-game-feedback" aria-live="polite">
-              <p>{answerOrder[choice] === current.correct ? current.clue : `Not quite—the answer was ${current.answers[current.correct]}. A clever fox learns from every clue.`}</p>
+              <p>{answerOrder[choice] === current.correct
+                ? (current.clue || `Correct! The answer was ${current.answers[current.correct]}.`)
+                : `Not quite—the answer was ${current.answers[current.correct]}. A clever fox learns from every clue.`}</p>
               <button className="btn" type="button" onClick={continueGame}>{riddle + 1 === riddles.length ? 'See your result' : 'Next riddle'}</button>
             </div>
           )}
