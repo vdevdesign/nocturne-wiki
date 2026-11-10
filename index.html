@@ -4879,7 +4879,7 @@ function toggleInlineEdit(type, id) {
   function renderContentBlock(row, tableName, containerId) {
     const isVisible = row.visible_to_players ?? true;
     let dmControls = '';
-    if (isDM) {
+    if (isDM && !['encounters', 'lore', 'session_skeletons', 'character_template_secrets'].includes(tableName)) {
       dmControls = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:8px; border-top:1px dashed var(--line);">
           <div style="display:flex; align-items:center; gap:10px;">

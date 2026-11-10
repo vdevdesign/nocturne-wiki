@@ -347,6 +347,7 @@ const LAYER_MOTIFS = [
   ['candelabra', 'Candelabra'],
   ['fleur', 'Fleur-de-lis'],
   ['fish', 'Fish'],
+  ['flashbang', 'Flashbang'],
   ['fireflies', 'Fireflies']
 ];
 
@@ -993,7 +994,7 @@ function SharedThemePreview({ theme }) {
   };
   const pattern = snapshot.pattern && typeof snapshot.pattern === 'object' ? snapshot.pattern : {};
   const mainPattern = pattern.main && typeof pattern.main === 'object' ? pattern.main : {};
-  const motif = ['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(mainPattern.motif) ? mainPattern.motif : 'candelabra';
+  const motif = ['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(mainPattern.motif) ? mainPattern.motif : 'candelabra';
   const palette = {
     background: color('--bg'),
     alternate: color('--bg-alt'),

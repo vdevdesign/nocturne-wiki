@@ -371,7 +371,7 @@ function readAppearancePref(key, fallback) {
     if (typeof stored.sidebarPattern === 'boolean') s.sidebarPattern = stored.sidebarPattern;
     if (typeof stored.noBackground === 'boolean') s.noBackground = stored.noBackground;
     if (typeof stored.sidebarMatchMain === 'boolean') s.sidebarMatchMain = stored.sidebarMatchMain;
-    if (    ['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(stored.motif)) s.motif = stored.motif;
+    if (    ['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(stored.motif)) s.motif = stored.motif;
     if (typeof stored.animateMotif === 'boolean') s.animateMotif = stored.animateMotif;
     if (Number.isFinite(stored.opacity)) s.opacity = clamp(stored.opacity, OPACITY_MIN, OPACITY_MAX);
     if (stored.layout === 'grid' || stored.layout === 'stagger') s.layout = stored.layout;
@@ -380,7 +380,7 @@ function readAppearancePref(key, fallback) {
       const src = stored[layer];
       if (!src || typeof src !== 'object') return;
       const dst = s[layer];
-      if (['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(src.motif)) dst.motif = src.motif;
+      if (['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(src.motif)) dst.motif = src.motif;
       if (Number.isFinite(src.gridCols)) dst.gridCols = clamp(Math.round(src.gridCols), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.gridRows)) dst.gridRows = clamp(Math.round(src.gridRows), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.opacity)) dst.opacity = clamp(Math.round(src.opacity), OPACITY_MIN, OPACITY_MAX);
@@ -953,7 +953,7 @@ function setNocturneNoBackground(on) {
 window.setNocturneNoBackground = setNocturneNoBackground;
 
 function setNocturneMotif(motif) {
-  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(motif)) return;
+  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(motif)) return;
   window.nocturnePatternState.motif = motif;
   applyPatternGeometry();
   persistAppearanceState();
@@ -984,7 +984,7 @@ function layerConfig(layer) {
 
 function setNocturneLayerMotif(layer, motif) {
   if (layer !== 'sidebar' && layer !== 'main') return;
-  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(motif)) return;
+  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(motif)) return;
   layerConfig(layer).motif = motif;
   applyPatternGeometry();
   persistAppearanceState();
@@ -1162,7 +1162,7 @@ function applyNocturneThemeSnapshot(snapshot) {
       const src = snapshot.pattern[layer];
       if (!src || typeof src !== 'object') return;
       const dst = s[layer];
-      if (['candelabra', 'fleur', 'fish', 'fireflies', 'dragon'].includes(src.motif)) dst.motif = src.motif;
+      if (['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(src.motif)) dst.motif = src.motif;
       if (Number.isFinite(src.gridCols)) dst.gridCols = clamp(Math.round(src.gridCols), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.gridRows)) dst.gridRows = clamp(Math.round(src.gridRows), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.opacity)) dst.opacity = clamp(Math.round(src.opacity), OPACITY_MIN, OPACITY_MAX);
@@ -1401,6 +1401,35 @@ function fishMotif() {
 function firefliesMotif() {
   return '';
 }
+// Flashbang: cylindrical grenade with a pull-ring lever and a radiating
+// flash burst. The ring swings gently via SMIL when motif animation is on.
+function flashbangMotif() {
+  const ringAnim = window.nocturnePatternState.animateMotif
+    ? '<animateTransform attributeName="transform" type="rotate" values="-14 42 18; 14 42 18; -14 42 18" dur="3.2s" repeatCount="indefinite" additive="sum"/>'
+    : '';
+  const burstAnim = window.nocturnePatternState.animateMotif
+    ? '<animate attributeName="opacity" values="0.85;0.45;0.85" dur="1.6s" repeatCount="indefinite"/>'
+    : '';
+  return `\
+<g class="pattern-motif">\
+<g class="flashbang-flash" fill="none" stroke="var(--candelabra-flame)" stroke-width="1.6" stroke-linecap="round">${burstAnim}\
+<path d="M50 6 L50 14"/><path d="M50 86 L50 94"/><path d="M6 50 L14 50"/><path d="M86 50 L94 50"/>\
+<path d="M18 18 L24 24"/><path d="M82 18 L76 24"/><path d="M18 82 L24 76"/><path d="M82 82 L76 76"/>\
+<path d="M10 28 L18 32"/><path d="M90 28 L82 32"/><path d="M10 72 L18 68"/><path d="M90 72 L82 68"/>\
+</g>\
+<circle cx="50" cy="50" r="36" fill="var(--candelabra-flame-glow)" opacity="0.18"/>\
+<rect x="30" y="34" width="40" height="32" rx="4" fill="var(--candelabra-fill)" stroke="var(--candelabra-stroke)" stroke-width="2.2"/>\
+<line x1="30" y1="44" x2="70" y2="44" stroke="var(--candelabra-stroke)" stroke-width="1.4" opacity="0.7"/>\
+<line x1="30" y1="56" x2="70" y2="56" stroke="var(--candelabra-stroke)" stroke-width="1.4" opacity="0.7"/>\
+<path d="M34 34 C34 28, 38 26, 42 26 L46 26" fill="none" stroke="var(--candelabra-stroke)" stroke-width="2.4" stroke-linecap="round"/>\
+<path d="M66 34 C66 28, 62 26, 58 26 L54 26" fill="none" stroke="var(--candelabra-stroke)" stroke-width="2.4" stroke-linecap="round"/>\
+<g class="flashbang-ring">${ringAnim}\
+<circle cx="42" cy="18" r="6" fill="none" stroke="var(--candelabra-flame)" stroke-width="2.2"/>\
+<path d="M42 24 L44 30" stroke="var(--candelabra-stroke)" stroke-width="2" stroke-linecap="round"/>\
+</g>\
+<circle cx="50" cy="50" r="4" fill="var(--candelabra-flame)" opacity="0.9"/>\
+</g>`;
+}
 
 window.nocturneDragonHeadStatus = 'loading';
 let nocturneDragonHeadMarkup = '';
@@ -1488,6 +1517,7 @@ const MOTIF_BUILDERS = {
   fleur: fleurDeLisMotif,
   fish: fishMotif,
   fireflies: firefliesMotif,
+  flashbang: flashbangMotif,
   dragon: dragonHeadMotif
 };
 
