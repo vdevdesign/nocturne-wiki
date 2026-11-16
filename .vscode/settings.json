@@ -1,3 +1,5 @@
 {
-    "CodeGPT.apiKey": "CodeGPT Plus Beta"
+    "CodeGPT.apiKey": "CodeGPT Plus Beta",
+    "chat.editor.preferCopilotHarness": false,
+    "chat.defaultToCopilotHarness": false
 }
