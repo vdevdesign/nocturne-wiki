@@ -319,13 +319,13 @@
       }
 
       async function loadSuppliedDragon() {
-        const response = await fetch(new URL('./dragon%20head.svg', window.location.href));
-        if (!response.ok) throw new Error(`Could not load dragon head.svg (${response.status}).`);
+        const response = await fetch(new URL('./assets/dragon-head.svg', window.location.href));
+        if (!response.ok) throw new Error(`Could not load assets/dragon-head.svg (${response.status}).`);
         suppliedDragonSvg = await response.text();
         validateSvg(suppliedDragonSvg, true);
         svgTextarea.value = suppliedDragonSvg;
         customSvg = suppliedDragonSvg;
-        setStatus('Using the supplied dragon head.svg artwork. Its red fire paths follow the active theme and glow.', 'ready');
+        setStatus('Using the supplied assets/dragon-head.svg artwork. Its red fire paths follow the active theme and glow.', 'ready');
       }
 
       function parseViewBox(svg) {

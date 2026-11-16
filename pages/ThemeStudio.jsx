@@ -41,6 +41,9 @@ function PremadeThemePicker() {
     window.addEventListener('nocturne-theme-updated', sync);
     return () => window.removeEventListener('nocturne-theme-updated', sync);
   }, []);
+  // Custom (Local) is initialized automatically on first appearance save, so
+  // the option is always offered; selecting a premade keeps the saved custom
+  // in storage, and selecting Custom (Local) restores it.
   return h('div', { className: 'premade-theme-picker' },
     h('label', { htmlFor: 'premadeThemeSelect', className: 'premade-theme-label' }, 'Premade themes'),
     h('select', {
@@ -48,11 +51,16 @@ function PremadeThemePicker() {
       className: 'input-control premade-theme-select',
       value: current,
       onChange: e => {
+        if (e.target.value === 'custom-local') {
+          window.restoreNocturneCustomLocal();
+          setCurrent(document.documentElement.dataset.theme || 'custom-local');
+          return;
+        }
         const ok = window.setNocturneTheme(e.target.value);
         if (ok === false) setCurrent(document.documentElement.dataset.theme);  // user cancelled
         else setCurrent(e.target.value);
       }
-    }, PREMADE_THEMES.map(([value, label]) => h('option', { key: value, value }, label)))
+    }, [...PREMADE_THEMES, ['custom-local', 'Custom (Local)']].map(([value, label]) => h('option', { key: value, value }, label)))
   );
 }
 
@@ -60,6 +68,39 @@ function ThemeStudioHeaderBar() {
   const [name, setName] = React.useState('');
   const [status, setStatus] = React.useState('');
   const [error, setError] = React.useState('');
+
+  // Save the CURRENT look as the local custom theme — whatever it is. A stock
+  // premade, a tweaked premade, or an existing custom: pressing Save captures
+  // this exact look into Custom (Local). Premades are baselines: the snapshot
+  // records which premade this look is built on, so loading Custom (Local)
+  // re-applies base-then-overrides in the right order.
+  function saveLocalCustom() {
+    try {
+      const snapshot = window.snapshotNocturneTheme();
+      const active = document.documentElement.dataset.theme || 'nocturne';
+      // Baseline = the premade this look derives from. If we're already on a
+      // custom look, keep its original base (stored on the saved snapshot).
+      if (active === 'custom-local') {
+        try {
+          const previous = JSON.parse(window.localStorage.getItem('nocturne-custom-local') || 'null');
+          snapshot.baseTheme = (previous && PREMADE_THEMES.some(([v]) => v === previous.baseTheme))
+            ? previous.baseTheme : 'nocturne';
+        } catch (_) { snapshot.baseTheme = 'nocturne'; }
+      } else {
+        snapshot.baseTheme = active;  // premade (stock or tweaked) → that premade is the baseline
+      }
+      window.localStorage.setItem('nocturne-custom-local', JSON.stringify(snapshot));
+      document.documentElement.dataset.theme = 'custom-local';
+      try { window.localStorage.setItem('nocturne-theme', 'custom-local'); } catch (_) {}
+      window.markAppearanceSaved();
+      window.dispatchEvent(new CustomEvent('nocturne-theme-updated'));
+      setStatus(`Custom (Local) saved — based on ${snapshot.baseTheme}.`);
+      setError('');
+    } catch (err) {
+      setStatus('');
+      setError('Could not save the local theme: ' + (err?.message || err));
+    }
+  }
 
   async function publish() {
     const result = await window.saveNocturneSharedTheme(name);
@@ -75,19 +116,33 @@ function ThemeStudioHeaderBar() {
   }
 
   return h('div', { className: 'theme-studio-header-bar' },
-    h('span', { className: 'theme-studio-header-hint' }, 'Publish your current look as a shared theme — the DM reviews it before it goes live.'),
-    h('div', { className: 'theme-studio-header-actions' },
-      h(PremadeThemePicker),
-      h('div', { className: 'shared-theme-save-row' },
-        h('input', {
-          type: 'text', className: 'input-control', maxLength: 60,
-          placeholder: 'Theme name, e.g. Blood Moon',
-          value: name,
-          'aria-label': 'Shared theme name',
-          onInput: e => setName(e.target.value),
-          onKeyDown: e => { if (e.key === 'Enter') { e.preventDefault(); publish(); } }
-        }),
-        h('button', { type: 'button', className: 'btn btn-sm', onClick: publish, disabled: !name.trim() }, 'Publish')
+    // Save sits OUTSIDE the box, leftmost, with its own warning caption.
+    h('div', { className: 'local-save-slot' },
+      h('button', {
+        type: 'button', className: 'btn btn-sm',
+        onClick: saveLocalCustom,
+        title: 'Save this look as your single local custom theme'
+      }, 'Save'),
+      h('p', { className: 'local-save-note' },
+        'Saves one local custom theme. Overwriting it cannot be undone!')
+    ),
+    h('div', { className: 'theme-studio-header-box' },
+      h('div', { className: 'theme-studio-header-left' },
+        h(PremadeThemePicker),
+        h('span', { className: 'theme-studio-header-hint' }, 'Publish your current look as a shared theme — the DM reviews it before it goes live.')
+      ),
+      h('div', { className: 'theme-studio-header-actions' },
+        h('div', { className: 'shared-theme-save-row' },
+          h('input', {
+            type: 'text', className: 'input-control', maxLength: 60,
+            placeholder: 'Theme name, e.g. Blood Moon',
+            value: name,
+            'aria-label': 'Shared theme name',
+            onInput: e => setName(e.target.value),
+            onKeyDown: e => { if (e.key === 'Enter') { e.preventDefault(); publish(); } }
+          }),
+          h('button', { type: 'button', className: 'btn btn-sm', onClick: publish, disabled: !name.trim() }, 'Publish')
+        )
       )
     ),
     status ? h('p', { className: 'css-editor-status theme-studio-header-status' }, status) : null,
@@ -344,6 +399,7 @@ function clamp(value, min, max) {
 
 const LAYER_MOTIFS = [
   ['dragon', 'Breathing Dragon'],
+  ['logo', 'Nocturne Logo'],
   ['candelabra', 'Candelabra'],
   ['fleur', 'Fleur-de-lis'],
   ['fish', 'Fish'],
@@ -392,6 +448,17 @@ function NumericRangeControl({ label, min, max, value, onChange }) {
 }
 
 function BackgroundEditor({ bgTab, setBgTab, layerCfg, layerDrafts, setLayerDrafts, dragonStatus }) {
+  // SVG-artwork motifs stay disabled until their artwork finishes loading.
+  const svgStatuses = {
+    dragon: dragonStatus,
+    logo: window.nocturneLogoStatus || 'loading',
+    flashbang: window.nocturneFlashbangStatus || 'loading'
+  };
+  const artworkLabel = {
+    dragon: 'the supplied dragon artwork',
+    logo: 'the Nocturne logo artwork',
+    flashbang: 'the supplied flashbang artwork'
+  };
   const layer = bgTab;
   const cfg = layerCfg[layer] || {};
   const drafts = layerDrafts[layer] || {};
@@ -436,18 +503,21 @@ function BackgroundEditor({ bgTab, setBgTab, layerCfg, layerDrafts, setLayerDraf
     h('label', { className: 'theme-studio-slider-label' },
       h('span', null, 'Motif pattern'),
       h('div', { className: 'theme-studio-toggle-row' },
-        LAYER_MOTIFS.map(([value, label]) => h('button', {
-          type: 'button', key: value,
-          disabled: value === 'dragon' && dragonStatus !== 'ready',
-          title: value === 'dragon' && dragonStatus === 'loading'
-            ? 'Loading the supplied dragon artwork…'
-            : value === 'dragon' && dragonStatus === 'error'
-              ? 'The supplied dragon artwork could not be loaded.'
-              : undefined,
-          'aria-pressed': String(cfg.motif === value),
-          className: 'btn btn-sm ' + (cfg.motif === value ? 'btn-active-choice' : 'btn-secondary'),
-          onClick: () => window.setNocturneLayerMotif(layer, value)
-        }, label))
+        LAYER_MOTIFS.map(([value, label]) => {
+          const svgStatus = svgStatuses[value];
+          return h('button', {
+            type: 'button', key: value,
+            disabled: svgStatus !== undefined && svgStatus !== 'ready',
+            title: svgStatus === 'loading'
+              ? `Loading ${artworkLabel[value]}…`
+              : svgStatus === 'error'
+                ? `${artworkLabel[value][0].toUpperCase()}${artworkLabel[value].slice(1)} could not be loaded.`
+                : undefined,
+            'aria-pressed': String(cfg.motif === value),
+            className: 'btn btn-sm ' + (cfg.motif === value ? 'btn-active-choice' : 'btn-secondary'),
+            onClick: () => window.setNocturneLayerMotif(layer, value)
+          }, label);
+        })
       )
     ),
 
@@ -594,9 +664,20 @@ function BackgroundStudioControls() {
     const error = () => setDragonStatus('error');
     window.addEventListener('nocturne-dragon-head-ready', ready);
     window.addEventListener('nocturne-dragon-head-error', error);
+    // Re-render when the other SVG-artwork motifs finish loading so their
+    // picker buttons flip from disabled to enabled without reopening the page.
+    const bump = () => setDragonStatus(window.nocturneDragonHeadStatus || 'ready');
+    window.addEventListener('nocturne-logo-ready', bump);
+    window.addEventListener('nocturne-logo-error', bump);
+    window.addEventListener('nocturne-flashbang-ready', bump);
+    window.addEventListener('nocturne-flashbang-error', bump);
     return () => {
       window.removeEventListener('nocturne-dragon-head-ready', ready);
       window.removeEventListener('nocturne-dragon-head-error', error);
+      window.removeEventListener('nocturne-logo-ready', bump);
+      window.removeEventListener('nocturne-logo-error', bump);
+      window.removeEventListener('nocturne-flashbang-ready', bump);
+      window.removeEventListener('nocturne-flashbang-error', bump);
     };
   }, []);
 
@@ -952,7 +1033,31 @@ function ThemeStudioControls() {
 
 function SharedThemeRow({ theme, onReview, onApply }) {
   const [previewOpen, setPreviewOpen] = React.useState(false);
-  return h('li', { className: 'shared-theme-row' + (theme.approved ? '' : ' pending-approval') },
+  // DM live-testing: applying a pending theme swaps the real UI to it; the
+  // test banner restores the DM's own look afterwards.
+  const [testing, setTesting] = React.useState(false);
+  const [testStatus, setTestStatus] = React.useState('');
+  async function startTest() {
+    const result = await onApply(theme.id);
+    if (result && result.ok === false) { setTestStatus(result.error || 'Could not apply theme.'); return; }
+    setTesting(true);
+    setTestStatus(`Testing "${theme.name}" live — the whole site is wearing it. Approve or stop the test below.`);
+  }
+  function stopTest() {
+    if (typeof window.restorePreTestAppearance === 'function') window.restorePreTestAppearance();
+    setTesting(false);
+    setTestStatus('');
+  }
+  async function decide(approve) {
+    const result = await onReview(theme.id, approve);
+    if (result && result.ok) {
+      if (testing) stopTest();
+      setTestStatus(approve ? `"${theme.name}" approved — it is now available to everyone.` : `"${theme.name}" rejected and removed.`);
+    } else {
+      setTestStatus((result && result.error) || 'Review failed.');
+    }
+  }
+  return h('li', { className: 'shared-theme-row' + (theme.approved ? '' : ' pending-approval') + (testing ? ' dm-testing' : '') },
     h('div', { className: 'shared-theme-info' },
       h('strong', null, theme.name),
       h('span', { className: 'shared-theme-creator' }, 'by ' + theme.creator,
@@ -965,19 +1070,28 @@ function SharedThemeRow({ theme, onReview, onApply }) {
         'aria-expanded': String(previewOpen),
         onClick: () => setPreviewOpen(open => !open)
       }, previewOpen ? 'Hide preview' : 'Preview'),
+      theme.isDM && !theme.approved && !testing ? h('button', {
+        type: 'button', className: 'btn btn-sm btn-secondary',
+        onClick: startTest, title: 'Apply this theme live to try it before deciding'
+      }, 'Test live') : null,
+      testing ? h('button', {
+        type: 'button', className: 'btn btn-sm btn-secondary',
+        onClick: stopTest, title: 'Restore your own appearance'
+      }, 'Stop testing') : null,
       theme.isDM && !theme.approved ? h('button', {
         type: 'button', className: 'btn btn-sm',
-        onClick: () => onReview(theme.id, true), title: 'Approve this theme'
+        onClick: () => decide(true), title: 'Approve this theme'
       }, 'Approve') : null,
       theme.isDM && !theme.approved ? h('button', {
         type: 'button', className: 'btn btn-sm btn-spoiler',
-        onClick: () => onReview(theme.id, false), title: 'Reject and remove this theme'
+        onClick: () => decide(false), title: 'Reject and remove this theme'
       }, 'Reject') : null,
-      (theme.approved || theme.isDM) ? h('button', {
+      (theme.approved || theme.isDM) && !testing ? h('button', {
         type: 'button', className: 'btn btn-sm btn-secondary',
         onClick: () => onApply(theme.id)
       }, 'Use') : null
     ),
+    testStatus ? h('p', { className: 'dm-test-status', role: 'status' }, testStatus) : null,
     previewOpen ? h(SharedThemePreview, { theme }) : null
   );
 }
@@ -994,7 +1108,7 @@ function SharedThemePreview({ theme }) {
   };
   const pattern = snapshot.pattern && typeof snapshot.pattern === 'object' ? snapshot.pattern : {};
   const mainPattern = pattern.main && typeof pattern.main === 'object' ? pattern.main : {};
-  const motif = ['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(mainPattern.motif) ? mainPattern.motif : 'candelabra';
+  const motif = ['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon', 'logo'].includes(mainPattern.motif) ? mainPattern.motif : 'candelabra';
   const palette = {
     background: color('--bg'),
     alternate: color('--bg-alt'),

@@ -84,13 +84,12 @@ window.setNocturneTheme = setNocturneTheme;
 // (The setter itself dispatches 'nocturne-theme-updated'; no wrapper needed.)
 
 function Sigil({ size = 40 }) {
-  return h('svg', { width: size, height: size, viewBox: '0 0 40 40', fill: 'none', 'aria-hidden': true },
-    h('circle', { cx: 20, cy: 20, r: 17, stroke: 'var(--gold-dim)', strokeWidth: 1.2 }),
-    h('circle', { cx: 20, cy: 20, r: 12, stroke: 'var(--gold)', strokeWidth: 0.8, strokeDasharray: '2 3' }),
-    h('path', { d: 'M20 6 L20 12 M20 28 L20 34 M6 20 L12 20 M28 20 L34 20', stroke: 'var(--gold-dim)', strokeWidth: 1 }),
-    h('path', { d: 'M14 9 L24 31', stroke: 'var(--rose)', strokeWidth: 0.8, opacity: 0.6 }),
-    h('circle', { cx: 20, cy: 20, r: 2.2, fill: 'var(--gold)' })
-  );
+  // Official Nocturne logo artwork (assets/Nocturne_Logo.svg), applied as a
+  // CSS mask so it recolors with the active theme (--gold) automatically.
+  return h('div', {
+    className: 'brand-sigil', 'aria-hidden': true,
+    style: { width: size + 'px', height: size + 'px', flex: `0 0 ${size}px`, WebkitMask: "url('assets/Nocturne_Logo.svg') no-repeat center / contain", mask: "url('assets/Nocturne_Logo.svg') no-repeat center / contain" }
+  });
 }
 
 function AuthScreen() {
@@ -153,6 +152,7 @@ function renderPage(target, showBack = false) {
   });
   updateBackButtons(showBack);
   if (target === 'home') window.loadDashboard();
+  if (target === 'worldbook') window.loadPlaces?.();
   if (target === 'common-rooms') window.loadCommonRoom();
   if (target === 'session-chats' && window.loadSessionChatPage) window.loadSessionChatPage();
   if (target === 'games' && window.refreshGames) window.refreshGames();
@@ -371,7 +371,7 @@ function readAppearancePref(key, fallback) {
     if (typeof stored.sidebarPattern === 'boolean') s.sidebarPattern = stored.sidebarPattern;
     if (typeof stored.noBackground === 'boolean') s.noBackground = stored.noBackground;
     if (typeof stored.sidebarMatchMain === 'boolean') s.sidebarMatchMain = stored.sidebarMatchMain;
-    if (    ['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(stored.motif)) s.motif = stored.motif;
+    if (    ['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon', 'logo'].includes(stored.motif)) s.motif = stored.motif;
     if (typeof stored.animateMotif === 'boolean') s.animateMotif = stored.animateMotif;
     if (Number.isFinite(stored.opacity)) s.opacity = clamp(stored.opacity, OPACITY_MIN, OPACITY_MAX);
     if (stored.layout === 'grid' || stored.layout === 'stagger') s.layout = stored.layout;
@@ -380,7 +380,7 @@ function readAppearancePref(key, fallback) {
       const src = stored[layer];
       if (!src || typeof src !== 'object') return;
       const dst = s[layer];
-      if (['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(src.motif)) dst.motif = src.motif;
+      if (['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon', 'logo'].includes(src.motif)) dst.motif = src.motif;
       if (Number.isFinite(src.gridCols)) dst.gridCols = clamp(Math.round(src.gridCols), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.gridRows)) dst.gridRows = clamp(Math.round(src.gridRows), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.opacity)) dst.opacity = clamp(Math.round(src.opacity), OPACITY_MIN, OPACITY_MAX);
@@ -953,7 +953,7 @@ function setNocturneNoBackground(on) {
 window.setNocturneNoBackground = setNocturneNoBackground;
 
 function setNocturneMotif(motif) {
-  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(motif)) return;
+  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon', 'logo'].includes(motif)) return;
   window.nocturnePatternState.motif = motif;
   applyPatternGeometry();
   persistAppearanceState();
@@ -984,7 +984,7 @@ function layerConfig(layer) {
 
 function setNocturneLayerMotif(layer, motif) {
   if (layer !== 'sidebar' && layer !== 'main') return;
-  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(motif)) return;
+  if (!['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon', 'logo'].includes(motif)) return;
   layerConfig(layer).motif = motif;
   applyPatternGeometry();
   persistAppearanceState();
@@ -1138,6 +1138,7 @@ function snapshotNocturneTheme() {
     patternInverted: root.classList.contains('pattern-inverted')
   };
 }
+window.snapshotNocturneTheme = snapshotNocturneTheme;
 
 function applyNocturneThemeSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== 'object') return;
@@ -1162,7 +1163,7 @@ function applyNocturneThemeSnapshot(snapshot) {
       const src = snapshot.pattern[layer];
       if (!src || typeof src !== 'object') return;
       const dst = s[layer];
-      if (['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon'].includes(src.motif)) dst.motif = src.motif;
+      if (['candelabra', 'fleur', 'fish', 'fireflies', 'flashbang', 'dragon', 'logo'].includes(src.motif)) dst.motif = src.motif;
       if (Number.isFinite(src.gridCols)) dst.gridCols = clamp(Math.round(src.gridCols), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.gridRows)) dst.gridRows = clamp(Math.round(src.gridRows), GRID_MIN, GRID_MAX);
       if (Number.isFinite(src.opacity)) dst.opacity = clamp(Math.round(src.opacity), OPACITY_MIN, OPACITY_MAX);
@@ -1206,6 +1207,28 @@ function applyNocturneThemeSnapshot(snapshot) {
   persistAppearanceState();
   emitAppearanceChange();
 }
+
+// Restore the saved Custom (Local) look: base premade first (its stock
+// variables reset any prior overrides), then the saved snapshot on top.
+window.restoreNocturneCustomLocal = function restoreNocturneCustomLocal() {
+  let saved = null;
+  try { saved = JSON.parse(window.localStorage.getItem('nocturne-custom-local') || 'null'); } catch (_) { saved = null; }
+  if (!saved || typeof saved !== 'object') return false;
+  const base = PREMADE_SAFE_BASE.includes(saved.baseTheme) ? saved.baseTheme : 'nocturne';
+  if (base !== document.documentElement.dataset.theme) {
+    document.documentElement.dataset.theme = '';
+    document.documentElement.dataset.theme = base;  // apply base stock vars without wiping saved snapshot
+  }
+  applyNocturneThemeSnapshot(saved);
+  document.documentElement.dataset.theme = 'custom-local';
+  try { window.localStorage.setItem('nocturne-theme', 'custom-local'); } catch (_) {}
+  window.markAppearanceSaved();
+  emitAppearanceChange();
+  return true;
+};
+
+// Theme ids this restore machinery accepts as snapshot bases.
+const PREMADE_SAFE_BASE = ['nocturne', 'dracula', 'alucard', 'sylvan', 'steampunk', 'frost', 'starlight', 'lush', 'mystic', 'potion', 'underdark'];
 
 // Save the current look as a named shared theme. New submissions start as
 // 'pending' — the DM approves them before anyone else sees them as usable.
@@ -1314,6 +1337,22 @@ async function applyNocturneSharedTheme(id) {
 }
 window.applyNocturneSharedTheme = applyNocturneSharedTheme;
 
+// DM theme-review helper: remembers the DM's current appearance before a
+// pending theme is applied live, and restores it when the test ends.
+let preTestAppearanceSnapshot = null;
+window.restorePreTestAppearance = function restorePreTestAppearance() {
+  if (!preTestAppearanceSnapshot) return;
+  applyNocturneThemeSnapshot(preTestAppearanceSnapshot);
+  preTestAppearanceSnapshot = null;
+};
+
+const originalApplyNocturneSharedTheme = applyNocturneSharedTheme;
+applyNocturneSharedTheme = async function applyNocturneSharedThemeWithTestRestore(id) {
+  if (!preTestAppearanceSnapshot) preTestAppearanceSnapshot = snapshotNocturneTheme();
+  return originalApplyNocturneSharedTheme(id);
+};
+window.applyNocturneSharedTheme = applyNocturneSharedTheme;
+
 (function restoreBrightness() {
   let stored = null;
   try { stored = window.localStorage.getItem('nocturne-brightness'); } catch (_) { /* private browsing */ }
@@ -1327,10 +1366,15 @@ window.applyNocturneSharedTheme = applyNocturneSharedTheme;
 let appearanceReady = false;
 window.addEventListener('DOMContentLoaded', () => {
   appearanceReady = true;
-  // Deferred initial premade theme: everything below (swatches, appearance
-  // state, snapshot machinery) is initialized by now, so setNocturneTheme
-  // cannot crash. Sets data-theme unless the account restore already did.
-  if (!document.documentElement.dataset.theme) setNocturneTheme('nocturne');
+  // Deferred initial theme. If the user saved a Custom (Local) look, it IS
+  // their theme — initialize it automatically (base premade first, then the
+  // saved snapshot) instead of snapping back to a stock premade.
+  if (!document.documentElement.dataset.theme) {
+    if (!window.restoreNocturneCustomLocal()) setNocturneTheme('nocturne');
+  } else if (document.documentElement.dataset.theme === 'custom-local') {
+    // Account restore tagged the session as custom-local; finish applying it.
+    window.restoreNocturneCustomLocal();
+  }
   applyFlameAnimation();
   applyPatternGeometry();
   applyColorOverrides();
@@ -1401,34 +1445,66 @@ function fishMotif() {
 function firefliesMotif() {
   return '';
 }
-// Flashbang: cylindrical grenade with a pull-ring lever and a radiating
-// flash burst. The ring swings gently via SMIL when motif animation is on.
+// Flashbang: loads the supplied assets/flashbang.svg artwork and recolors it
+// with the shared --candelabra-* variables, like the other SVG motif loaders.
+window.nocturneFlashbangStatus = 'loading';
+let nocturneFlashbangMarkup = '';
+
+function loadNocturneFlashbang() {
+  const appScript = [...document.scripts].find(script => /(?:^|\/)App\.jsx(?:\?|$)/i.test(script.src));
+  if (!appScript) {
+    window.nocturneFlashbangStatus = 'error';
+    console.error('Could not locate App.jsx to load the supplied flashbang SVG.');
+    return;
+  }
+  const artworkUrl = new URL('assets/flashbang.svg', appScript.src);
+  fetch(artworkUrl)
+    .then(response => {
+      if (!response.ok) throw new Error(`SVG request failed with status ${response.status}`);
+      return response.text();
+    })
+    .then(source => {
+      const parsed = new DOMParser().parseFromString(source, 'image/svg+xml');
+      const sourceSvg = parsed.documentElement;
+      if (sourceSvg.localName !== 'svg' || parsed.querySelector('parsererror')) {
+        throw new Error('The supplied flashbang SVG is not valid XML.');
+      }
+      const viewBox = sourceSvg.getAttribute('viewBox') || '0 0 1024 1024';
+      sourceSvg.querySelectorAll('path, circle, rect, line, polyline, polygon').forEach(shape => {
+        shape.removeAttribute('style');
+        if ((shape.getAttribute('fill') || '').toLowerCase() === 'none') {
+          shape.setAttribute('stroke', 'var(--candelabra-stroke)');
+        } else {
+          shape.setAttribute('fill', 'var(--candelabra-fill)');
+          shape.setAttribute('stroke', 'var(--candelabra-stroke)');
+        }
+      });
+      nocturneFlashbangMarkup = `<g class="flashbang-motif"><svg x="0" y="0" width="100" height="100" viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet">${sourceSvg.innerHTML}</svg></g>`;
+      window.nocturneFlashbangStatus = 'ready';
+      window.dispatchEvent(new CustomEvent('nocturne-flashbang-ready'));
+      if (window.nocturnePatternState) {
+        applyPatternGeometry();
+        emitAppearanceChange();
+      }
+    })
+    .catch(error => {
+      window.nocturneFlashbangStatus = 'error';
+      console.error('Could not load the supplied flashbang SVG artwork.', error);
+      window.dispatchEvent(new CustomEvent('nocturne-flashbang-error', { detail: error }));
+      // One silent retry — transient network failures shouldn't kill the motif.
+      setTimeout(() => {
+        if (window.nocturneFlashbangStatus === 'error') {
+          window.nocturneFlashbangStatus = 'loading';
+          loadNocturneFlashbang();
+        }
+      }, 3000);
+    });
+}
+
+loadNocturneFlashbang();
+
 function flashbangMotif() {
-  const ringAnim = window.nocturnePatternState.animateMotif
-    ? '<animateTransform attributeName="transform" type="rotate" values="-14 42 18; 14 42 18; -14 42 18" dur="3.2s" repeatCount="indefinite" additive="sum"/>'
-    : '';
-  const burstAnim = window.nocturnePatternState.animateMotif
-    ? '<animate attributeName="opacity" values="0.85;0.45;0.85" dur="1.6s" repeatCount="indefinite"/>'
-    : '';
-  return `\
-<g class="pattern-motif">\
-<g class="flashbang-flash" fill="none" stroke="var(--candelabra-flame)" stroke-width="1.6" stroke-linecap="round">${burstAnim}\
-<path d="M50 6 L50 14"/><path d="M50 86 L50 94"/><path d="M6 50 L14 50"/><path d="M86 50 L94 50"/>\
-<path d="M18 18 L24 24"/><path d="M82 18 L76 24"/><path d="M18 82 L24 76"/><path d="M82 82 L76 76"/>\
-<path d="M10 28 L18 32"/><path d="M90 28 L82 32"/><path d="M10 72 L18 68"/><path d="M90 72 L82 68"/>\
-</g>\
-<circle cx="50" cy="50" r="36" fill="var(--candelabra-flame-glow)" opacity="0.18"/>\
-<rect x="30" y="34" width="40" height="32" rx="4" fill="var(--candelabra-fill)" stroke="var(--candelabra-stroke)" stroke-width="2.2"/>\
-<line x1="30" y1="44" x2="70" y2="44" stroke="var(--candelabra-stroke)" stroke-width="1.4" opacity="0.7"/>\
-<line x1="30" y1="56" x2="70" y2="56" stroke="var(--candelabra-stroke)" stroke-width="1.4" opacity="0.7"/>\
-<path d="M34 34 C34 28, 38 26, 42 26 L46 26" fill="none" stroke="var(--candelabra-stroke)" stroke-width="2.4" stroke-linecap="round"/>\
-<path d="M66 34 C66 28, 62 26, 58 26 L54 26" fill="none" stroke="var(--candelabra-stroke)" stroke-width="2.4" stroke-linecap="round"/>\
-<g class="flashbang-ring">${ringAnim}\
-<circle cx="42" cy="18" r="6" fill="none" stroke="var(--candelabra-flame)" stroke-width="2.2"/>\
-<path d="M42 24 L44 30" stroke="var(--candelabra-stroke)" stroke-width="2" stroke-linecap="round"/>\
-</g>\
-<circle cx="50" cy="50" r="4" fill="var(--candelabra-flame)" opacity="0.9"/>\
-</g>`;
+  return nocturneFlashbangMarkup;
 }
 
 window.nocturneDragonHeadStatus = 'loading';
@@ -1441,7 +1517,7 @@ function loadNocturneDragonHead() {
     console.error('Could not locate App.jsx to load the supplied Breathing Dragon SVG.');
     return;
   }
-  const artworkUrl = new URL('dragon%20head.svg', appScript.src);
+  const artworkUrl = new URL('assets/dragon-head.svg', appScript.src);
   fetch(artworkUrl)
     .then(response => {
       if (!response.ok) throw new Error(`SVG request failed with status ${response.status}`);
@@ -1512,13 +1588,79 @@ function loadNocturneDragonHead() {
 
 loadNocturneDragonHead();
 
+/* ======== Nocturne Logo motif ========
+   Loads assets/Nocturne_Logo.svg (same artwork as the site logo) and recolors
+   it with the shared --candelabra-* variables so the Theme Studio color
+   editor and opacity apply, exactly like the other motif library members. */
+window.nocturneLogoStatus = 'loading';
+let nocturneLogoMarkup = '';
+
+function loadNocturneLogo() {
+  const appScript = [...document.scripts].find(script => /(?:^|\/)App\.jsx(?:\?|$)/i.test(script.src));
+  if (!appScript) {
+    window.nocturneLogoStatus = 'error';
+    console.error('Could not locate App.jsx to load the Nocturne logo motif.');
+    return;
+  }
+  const artworkUrl = new URL('assets/Nocturne_Logo.svg', appScript.src);
+  fetch(artworkUrl)
+    .then(response => {
+      if (!response.ok) throw new Error(`SVG request failed with status ${response.status}`);
+      return response.text();
+    })
+    .then(source => {
+      const parsed = new DOMParser().parseFromString(source, 'image/svg+xml');
+      const sourceSvg = parsed.documentElement;
+      if (sourceSvg.localName !== 'svg' || parsed.querySelector('parsererror')) {
+        throw new Error('The Nocturne logo SVG is not valid XML.');
+      }
+      const viewBox = sourceSvg.getAttribute('viewBox') || '0 0 1024 1024';
+      // Recolor every shape: solid fills become the raised-surface fill,
+      // strokes become the outline color, so themes recolor the motif live.
+      sourceSvg.querySelectorAll('path, circle, rect, line, polyline, polygon').forEach(shape => {
+        shape.removeAttribute('style');
+        if ((shape.getAttribute('fill') || '').toLowerCase() === 'none') {
+          shape.setAttribute('stroke', 'var(--candelabra-stroke)');
+        } else {
+          shape.setAttribute('fill', 'var(--candelabra-fill)');
+          shape.setAttribute('stroke', 'var(--candelabra-stroke)');
+        }
+      });
+      nocturneLogoMarkup = `<g class="nocturne-logo-motif"><svg x="0" y="0" width="100" height="100" viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet">${sourceSvg.innerHTML}</svg></g>`;
+      window.nocturneLogoStatus = 'ready';
+      window.dispatchEvent(new CustomEvent('nocturne-logo-ready'));
+      if (window.nocturnePatternState) {
+        applyPatternGeometry();
+        emitAppearanceChange();
+      }
+    })
+    .catch(error => {
+      window.nocturneLogoStatus = 'error';
+      console.error('Could not load the Nocturne logo motif artwork.', error);
+      window.dispatchEvent(new CustomEvent('nocturne-logo-error', { detail: error }));
+      setTimeout(() => {
+        if (window.nocturneLogoStatus === 'error') {
+          window.nocturneLogoStatus = 'loading';
+          loadNocturneLogo();
+        }
+      }, 3000);
+    });
+}
+
+loadNocturneLogo();
+
+function nocturneLogoMotif() {
+  return nocturneLogoMarkup;
+}
+
 const MOTIF_BUILDERS = {
   candelabra: candelabraMotif,
   fleur: fleurDeLisMotif,
   fish: fishMotif,
   fireflies: firefliesMotif,
   flashbang: flashbangMotif,
-  dragon: dragonHeadMotif
+  dragon: dragonHeadMotif,
+  logo: nocturneLogoMotif
 };
 
 function motifMarkup() {
@@ -1641,7 +1783,10 @@ window.togglePatternInverted = togglePatternInverted;
 
 // GIF picker button. `disabled` mirrors a live flag that updateChatUI()
 // maintains (isDM || session open), so imperative UI updates survive.
-window.__chatCanInteract = false;
+// GIFs remain available while the session is locked — sending an approved
+// image is a reaction, not chat. The flag is forced true by updateChatUI();
+// this default just covers the moment before the first chat UI sync.
+window.__chatCanInteract = true;
 
 function ChatGifButton() {
   const [, force] = React.useReducer(x => x + 1, 0);
