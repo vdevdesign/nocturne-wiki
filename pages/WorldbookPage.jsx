@@ -10,8 +10,8 @@ window.WorldbookPage = function WorldbookPage() {
       h('div', { className: 'places-heading' },
         h('h3', { className: 'places-title' }, 'Places of the Realm'),
         h('div', { className: 'places-nav' },
-          h('button', { type: 'button', className: 'btn btn-sm btn-secondary places-arrow', id: 'placesPrev', 'aria-label': 'Scroll places left', onclick: () => window.scrollPlacesCarousel(-1) }, '‹'),
-          h('button', { type: 'button', className: 'btn btn-sm btn-secondary places-arrow', id: 'placesNext', 'aria-label': 'Scroll places right', onclick: () => window.scrollPlacesCarousel(1) }, '›')
+          h('button', { type: 'button', className: 'btn btn-sm btn-secondary places-arrow', id: 'placesPrev', 'aria-label': 'Scroll places left', onClick: () => window.scrollPlacesCarousel(-1) }, '‹'),
+          h('button', { type: 'button', className: 'btn btn-sm btn-secondary places-arrow', id: 'placesNext', 'aria-label': 'Scroll places right', onClick: () => window.scrollPlacesCarousel(1) }, '›')
         )
       ),
       h('div', { className: 'places-carousel-wrap' },

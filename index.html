@@ -453,8 +453,8 @@
      Save and the premade dropdown both sit OUTSIDE the bordered box; the
      Save slot hugs the far left with its overwrite warning underneath. */
   .theme-studio-header-bar {
-    display: flex; gap: 14px;
-    align-items: stretch; margin: -6px 0 20px;
+    display: flex; gap: 16px;
+    align-items: center; margin: -6px 0 20px;
   }
   .local-save-slot {
     display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -476,12 +476,18 @@
   .theme-studio-header-left .premade-theme-select { min-width: 170px; }
   .premade-theme-label { font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-faint); }
   @media (max-width: 900px) {
-    .theme-studio-header-bar { flex-direction: column; align-items: stretch; }
-    .local-save-slot { flex-direction: row; max-width: none; align-items: center; }
-    .local-save-note { text-align: left; }
+    .theme-studio-header-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+    .local-save-slot { flex-direction: row; max-width: none; align-items: center; gap: 10px; }
+    .local-save-note { text-align: left; max-width: none; }
   }
   .premade-theme-select { width: auto; min-width: 160px; padding: 5px 8px; font-size: 12px; }
   .theme-studio-header-hint { font-size: 11.5px; color: var(--text-faint); }
+  /* Keep the publish hint readable without letting it wrap into a tall column. */
+  .theme-studio-header-left { min-width: 0; }
+  .theme-studio-header-left .theme-studio-header-hint { max-width: 300px; line-height: 1.45; }
+  @media (max-width: 1150px) {
+    .theme-studio-header-left .theme-studio-header-hint { display: none; }
+  }
   .theme-studio-header-status { grid-column: 1 / -1; margin: 0; }
   .shared-theme-save-row { display: grid; grid-template-columns: minmax(180px, 260px) auto; gap: 8px; align-items: center; }
 
@@ -763,7 +769,7 @@
     overflow: auto; background: transparent;
   }
   .theme-studio-page-header {
-    display: grid; grid-template-columns: auto minmax(200px, 0.7fr) minmax(350px, 1.3fr);
+    display: grid; grid-template-columns: auto minmax(260px, 0.5fr) minmax(420px, 1.5fr);
     align-items: center; gap: 18px; margin-bottom: 14px;
   }
   .theme-studio-exit { justify-self: start; white-space: nowrap; }
@@ -2088,7 +2094,9 @@
     -webkit-mask: url('assets/Nocturne_Logo.svg') no-repeat center / contain;
   }
   /* ===================== PLACES CAROUSEL STYLES ===================== */
-  .places-section { margin-top: 18px; }
+  /* Nested section: undo the global `section { display: none }` that only
+     `.active` (top-level page sections) overrides. */
+  .places-section { display: block; margin-top: 18px; }
   .places-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .places-title { margin: 0; font-family: var(--font-display, serif); color: var(--gold); letter-spacing: 0.04em; }
   .places-nav { display: flex; gap: 6px; }
@@ -2173,7 +2181,7 @@
 <script type="text/babel" src="pages/PageSection.jsx"></script>
 <script type="text/babel" src="pages/ThemeStudio.jsx?v=20261111-savelayout"></script>
 <script type="text/babel" src="pages/HomePage.jsx"></script>
-<script type="text/babel" src="pages/WorldbookPage.jsx?v=20261111-places"></script>
+<script type="text/babel" src="pages/WorldbookPage.jsx?v=20261117-places-fix"></script>
 <script type="text/babel" src="pages/NpcsPage.jsx"></script>
 <script type="text/babel" src="pages/CharactersPage.jsx"></script>
 <script type="text/babel" src="pages/SessionZeroPage.jsx"></script>
@@ -3606,6 +3614,28 @@
      Photo cards shown as a 3-column, single-row carousel under the world
      map. Same shape as the generic content tables (title/body/image_url/
      visible_to_players) so the existing upload + visibility helpers work. */
+  /* Upscale-guard + downscale uploaded images before they go into the DB.
+     Raw base64 of a phone photo is several MB and makes the row INSERT/UPDATE
+     exceed the Postgres statement timeout ("canceling statement due to
+     statement timeout" / Supabase "upstream request timeout"). */
+  function compressImageDataUrl(dataUrl, maxDim, quality, done) {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxDim / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+        // Small images that already fit go through untouched.
+        if (scale === 1 && dataUrl.length < 200000) { done(dataUrl); return; }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        done(canvas.toDataURL('image/jpeg', quality));
+      } catch (_) { done(dataUrl); }
+    };
+    img.onerror = () => done(dataUrl);  // not a displayable image → pass through; save will surface the DB error
+    img.src = dataUrl;
+  }
+
   async function loadPlaces() {
     let query = sb.from('worldbook_places').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: true });
     if (!isDM) query = query.eq('visible_to_players', true);
@@ -3694,13 +3724,49 @@
   }
   window.togglePlaceEdit = togglePlaceEdit;
 
+  // Inline status line inside the editor so failures are visible without an alert
+  // and the editor no longer looks "stuck" after a failed or successful save.
+  function setPlaceStatus(id, message, isError) {
+    const edit = document.querySelector(`#place-${CSS.escape(String(id))} .place-edit`);
+    if (!edit) return;
+    let status = edit.querySelector('.place-save-status');
+    if (!message) { status?.remove(); return; }
+    if (!status) {
+      status = document.createElement('p');
+      status.className = 'place-save-status';
+      const actions = edit.lastElementChild;
+      edit.insertBefore(status, actions || null);
+    }
+    status.textContent = message;
+    status.style.color = isError ? 'var(--rose)' : 'var(--gold)';
+    status.style.margin = '6px 0 0';
+    status.style.fontSize = '0.8rem';
+  }
+
   async function savePlace(id) {
-    const title = document.getElementById(`place-title-${id}`)?.value.trim() || 'Unnamed place';
-    const body = document.getElementById(`place-body-${id}`)?.value || '';
-    const image_url = getEditableImageValue('place', id) || null;
-    const { error } = await sb.from('worldbook_places').update({ title, body, image_url }).eq('id', id);
-    if (error) { alert('Error saving place: ' + error.message); return; }
-    await loadPlaces();
+    const card = document.getElementById(`place-${id}`);
+    const saveBtn = card?.querySelector('.place-edit button.btn:not(.btn-secondary)');
+    setPlaceStatus(id, 'Saving…');
+    if (saveBtn) saveBtn.disabled = true;
+    try {
+      const title = document.getElementById(`place-title-${id}`)?.value.trim() || 'Unnamed place';
+      const body = document.getElementById(`place-body-${id}`)?.value || '';
+      const rawImage = getEditableImageValue('place', id);
+      // Compress before writing — see compressImageDataUrl above.
+      const image_url = rawImage ? await new Promise(resolve => compressImageDataUrl(rawImage, 1200, 0.82, resolve)) : null;
+      const { error } = await sb.from('worldbook_places').update({ title, body, image_url }).eq('id', id);
+      if (error) {
+        setPlaceStatus(id, 'Save failed: ' + error.message, true);
+        return;
+      }
+      setPlaceStatus(id, '');
+      await loadPlaces();
+      togglePlaceEdit(id);   // saved → close the editor like the other content tables
+    } catch (err) {
+      setPlaceStatus(id, 'Save failed: ' + (err?.message || err), true);
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
+    }
   }
   window.savePlace = savePlace;
 
